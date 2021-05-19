@@ -105,8 +105,8 @@ class DefEntry():
 
         if (self.debug_mode):
             logger.debug('------------------Debug Mode------------------')
-            fileee = open(dict_path / 'debug.txt')
-            json_data = json.load(fileee)
+            with open(dict_path / 'debug.txt') as json_file:
+                json_data = json.load(json_file)
         else:
             # Pons data
             json_data, status_code = self.get_json_from_pons_api(filename)
@@ -177,12 +177,13 @@ class DefEntry():
             url += self.word
             logger.debug(f'URL: {url}')
             try:
-                # TODO! put API secret in a seperate file
                 # TODO save API secret as envirement var
-                raw_data = requests.get(url, headers={
-                    "X-Secret": 'fbf1dc9d49514006'
-                    '975345df9332e3db3044572a8039d'
-                    '69f939284be74a015bb'})
+                api_path = Path.home() / 'PONS_API'
+                with open(api_path, 'r') as api_file:
+                    api_secret = api_file.read()
+                api_secret = api_secret.replace('\n', '')
+                # put your api-key from pons here
+                raw_data = requests.get(url, headers={"X-Secret": api_secret})
 
                 status_code = raw_data.status_code
 
@@ -208,7 +209,9 @@ class DefEntry():
 
                 else:
                     logger.info(f'Status Code: {str(status_code)} {message}')
-                    break
+                    json_data = ''
+                    return json_data, status_code
+
                 pons_data_fetched = 1
             except requests.exceptions.ConnectionError:
                 subprocess.Popen(

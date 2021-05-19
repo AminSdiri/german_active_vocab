@@ -724,15 +724,11 @@ def save_function(dict_path, word, defined_user_html, beispiel_de,
     defined_user_html = defined_user_html.replace('.:.', '')
     clean_html = clean_html.replace('.:.', '')
     # try:
-    f = open(dict_path / (word+'.html'), 'w')
-    f.write(defined_user_html)
-    f.close()
-    # except:
-    #     pass
-    # try:
-    f = open(dict_path / (word+'.quiz.html'), 'w')
-    f.write(clean_html)
-    f.close()
+    with open(dict_path / (word+'.html'), 'w') as f:
+        f.write(defined_user_html)
+
+    with open(dict_path / (word+'.quiz.html'), 'w') as f:
+        f.write(clean_html)
     # subprocess.Popen(['notify-send', word + ' gespeichert!'])
     logger.info(word + 'gespeichert')
     # except:
