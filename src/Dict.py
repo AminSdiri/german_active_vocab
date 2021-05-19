@@ -86,11 +86,11 @@ class MainWindow(QMainWindow):
         # (WARNING: inconsistant datetimes)
         focus_df = pd.read_csv(dict_path / 'wordpart_list.csv')
         focus_df['Next_date'] = pd.to_datetime(
-            focus_df['Next_date'], format='%d.%m.%y')
+            focus_df['Next_date'])
         focus_df['Created'] = pd.to_datetime(
-            focus_df['Created'], format='%d.%m.%y')
+            focus_df['Created'])
         focus_df['Previous_date'] = pd.to_datetime(
-            focus_df['Previous_date'], format='%d.%m.%y')
+            focus_df['Previous_date'])
 
         focus_df.set_index('Wordpart', inplace=True)
         self.focus_df = focus_df
@@ -339,8 +339,8 @@ class MainWindow(QMainWindow):
         else:
             wrd = index.text()
         name = dict_path / (wrd+'.html')
-        file = open(name, 'r')
-        text = file.read()
+        with open(name, 'r') as file:
+            text = file.read()
         self.history_window.txt_cont.insertHtml(text)
 
         self.history_window.return_button.clicked.connect(
@@ -441,18 +441,16 @@ class MainWindow(QMainWindow):
         quiz_file_path = self.quiz_obj.quiz_file_path
         full_file_path = self.quiz_obj.full_file_path
 
-        # try:
-        f = open(quiz_file_path, 'w')
-        f.write(defined_html)
-        f.close()
-        # except:
-        #     pass
-        # try:
-        f = open(full_file_path, 'w')
-        f.write(clean_html)
-        f.close()
+        # TODO Overwrite files?
+        with open(quiz_file_path, 'w') as f:
+            f.write(defined_html)
+
+        with open(full_file_path, 'w') as f:
+            f.write(clean_html)
+
         # subprocess.Popen(['notify-send', 'Beispiel gespeichert!'])
         logger.info('Beispiel gespeichert!')
+
         # except:
         #     logger.error('Error writing')
         #     # subprocess.Popen(['notify-send', 'Error writing'])
@@ -465,9 +463,8 @@ class MainWindow(QMainWindow):
         quiz_file_path = self.quiz_obj.quiz_file_path
 
         # try:
-        f = open(quiz_file_path, 'w')
-        f.write(clean_html)
-        f.close()
+        with open(quiz_file_path, 'w') as f:
+            f.write(clean_html)
         # subprocess.Popen(['notify-send', 'gespeichert!'])
         logger.info('gespeichert!')
         # except:
