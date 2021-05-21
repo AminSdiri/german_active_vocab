@@ -129,7 +129,14 @@ class QuizRatingDiag(QDialog):
         self.set_focus_button = QPushButton('add to Focus list', self)
         self.set_focus_button.clicked.connect(self.add_to_focus)
 
-        self.l1 = QLabel("How easy was it to remember this word, use the Cursor")
+        word_already_added_to_focus = any(
+            parent.focus_df.Word.str.contains(self.queued_word)
+            )
+        if word_already_added_to_focus:
+            self.set_focus_button.setEnabled(False)
+
+        self.l1 = QLabel(
+            "How easy was it to remember this word, use the Cursor")
         self.l1.move(205, 50)
         self.l1.setAlignment(Qt.AlignCenter)
 
@@ -148,7 +155,7 @@ class QuizRatingDiag(QDialog):
 
     def valuechange(self):
         logger.info("valuechange")
-        
+
         self.easiness = self.easiness_slider.value()
 
         if self.easiness < 3:

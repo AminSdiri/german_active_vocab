@@ -1,12 +1,10 @@
 # !/usr/bin/env python3
 # coding = utf-8
 
-from logging import log
 from pathlib import Path
 import sys
 import os
 import subprocess
-from time import CLOCK_THREAD_CPUTIME_ID
 from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QMessageBox
 from PyQt5.QtGui import QTextCharFormat, QFont, QTextCursor, QColor
 from datetime import datetime, timedelta
@@ -61,7 +59,7 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
 
         logger.info("init MainWindow")
-        
+
         super(MainWindow, self).__init__(parent)
         self.setGeometry(535, 150, 210, 50)
         self.launch_search_window()
@@ -424,9 +422,11 @@ class MainWindow(QMainWindow):
 
     def save_custom_definition_from_quizmode(self):
         logger.info("save_custom_definition_from_quizmode")
+
         beispiel_de = self.quiz_window.beispiel.text()
         defined_html = self.quiz_obj.full_text
         clean_html = self.quiz_obj.quiz_text
+
         if not beispiel_de == '':
             clean_beispiel_de = create_quiz_html(
                 beispiel_de, self.def_obj.words2hide)
@@ -442,14 +442,11 @@ class MainWindow(QMainWindow):
                                  '&nbsp;&nbsp;&nbsp;&nbsp;' +
                                  beispiel_de+'</i>')
 
-        quiz_file_path = self.quiz_obj.quiz_file_path
-        full_file_path = self.quiz_obj.full_file_path
-
         # TODO Overwrite files?
-        with open(quiz_file_path, 'w') as f:
+        with open(self.quiz_obj.quiz_file_path, 'w') as f:
             f.write(defined_html)
 
-        with open(full_file_path, 'w') as f:
+        with open(self.quiz_obj.full_file_path, 'w') as f:
             f.write(clean_html)
 
         # subprocess.Popen(['notify-send', 'Beispiel gespeichert!'])

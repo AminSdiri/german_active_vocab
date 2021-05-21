@@ -137,7 +137,7 @@ class QuizEntry():
     def quiz_counter(self):
 
         logger.info("quiz_counter")
-        
+
         no_words_left4today = False
         reached_daily_limit = False
         if self.todayscharge > 0:
