@@ -1,4 +1,3 @@
-import logging
 import math
 import pandas as pd
 from datetime import datetime, timedelta
@@ -9,14 +8,9 @@ from PyQt5.QtWidgets import (QPushButton, QWidget, QLabel,
                              QSlider, QDialog, QVBoxLayout)
 
 from ProcessQuizData import ignore_headers
+from utils import set_up_logger
 
-# set up logger
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)  # Levels: debug, info, warning, error, critical
-formatter = logging.Formatter('%(levelname)8s -- %(name)-15s '
-                              'line %(lineno)-4s: %(message)s')
-logger.handlers[0].setFormatter(formatter)
+logger = set_up_logger(__name__)
 
 dict_path = Path.home() / 'Dictionnary'
 
@@ -74,25 +68,34 @@ class DefinitionWindow(QWidget):
 class QuizWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+
         logger.info("init defQuiz")
+
         self.txt_cont = QTextEdit(self)
         self.txt_cont.move(5, 5)
         self.txt_cont.resize(690, 615)
         self.txt_cont.setReadOnly(True)
-        self.next_btn = QPushButton('>', self)
-        self.next_btn.resize(200, 27)
-        self.next_btn.move(50, 670)
+
         self.beispiel = QLineEdit(self)
         self.beispiel.move(5, 625)
         self.beispiel.resize(690, 40)
+
+        self.next_btn = QPushButton('>', self)
+        self.next_btn.resize(200, 27)
+        self.next_btn.move(50, 670)
+
         self.save_button = QPushButton('Save', self)
         self.save_button.move(390, 670)
+
         self.populate = QPushButton('Populate', self)
         self.populate.move(490, 670)
+
         self.close_button = QPushButton('Close', self)
         self.close_button.move(590, 670)
+
         self.hide_button = QPushButton('Hide', self)
         self.hide_button.move(290, 670)
+
         self.update_button = QPushButton('Update', self)
         self.update_button.move(590, 710)
 
@@ -122,18 +125,21 @@ class QuizRatingDiag(QDialog):
         self.halfway_date = now + \
             timedelta(days=math.ceil(
                 parent.quiz_obj.quiz_params['real_interval']/2))
+
         self.set_focus_button = QPushButton('add to Focus list', self)
         self.set_focus_button.clicked.connect(self.add_to_focus)
 
-        self.l1 = QLabel("Hello")
+        self.l1 = QLabel("How easy was it to remember this word, use the Cursor")
         self.l1.move(205, 50)
         self.l1.setAlignment(Qt.AlignCenter)
+
         self.l2 = QLabel("")
         self.l2.move(205, 50)
         self.l2.setAlignment(Qt.AlignCenter)
 
         layout = QVBoxLayout(self)
         self.setLayout(layout)
+
         layout.addWidget(self.easiness_slider)
         layout.addWidget(self.set_button)
         layout.addWidget(self.set_focus_button)
@@ -142,6 +148,7 @@ class QuizRatingDiag(QDialog):
 
     def valuechange(self):
         logger.info("valuechange")
+        
         self.easiness = self.easiness_slider.value()
 
         if self.easiness < 3:
@@ -180,14 +187,14 @@ class QuizRatingDiag(QDialog):
 
         word = self.queued_word
         general_EF = self.general_EF
-        logger.debug('Ignore List:')
-        logger.debug(ignore_list)
+        logger.debug(f'Ignore List: {ignore_list}')
+
         df_quiz = pd.read_csv(dict_path / 'wordlist.csv')
         df_quiz.set_index("Word", inplace=True)
         df_quiz.loc[word, "Focused"] = 1
         df_quiz.to_csv(dict_path / 'wordlist.csv')
+
         df = pd.read_csv(dict_path / 'wordpart_list.csv')
-        # ka = (df[df["Word"] == word])
         df.set_index("Wordpart", inplace=True)
         for k in range(0, nb_parts):
             wordpart = word+' '+str(k)
@@ -213,15 +220,18 @@ class FocusWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         logger.info("init defFocus")
+
         self.txt_cont = QTextEdit(self)
         self.txt_cont.move(5, 5)
         self.txt_cont.resize(690, 215)
         self.txt_cont.setReadOnly(True)
+
         self.next_btn = QPushButton('>', self)
         self.next_btn.move(300, 270)
+        self.next_btn.resize(200, 27)
+
         self.ignore_button = QPushButton('Ignore', self)
         self.ignore_button.move(50, 270)
-        self.next_btn.resize(200, 27)
 
 
 class FocusRatingDiag(QDialog):
@@ -229,36 +239,48 @@ class FocusRatingDiag(QDialog):
         super().__init__(parent)
         logger.info("init input_easiness_focus")
         self.setGeometry(430, 550, 450, 150)
+
         self.easiness_slider = QSlider(Qt.Horizontal)
         self.easiness_slider.move(100, 350)
         self.easiness_slider.setMinimum(0)
         self.easiness_slider.setMaximum(5)
         self.easiness_slider.valueChanged.connect(self.valuechange)
         self.easiness_slider.setTickPosition(QSlider.TicksBelow)
+
         self.set_button = QPushButton('Set', self)
+
         layout = QVBoxLayout(self)
+        self.setLayout(layout)
+
         self.l1 = QLabel("Hello")
         self.l1.move(205, 50)
         self.l1.setAlignment(Qt.AlignCenter)
+
         self.l2 = QLabel("")
         self.l2.move(205, 50)
         self.l2.setAlignment(Qt.AlignCenter)
-        self.setLayout(layout)
-        self.easiness = self.easiness_slider.value()
-        self.set_button.clicked.connect(self.closing_dialog)
-        self.done(self.easiness)
+
         layout.addWidget(self.easiness_slider)
         layout.addWidget(self.l1)
         layout.addWidget(self.l2)
         layout.addWidget(self.set_button)
 
+        self.easiness = self.easiness_slider.value()
+
+        self.set_button.clicked.connect(self.closing_dialog)
+
+        self.done(self.easiness)
+
     def valuechange(self):
         logger.info("valuechange")
+
         self.easiness = self.easiness_slider.value()
+
         if self.easiness < 3:
             self.l1.setText('Forgeting')
         elif self.easiness >= 3:
             self.l1.setText('Remembering')
+
         if self.easiness == 5:
             self.l2.setText('5. Easy!')
         elif self.easiness == 4:

@@ -1,18 +1,13 @@
-import logging
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 from WordProcessing import create_quiz_html
 from pathlib import Path
 
+from utils import set_up_logger
+
 dict_path = Path.home() / 'Dictionnary'
 
-# set up logger
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())  # .setFormatter(formatter)
-logger.setLevel(logging.INFO)  # Levels: debug, info, warning, error, critical
-formatter = logging.Formatter(
-    '%(levelname)8s -- %(name)-15s line %(lineno)-4s: %(message)s')
-logger.handlers[0].setFormatter(formatter)
+logger = set_up_logger(__name__)
 
 
 def format_html(defined_html):
@@ -124,6 +119,7 @@ def format_html(defined_html):
 
 
 def format_titel_html(headword_full, is_first_word_case):
+
     logger.info("format_titel_html")
 
     headword_full = headword_full.encode(encoding='UTF-8', errors='strict')\
@@ -342,7 +338,8 @@ def standarize_json(json_data, translate):
     # and this
     standarized_json[0]['hits'][0]['roms'][0]['arabs'][0]['header'] = ''
     standarized_json[0]['hits'][0]['roms'][0]['arabs'][0]['translations'] = []
-    standarized_json[0]['hits'][0]['roms'][0]['arabs'][0]['translations'].append({})
+    standarized_json[0]['hits'][0]['roms'][0]['arabs'][0]['translations'].append({
+    })
     # and this
     standarized_json[0]['hits'][0]['roms'][0]['arabs'][0]['translations'][0]['source'] = ''
     # and this

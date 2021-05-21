@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-import logging
 import subprocess
 from bs4.builder import HTML
 import requests
@@ -21,16 +20,11 @@ from ProcessData import (
     format_titel_html,
     treat_def_part)
 from WordProcessing import update_words2hide
+from utils import set_up_logger
 
 dict_path = Path.home() / 'Dictionnary'
 
-# set up logger
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())  # .setFormatter(formatter)
-logger.setLevel(logging.INFO)  # Levels: debug, info, warning, error, critical
-formatter = logging.Formatter(
-    '%(levelname)8s -- %(name)-15s line %(lineno)-4s: %(message)s')
-logger.handlers[0].setFormatter(formatter)
+logger = set_up_logger(__name__)
 
 # TODO use a database instead of files to save standarized Json and raw Json
 
@@ -120,9 +114,9 @@ class DefEntry():
                             duden_soup)
                         self.defined_html = processed_html_duden
                     else:
-                        self.defined_html = '<div align="center"><font size="5"'
-                        ' face="Arial Black">Wort nicht gefunden '
-                        ' in Duden</font></div>'
+                        self.defined_html = ('<div align="center"><font size="5"'
+                                             ' face="Arial Black">Wort nicht gefunden '
+                                             ' in Duden</font></div>')
                         self.duden_synonyms = ''
                     return
             else:
@@ -136,14 +130,14 @@ class DefEntry():
                             duden_soup)
                         self.defined_html = processed_html_duden
                     else:
-                        self.defined_html = '<div align="center"><font size="5"'
-                        ' face="Arial Black">Wort nicht gefunden '
-                        'weder in Pons nor in Duden</font></div>'
+                        self.defined_html = ('<div align="center"><font size="5"'
+                                             ' face="Arial Black">Wort nicht gefunden '
+                                             'weder in Pons nor in Duden</font></div>')
                         self.duden_synonyms = ''
                 else:
-                    self.defined_html = '<div align="center"><font size="5" '
-                    'face="Arial Black">Übersetzung '
-                    'nicht gefunden in Pons</font></div>'
+                    self.defined_html = ('<div align="center"><font size="5" '
+                                         'face="Arial Black">Übersetzung '
+                                         'nicht gefunden in Pons</font></div>')
                 not_getting_from_pons = 1
 
         if not not_getting_from_pons:
@@ -153,7 +147,7 @@ class DefEntry():
         #         self.defined_html, self.duden_synonyms, self.words2hide,
         #          translate)
 
-    def get_json_from_pons_api(self, filename):
+    def get_json_from_pons_api(self, filename: str):
         logger.debug('Looking in Pons cache')
         json_file, json_cache_found = get_cache(filename)
 
@@ -163,10 +157,9 @@ class DefEntry():
             status_code = 200
             return json_data, status_code
 
-        logger.info('Online searching for Word in Pms')
+        logger.info('Online searching for Word in Pons')
         status_code = 0
-        pons_data_fetched = 0
-        while not pons_data_fetched:
+        while True:
             logger.info('Online searching for Word in Pons')
             if self.translate2en:
                 url = "https://api.pons.com/v1/dictionary?l=deen&q="
@@ -182,6 +175,7 @@ class DefEntry():
                 with open(api_path, 'r') as api_file:
                     api_secret = api_file.read()
                 api_secret = api_secret.replace('\n', '')
+
                 # put your api-key from pons here
                 raw_data = requests.get(url, headers={"X-Secret": api_secret})
 
@@ -202,17 +196,16 @@ class DefEntry():
 
                 if status_code == 200:
                     logger.debug('got Json from Pons')
-                    raw_data = raw_data.json()
+                    json_data = raw_data.json()
 
                     with open(dict_path / 'Json' / filename, 'w') as outfile:
-                        json.dump(raw_data, outfile)
-
+                        json.dump(json_data, outfile)
                 else:
                     logger.info(f'Status Code: {str(status_code)} {message}')
                     json_data = ''
-                    return json_data, status_code
 
-                pons_data_fetched = 1
+                return json_data, status_code
+
             except requests.exceptions.ConnectionError:
                 subprocess.Popen(
                     ['notify-send', 'No Connection to Mutter',
@@ -221,12 +214,11 @@ class DefEntry():
                 time.sleep(10)
                 continue
 
-        json_data = json.loads(raw_data)
-        return json_data, status_code
+    def convert_json2Html(self, json_data: json, translate: bool, soup):
 
-    def convert_json2Html(self, json_data, translate, soup):
         # TODO change function structure to render html from json using
         # a template.html
+
         # TODO use CSS file to format the rendred html
         logger.info("convert_json2Html")
         self.defined_html = bs('<html><body><p></p></body></html>', 'lxml')
@@ -448,7 +440,15 @@ def get_cache(filename):
     return cache_file_content, cache_found
 
 
-def replace_umlauts(word):
+def replace_umlauts(word: str):
+    """[summary]
+
+    Args:
+        word (str): [description]
+
+    Returns:
+        [str]: strings without Umlaut
+    """
     normalized_word = word.replace("ü", "ue")\
         .replace("ö", "oe")\
         .replace("ä", "ae")\

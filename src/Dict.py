@@ -1,11 +1,12 @@
 # !/usr/bin/env python3
 # coding = utf-8
 
-import logging
+from logging import log
 from pathlib import Path
 import sys
 import os
 import subprocess
+from time import CLOCK_THREAD_CPUTIME_ID
 from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QMessageBox
 from PyQt5.QtGui import QTextCharFormat, QFont, QTextCursor, QColor
 from datetime import datetime, timedelta
@@ -23,7 +24,7 @@ from DictWindows import (SearchWindow,
                          HistoryWindow)
 from ProcessQuizData import (
     FocusEntry, QuizEntry, spaced_repetition)
-# ,quiz_counter
+from utils import set_up_logger
 
 # TODO write test functions for the different functionalities,
 # use the debug_mode variable for pytest
@@ -35,28 +36,6 @@ from ProcessQuizData import (
 
 # TODO! add licence for only personal use, no commercial use
 
-# set up logger
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)  # Levels: debug, info, warning, error, critical
-formatter = logging.Formatter(
-    '%(levelname)8s -- %(name)-15s line %(lineno)-4s: %(message)s')
-logger.handlers[0].setFormatter(formatter)
-
-now = datetime.now() - timedelta(hours=3)
-
-logger.debug(now)
-
-dict_path = Path.home() / 'Dictionnary'
-
-Main_word_font = '"Arial Black"'
-Conjugation_font = '"Lato"'
-Word_classe_font = '"Lato"'
-normal_font = QFont("Arial", 12)  # 3, QFont.Bold)
-focus_font = QFont("Arial", 20)
-quiz_priority_order: str = 'due_words'
-maxrevpersession = 10
-
 # TODO! find alternative to notify-send for windows and macos
 # os-agnostic notification alternative
 
@@ -65,10 +44,24 @@ maxrevpersession = 10
 
 # TODO convert functions to methods for Def, Quiz and Focus entries classes
 
+logger = set_up_logger(__name__)
+
+dict_path = Path.home() / 'Dictionnary'
+Main_word_font = '"Arial Black"'
+Conjugation_font = '"Lato"'
+Word_classe_font = '"Lato"'
+normal_font = QFont("Arial", 12)  # 3, QFont.Bold)
+focus_font = QFont("Arial", 20)
+quiz_priority_order: str = 'due_words'
+maxrevpersession = 10
+now = datetime.now() - timedelta(hours=3)
+
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
+
         logger.info("init MainWindow")
+        
         super(MainWindow, self).__init__(parent)
         self.setGeometry(535, 150, 210, 50)
         self.launch_search_window()
@@ -77,9 +70,9 @@ class MainWindow(QMainWindow):
         df.set_index('Word', inplace=True)
         df['Next_date'] = pd.to_datetime(
             df['Next_date'])  # , format='%d.%m.%y')
-        df['Created'] = pd.to_datetime(df['Created'])  # , format='%d.%m.%y')
+        df['Created'] = pd.to_datetime(df['Created'])
         df['Previous_date'] = pd.to_datetime(
-            df['Previous_date'])  # , format='%d.%m.%y')
+            df['Previous_date'])
         self.wordlist_df = df
 
         # TODO! check datetimeformat by writing df to csv
@@ -91,11 +84,11 @@ class MainWindow(QMainWindow):
             focus_df['Created'])
         focus_df['Previous_date'] = pd.to_datetime(
             focus_df['Previous_date'])
-
         focus_df.set_index('Wordpart', inplace=True)
         self.focus_df = focus_df
 
     def launch_search_window(self):
+
         logger.info("Launch search window")
 
         nbargin = len(sys.argv) - 1
@@ -126,7 +119,9 @@ class MainWindow(QMainWindow):
             self.show()
 
     def launch_definition_window(self):
+
         logger.info("launch definition window")
+
         self.move(315, 50)
         self.resize(700, 690)
         self.def_window = DefinitionWindow(self)
@@ -192,7 +187,9 @@ class MainWindow(QMainWindow):
         self.show()
 
     def launch_history_window(self):
+
         logger.info("launch history list window")
+
         self.resize(400, 500)
         self.move(315, 50)
         self.history_window = HistoryWindow(self)
@@ -211,11 +208,8 @@ class MainWindow(QMainWindow):
         self.allwords.show()
 
     def launch_quiz_window(self):
+
         logger.info("launch_quiz_window")
-        self.resize(700, 700)
-        self.move(315, 10)
-        self.quiz_window = QuizWindow(self)
-        self.setCentralWidget(self.quiz_window)
 
         self.quiz_obj = QuizEntry(quiz_priority_order=quiz_priority_order,
                                   words_dataframe=self.wordlist_df,
@@ -230,10 +224,19 @@ class MainWindow(QMainWindow):
             self.reached_daily_limit_dialogue()
 
         if no_words_left4today:
+            self.old_self = self
             self.no_words_left4today_dialogue()
 
+        self.resize(700, 700)
+        self.move(315, 10)
+
+        self.quiz_window = QuizWindow()
+        self.setCentralWidget(self.quiz_window)
+
         self.setWindowTitle(self.quiz_obj.quiz_window_titel)
+        # self.quiz_window.txt_cont.clear()
         self.quiz_window.txt_cont.insertHtml(self.quiz_obj.quiz_text)
+
         self.quiz_window.next_btn.clicked.connect(self.quiz_score)
         self.quiz_window.next_btn.clicked.connect(self.launch_quiz_window)
         self.quiz_window.close_button.clicked.connect(self.close)
@@ -242,6 +245,7 @@ class MainWindow(QMainWindow):
             self.save_custom_quiztext_from_quizmode)
         self.quiz_window.update_button.clicked.connect(self.update_word_html)
         self.quiz_window.hide_button.clicked.connect(self.hide_word_manually)
+
         self.show()
 
     def launch_focus_window(self, index):
@@ -301,6 +305,7 @@ class MainWindow(QMainWindow):
                                       " Come back later... "
                                       "(If you want to continue hit Yes!)",
                                       QMessageBox.Yes | QMessageBox.Close)
+
         if choice == QMessageBox.Yes:
             logger.debug("resetting Count")
             self.quiz_obj._nb_revisited = 0
@@ -317,10 +322,9 @@ class MainWindow(QMainWindow):
                                       "old words?",
                                       QMessageBox.Yes | QMessageBox.Close)
         if choice == QMessageBox.Yes:
-            logger.debug("Repeating list Naaaaaaoooww!!!!")
+            logger.info("Repeating list Naaaaaaoooww!!!!")
             quiz_priority_order = 'old_words'
             logger.debug('mod switch')
-            self.quiz_window.txt_cont.clear()
             self.launch_quiz_window()
         else:
             sys.exit()

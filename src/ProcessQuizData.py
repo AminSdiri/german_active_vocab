@@ -1,6 +1,5 @@
 # from PyQt5.QtCore import *
 from dataclasses import dataclass, field
-import logging
 import math
 from bs4.builder import HTML
 import pandas as pd
@@ -9,15 +8,11 @@ from bs4 import BeautifulSoup as bs
 from pathlib import Path
 from pandas.core.frame import DataFrame
 
+from utils import set_up_logger
+
 dict_path = Path.home() / 'Dictionnary'
 
-# set up logger
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)  # Levels: debug, info, warning, error, critical
-formatter = logging.Formatter(
-    '%(levelname)8s -- %(name)-15s line %(lineno)-4s: %(message)s')
-logger.handlers[0].setFormatter(formatter)
+logger = set_up_logger(__name__)
 
 
 @dataclass
@@ -36,9 +31,12 @@ class QuizEntry():
     def __post_init__(self):
         self.queue_quiz_word()
 
-        self.get_file_paths()
+        self.get_quiz_file_paths()
 
-    def get_file_paths(self):
+    def get_quiz_file_paths(self):
+
+        logger.info("get quiz file paths")
+
         self.quiz_file_path = (dict_path /
                                (self.quiz_params['queued_word'] +
                                 ".quiz.html"))
@@ -51,7 +49,9 @@ class QuizEntry():
             self.full_text = f.read()
 
     def queue_quiz_word(self):
+
         logger.info("queue_quiz_word")
+
         now = datetime.now() - timedelta(hours=3)
         self.todayscharge = 0
         yesterday = now + timedelta(days=-1)
@@ -110,8 +110,10 @@ class QuizEntry():
 
             last_seen = self.words_dataframe.loc[queued_word, "Previous_date"]\
                 .strftime('%d.%m.%y')
-            self.quiz_window_titel = f'Wörterbuch: Quiz '
-            f'({str(self.todayscharge)}) {planned_str} , Last seen  {last_seen}'
+            self.quiz_window_titel = ('Wörterbuch: Quiz '
+                                      f'({str(self.todayscharge)}) '
+                                      f'{planned_str},'
+                                      f' Last seen  {last_seen}')
 
             repetitions = float(
                 self.words_dataframe.loc[queued_word, "Repetitions"])
@@ -133,6 +135,9 @@ class QuizEntry():
                             'repetitions': repetitions}
 
     def quiz_counter(self):
+
+        logger.info("quiz_counter")
+        
         no_words_left4today = False
         reached_daily_limit = False
         if self.todayscharge > 0:

@@ -2,14 +2,9 @@ import logging
 import re
 from functools import partial
 
-# set up logger
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())  # .setFormatter(formatter)
-# Levels: debug, info, warning, error, critical
-logger.setLevel(logging.WARNING)
-formatter = logging.Formatter(
-    '%(levelname)8s -- %(name)-15s line %(lineno)-4s: %(message)s')
-logger.handlers[0].setFormatter(formatter)
+from utils import set_up_logger
+
+logger = set_up_logger(__name__, level=logging.WARNING)
 
 word_re = re.compile(r'\b[a-zA-Z]+\b')
 
@@ -94,7 +89,7 @@ def reverse_between_words(stri, wrd1, wrd2, wrd21):
     stri2 += (wrd1
               + stri[inds2[k]-1:(inds1[k]+len(wrd1)-1):-1]
               + stri[inds2[k]:])
-              
+
     return stri2
 
 
