@@ -1,7 +1,9 @@
 import math
+import subprocess
 import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
+from bs4 import BeautifulSoup as bs
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QPushButton, QWidget, QLabel,
                              QLineEdit, QTextEdit, QCheckBox,
@@ -119,6 +121,7 @@ class QuizRatingDiag(QDialog):
         self.set_button.clicked.connect(self.closing_dialog)
 
         self.quiz_text = parent.quiz_obj.quiz_text
+        self.full_text = parent.quiz_obj.full_text
         self.queued_word = parent.quiz_obj.quiz_params['queued_word']
         self.general_EF = parent.quiz_obj.quiz_params['EF_score']
         now = datetime.now() - timedelta(hours=3)
@@ -196,6 +199,10 @@ class QuizRatingDiag(QDialog):
         general_EF = self.general_EF
         logger.debug(f'Ignore List: {ignore_list}')
 
+        quiz_parts = bs(self.quiz_text, "lxml").find_all('p')
+        full_parts = bs(self.full_text, "lxml").find_all('p')
+        assert len(quiz_parts) == len(full_parts)
+
         df_quiz = pd.read_csv(dict_path / 'wordlist.csv')
         df_quiz.set_index("Word", inplace=True)
         df_quiz.loc[word, "Focused"] = 1
@@ -209,17 +216,17 @@ class QuizRatingDiag(QDialog):
             df.loc[wordpart, "Repetitions"] = 0
             df.loc[wordpart, "EF_score"] = general_EF
             df.loc[wordpart, "Interval"] = 6
-            df.loc[wordpart, "Previous_date"] = now.strftime("%d.%m.%y")
-            df.loc[wordpart, "Created"] = now.strftime("%d.%m.%y")
+            df.loc[wordpart, "Previous_date"] = now     # .strftime("%d.%m.%y")
+            df.loc[wordpart, "Created"] = now   # .strftime("%d.%m.%y")
             insixdays = now + timedelta(days=6)
-            df.loc[wordpart, "Next_date"] = insixdays.strftime("%d.%m.%y")
+            df.loc[wordpart, "Next_date"] = insixdays   # .strftime("%d.%m.%y")
             df.loc[wordpart, "Part"] = k
             df.loc[wordpart, "Halfway_date_from_quiz"] = self.halfway_date
             df.loc[wordpart, "Ignore"] = ignore_list[k]
         df.to_csv(dict_path / 'wordpart_list.csv')
 
-        # subprocess.Popen(
-        #     ['notify-send', '"'+word+'"', 'switched to Focus Mode'])
+        subprocess.Popen(
+            ['notify-send', '"'+word+'"', 'Add to Focus Mode'])
         logger.info(f'{word} switched to Focus Mode')
 
 
@@ -234,11 +241,11 @@ class FocusWindow(QWidget):
         self.txt_cont.setReadOnly(True)
 
         self.next_btn = QPushButton('>', self)
-        self.next_btn.move(300, 270)
-        self.next_btn.resize(200, 27)
+        self.next_btn.move(150, 240)
+        self.next_btn.resize(400, 40)
 
         self.ignore_button = QPushButton('Ignore', self)
-        self.ignore_button.move(50, 270)
+        self.ignore_button.move(50, 240)
 
 
 class FocusRatingDiag(QDialog):
@@ -315,15 +322,17 @@ class HistoryWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         logger.info("init defHistory")
+
         self.return_button = QPushButton('Return', self)
         self.return_button.move(390, 660)
-        self.revisited = QPushButton('revisited', self)
-        self.revisited.move(490, 660)
+
+        self.focus_button = QPushButton('Focus', self)
+        self.focus_button.move(490, 660)
+
         self.close_button = QPushButton('Close', self)
         self.close_button.move(590, 660)
+
         self.txt_cont = QTextEdit(self)
         self.txt_cont.move(5, 5)
         self.txt_cont.resize(690, 640)
         self.txt_cont.setReadOnly(True)
-        self.quiz_window = QCheckBox('Quiz Mode', self)
-        self.quiz_window.move(5, 660)

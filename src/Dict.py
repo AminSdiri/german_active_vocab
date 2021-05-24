@@ -9,10 +9,11 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QMessageBox
 from PyQt5.QtGui import QTextCharFormat, QFont, QTextCursor, QColor
 from datetime import datetime, timedelta
 import pandas as pd
+from bs4 import BeautifulSoup as bs
 
 from GetData import DefEntry
 from ProcessData import save_function
-from WordProcessing import create_quiz_html, hide_text
+from WordProcessing import create_quiz_html, fix_html_with_custom_example, hide_text
 from DictWindows import (SearchWindow,
                          DefinitionWindow,
                          QuizWindow,
@@ -21,7 +22,7 @@ from DictWindows import (SearchWindow,
                          QuizRatingDiag,
                          HistoryWindow)
 from ProcessQuizData import (
-    FocusEntry, QuizEntry, spaced_repetition)
+    FocusEntry, QuizEntry, ignore_headers, spaced_repetition)
 from utils import set_up_logger
 
 # TODO write test functions for the different functionalities,
@@ -100,10 +101,8 @@ class MainWindow(QMainWindow):
             self.search_form = SearchWindow(self)
             self.setWindowTitle("Dictionnary")
             self.setCentralWidget(self.search_form)
-            try:
+            if hasattr(self, 'def_obj'):
                 self.search_form.line.setText(self.def_obj.word)
-            except AttributeError:
-                pass
             self.search_form.line.returnPressed.connect(
                 self.launch_definition_window)
             self.search_form.define_button.clicked.connect(
@@ -222,7 +221,6 @@ class MainWindow(QMainWindow):
             self.reached_daily_limit_dialogue()
 
         if no_words_left4today:
-            self.old_self = self
             self.no_words_left4today_dialogue()
 
         self.resize(700, 700)
@@ -252,10 +250,10 @@ class MainWindow(QMainWindow):
         self.move(315, 180)
         self.focus_window = FocusWindow(self)
         self.setCentralWidget(self.focus_window)
-        self.setWindowTitle("Wörterbuch: Focus mode")
 
         self.focus_obj = FocusEntry(focus_df=self.focus_df)
 
+        self.setWindowTitle(self.focus_obj.window_titel)
         self.focus_window.txt_cont.setFont(focus_font)
         self.focus_window.txt_cont.insertHtml(self.focus_obj.focus_part)
 
@@ -332,23 +330,80 @@ class MainWindow(QMainWindow):
         self.resize(700, 700)
         self.move(315, 50)
 
-        self.history_window = HistoryWindow(self)
+        self.history_window = HistoryWindow(self)  # Why?
         self.setWindowTitle("Wörterbuch")
         self.setCentralWidget(self.history_window)
 
         if type(index) is str:
-            wrd = index
+            self.history_entry = index
         else:
-            wrd = index.text()
-        name = dict_path / (wrd+'.html')
+            self.history_entry = index.text()
+
+        name = dict_path / (self.history_entry+'.html')
         with open(name, 'r') as file:
             text = file.read()
+
         self.history_window.txt_cont.insertHtml(text)
 
         self.history_window.return_button.clicked.connect(
             self.launch_history_window)
         self.history_window.close_button.clicked.connect(self.close)
+        self.history_window.focus_button.clicked.connect(
+            self.add_to_focus_from_history)
         self.show()
+
+    def add_to_focus_from_history(self):
+        logger.info("add_to_focus_from_history")
+        now = datetime.now() - timedelta(hours=3)
+
+        word = self.history_entry.replace('.quiz', '')
+
+        quiz_file_path = (dict_path / (word+".quiz.html"))
+        with open(quiz_file_path, 'r') as f:
+            quiz_text = f.read()
+
+        full_file_path = (dict_path / (word+".html"))
+        with open(full_file_path, 'r') as f:
+            full_text = f.read()
+
+        full_text = fix_html_with_custom_example(full_text)
+        with open(full_file_path, 'w') as f:
+            f.write(full_text)
+        quiz_text = fix_html_with_custom_example(quiz_text)
+        with open(quiz_file_path, 'w') as f:
+            f.write(quiz_text)
+
+        quiz_parts = bs(quiz_text, "lxml").find_all('p')
+        full_parts = bs(full_text, "lxml").find_all('p')
+        assert len(quiz_parts) == len(full_parts)
+
+        ignore_list, nb_parts = ignore_headers(quiz_text)
+        logger.debug(f'Ignore List: {ignore_list}')
+
+        general_EF = self.wordlist_df.loc[word, 'EF_score']
+        self.wordlist_df.loc[word, 'Focused'] = 1
+        self.wordlist_df.to_csv(dict_path / 'wordlist.csv')
+
+        # TODO Read dfs only one time, save it multiple times after modifying
+        df = pd.read_csv(dict_path / 'wordpart_list.csv')
+        df.set_index("Wordpart", inplace=True)
+        for k in range(0, nb_parts):
+            wordpart = word+' '+str(k)
+            df.loc[wordpart, "Word"] = word
+            df.loc[wordpart, "Repetitions"] = 0
+            df.loc[wordpart, "EF_score"] = general_EF
+            df.loc[wordpart, "Interval"] = 6
+            df.loc[wordpart, "Previous_date"] = now     # .strftime("%d.%m.%y")
+            df.loc[wordpart, "Created"] = now   # .strftime("%d.%m.%y")
+            insixdays = now + timedelta(days=6)
+            df.loc[wordpart, "Next_date"] = insixdays   # .strftime("%d.%m.%y")
+            df.loc[wordpart, "Part"] = k
+            df.loc[wordpart, "Ignore"] = ignore_list[k]
+        df.to_csv(dict_path / 'wordpart_list.csv')
+
+        subprocess.Popen(
+            ['notify-send', '"'+word+'"', 'Add to Focus Mode'])
+        logger.info(f'{word} switched to Focus Mode')
 
     def ignore_part(self):
         logger.info("ignore_part")
@@ -411,7 +466,7 @@ class MainWindow(QMainWindow):
         defined_user_html = self.def_window.txt_cont.toHtml()
         beispiel_de = self.def_window.beispiel.text()
         beispiel_en = self.def_window.beispiel2.text()
-        words_2_hide = self.def_obj.words2hide
+        words_2_hide = self.def_obj.words_to_hide
         word = self.def_obj.word
         tag = ''
         if studie_tag:
@@ -429,7 +484,7 @@ class MainWindow(QMainWindow):
 
         if not beispiel_de == '':
             clean_beispiel_de = create_quiz_html(
-                beispiel_de, self.def_obj.words2hide)
+                beispiel_de, self.def_obj.words_to_hide)
             if 'Eigenes Beispiel' in defined_html:
                 clean_html += ('<br><i>&nbsp;&nbsp;&nbsp;&nbsp;' +
                                clean_beispiel_de+'</i>')
@@ -442,7 +497,8 @@ class MainWindow(QMainWindow):
                                  '&nbsp;&nbsp;&nbsp;&nbsp;' +
                                  beispiel_de+'</i>')
 
-        # TODO Overwrite files?
+        # TODO Overwrite files?, in wich case I want to do that
+        # in wich ccase I want to reset DF ries
         with open(self.quiz_obj.quiz_file_path, 'w') as f:
             f.write(defined_html)
 

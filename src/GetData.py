@@ -19,7 +19,7 @@ from ProcessData import (
     format_html,
     format_titel_html,
     treat_def_part)
-from WordProcessing import update_words2hide
+from WordProcessing import update_words_to_hide
 from utils import set_up_logger
 
 dict_path = Path.home() / 'Dictionnary'
@@ -42,7 +42,7 @@ class DefEntry():
     debug_mode: bool = False
     defined_html: HTML = ''
     duden_synonyms: list = field(default_factory=list)
-    words2hide: list = field(default_factory=list)
+    words_to_hide: list = field(default_factory=list)
 
     def __post_init__(self):
 
@@ -144,7 +144,7 @@ class DefEntry():
             self.convert_json2Html(json_data, translate, duden_soup)
 
         # return (not_getting_from_pons, json_data, duden_soup,
-        #         self.defined_html, self.duden_synonyms, self.words2hide,
+        #         self.defined_html, self.duden_synonyms, self.words_to_hide,
         #          translate)
 
     def get_json_from_pons_api(self, filename: str):
@@ -244,7 +244,7 @@ class DefEntry():
 
                 if full_headword != '':
 
-                    self.words_to_hide = update_words2hide(
+                    self.words_to_hide = update_words_to_hide(
                         full_headword, self.words_to_hide)
 
                     full_headword = format_titel_html(

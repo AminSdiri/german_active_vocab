@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup as bs
 from pathlib import Path
 from pandas.core.frame import DataFrame
+from WordProcessing import fix_html_with_custom_example
 
 from utils import set_up_logger
 
@@ -42,11 +43,20 @@ class QuizEntry():
                                 ".quiz.html"))
         with open(self.quiz_file_path, 'r') as f:
             self.quiz_text = f.read()
+
+        self.quiz_text = fix_html_with_custom_example(self.quiz_text)
+        with open(self.quiz_file_path, 'w') as f:
+            f.write(self.quiz_text)
+
         self.full_file_path = (dict_path /
                                (self.quiz_params['queued_word'] +
                                 ".html"))
         with open(self.full_file_path, 'r') as f:
             self.full_text = f.read()
+
+        self.full_text = fix_html_with_custom_example(self.full_text)
+        with open(self.full_file_path, 'w') as f:
+            f.write(self.full_text)
 
     def queue_quiz_word(self):
 
@@ -157,6 +167,7 @@ class FocusEntry():
     focus_part: str = ''
     focus_part_revealed: str = ''
     focus_params_dict: dict = field(default_factory=dict)
+    window_titel: str = 'Focus mode'
 
     def __post_init__(self):
         self.queue_focus_word()
@@ -168,6 +179,8 @@ class FocusEntry():
         before_today = self.focus_df["Next_date"] <= now.strftime("%Y-%m-%d")
         due_words = self.focus_df[before_today]
         due_words['weights'] = 1/due_words['EF_score']
+        ignored_due_words = (due_words['Ignore'] == 1).sum()
+        self.window_titel += f' ({len(due_words) - ignored_due_words})'
         while selected_ignored:
             logger.debug(due_words)
             # TODO more sophisticated weighting
@@ -243,6 +256,8 @@ def ignore_headers(quiz_text):
             if contain_example:
                 ignore_list[index] = 0
                 continue
+        if quiz_list[index].find_all('i'):
+            ignore_list[index] = 0
     # logger.debug('Indexes to Ignore', ignore_list)
     return ignore_list, nb_parts
 

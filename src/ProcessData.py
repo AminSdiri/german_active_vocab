@@ -1,6 +1,6 @@
 import pandas as pd
 from bs4 import BeautifulSoup as bs
-from WordProcessing import create_quiz_html
+from WordProcessing import create_quiz_html, fix_html_with_custom_example
 from pathlib import Path
 
 from utils import set_up_logger
@@ -482,7 +482,7 @@ def standarize_json(json_data, translate):
 #     logger.info("convert_json2Html")
 #     defined_html = bs('<html><body><p></p></body></html>', 'lxml')
 #     # trennbar = 0
-#     words2hide = word.split()
+#     words_to_hide = word.split()
 
 #     if len(json_data) == 1:
 #         logger.info(f'language: {json_data[0]["lang"]}')
@@ -505,8 +505,8 @@ def standarize_json(json_data, translate):
 #             logger.debug(f'j: {j}')
 #             logger.debug(f'k: {k}')
 #             if raw_titel != '':
-#                 raw_titel, words2hide = format_titel_html(
-#                     raw_titel, words2hide, k)
+#                 raw_titel, words_to_hide = format_titel_html(
+#                     raw_titel, words_to_hide, k)
 #                 defined_html.body.append(raw_titel.body.p)
 #             try:
 #                 l_range = range(
@@ -671,7 +671,7 @@ def standarize_json(json_data, translate):
 #     f = open(dict_path / 'Last_innocent_html.html', 'w')
 #     f.write(defined_html)
 #     f.close()
-#     return words2hide, duden_synonyms, defined_html
+#     return words_to_hide, duden_synonyms, defined_html
 
 
 def save_function(dict_path, word, defined_user_html, beispiel_de,
@@ -720,6 +720,11 @@ def save_function(dict_path, word, defined_user_html, beispiel_de,
                               '&nbsp;&nbsp;&nbsp;' + beispiel_en + '</i>')
     defined_user_html = defined_user_html.replace('.:.', '')
     clean_html = clean_html.replace('.:.', '')
+
+    # TODO insert custom examples properly
+    defined_user_html = fix_html_with_custom_example(defined_user_html)
+    clean_html = fix_html_with_custom_example(clean_html)
+
     # try:
     with open(dict_path / (word+'.html'), 'w') as f:
         f.write(defined_user_html)
@@ -727,7 +732,7 @@ def save_function(dict_path, word, defined_user_html, beispiel_de,
     with open(dict_path / (word+'.quiz.html'), 'w') as f:
         f.write(clean_html)
     # subprocess.Popen(['notify-send', word + ' gespeichert!'])
-    logger.info(word + 'gespeichert')
+    logger.info(word + ' gespeichert')
     # except:
     #     logger.error('Error writing' + word)
     #     subprocess.Popen(['notify-send', 'Error writing' + word])
