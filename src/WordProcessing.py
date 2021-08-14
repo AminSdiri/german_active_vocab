@@ -2,47 +2,41 @@ import logging
 import re
 from functools import partial
 
-# set up logger
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())  # .setFormatter(formatter)
-# Levels: debug, info, warning, error, critical
-logger.setLevel(logging.WARNING)
-formatter = logging.Formatter(
-    '%(levelname)8s -- %(name)-15s line %(lineno)-4s: %(message)s')
-logger.handlers[0].setFormatter(formatter)
+from utils import set_up_logger
+
+logger = set_up_logger(__name__, level=logging.WARNING)
 
 word_re = re.compile(r'\b[a-zA-Z]+\b')
 
 
-def hide_text(quiz_text, selected_text2hide):
+def fix_html_with_custom_example(html_text):
+    # Vorübergehend
+    logger.info("fix_html_with_custom_example")
+
+    html_text = html_text.replace('</body></html><br><br>',
+                                  '<br><p style=" margin-top:12px; '
+                                  'margin-bottom:12px; margin-left:0px; '
+                                  'margin-right:0px; -qt-block-indent:0; '
+                                  'text-indent:0px;">')
+    if html_text[-4:] == '</i>':
+        html_text += '</p></body></html>'
+
+    return html_text
+
+
+def hide_text(text, word_to_hide):
     logger.info("hide_text")
-    quiz_text = quiz_text\
-        .replace(' '+selected_text2hide+' ',
-                 ' '+len(selected_text2hide)*'_'+' ')\
-        .replace('>'+selected_text2hide+' ',
-                 '>'+len(selected_text2hide)*'_'+' ')\
-        .replace(' '+selected_text2hide+'<',
-                 ' '+len(selected_text2hide)*'_'+'<')\
-        .replace('>'+selected_text2hide+'<',
-                 '>'+len(selected_text2hide)*'_'+'<')\
-        .replace(' '+selected_text2hide+'\xa0',
-                 ' '+len(selected_text2hide)*'_'+'\xa0')\
-        .replace(' '+selected_text2hide+', ',
-                 ' '+len(selected_text2hide)*'_'+', ')\
-        .replace(' '+selected_text2hide+'.',
-                 ' '+len(selected_text2hide)*'_'+'.')\
-        .replace(' '+selected_text2hide+'&',
-                 ' '+len(selected_text2hide)*'_'+'&')\
-        .replace(';'+selected_text2hide+' ',
-                 ';'+len(selected_text2hide)*'_'+' ')\
-        .replace(' '+selected_text2hide+'?',
-                 ' '+len(selected_text2hide)*'_'+'?')\
-        .replace(';'+selected_text2hide+', ',
-                 '<'+len(selected_text2hide)*'_'+', ')\
-        .replace(' '+selected_text2hide+'!',
-                 ' '+len(selected_text2hide)*'_'+'!')\
-        .replace(' '+selected_text2hide+'\\',
-                 ' '+len(selected_text2hide)*'_'+'\\')
+
+    word_length = len(word_to_hide)
+
+    hide_pattern = f'(?<=[^a-zA-Z]){word_to_hide}(?=[^a-zA-Z])'
+    try:
+        quiz_text = re.sub(hide_pattern, word_length*'_', text)
+    except re.error:
+        quiz_text = text
+        logger.error(f'error by hiding {word_to_hide}. '
+                     'Word maybe contains reserved Regex charactar')
+
     return quiz_text
 
 
@@ -94,7 +88,7 @@ def reverse_between_words(stri, wrd1, wrd2, wrd21):
     stri2 += (wrd1
               + stri[inds2[k]-1:(inds1[k]+len(wrd1)-1):-1]
               + stri[inds2[k]:])
-              
+
     return stri2
 
 
@@ -211,33 +205,27 @@ def delete_after_words(stri, wrd1, wrd2):
     return stri
 
 
-def create_quiz_html(html_res, words2hide):
+def create_quiz_html(html_res, words_to_hide):
     logger.info("create_quiz_html")
     clean_html = html_res
+
     clean_html = reverse_between_words(
         clean_html, '<span style=" font-weight:600;">', '</span>', '<br />')
-    capitalized_words2hide = [x.capitalize() for x in words2hide]
-    words2hide += capitalized_words2hide
-    for w in words2hide:
-        clean_html = clean_html.replace(' '+w+' ', ' '+len(w)*'_'+' ')\
-                               .replace('>'+w+' ', '>'+len(w)*'_'+' ')\
-                               .replace(' '+w+'<', ' '+len(w)*'_'+'<')\
-                               .replace('>'+w+'<', '>'+len(w)*'_'+'<')\
-                               .replace(' '+w+', ', ' '+len(w)*'_'+', ')\
-                               .replace(' '+w+'.', ' '+len(w)*'_'+'.')\
-                               .replace(' '+w+'&', ' '+len(w)*'_'+'&')\
-                               .replace(';'+w+' ', ';'+len(w)*'_'+' ')\
-                               .replace(' '+w+'?', ' '+len(w)*'_'+'?')\
-                               .replace(';'+w+', ', '<'+len(w)*'_'+', ')\
-                               .replace(' '+w+'!', ' '+len(w)*'_'+'!')
+    capitalized_words_to_hide = [x.capitalize() for x in words_to_hide]
+    words_to_hide += capitalized_words_to_hide
+
+    for w in words_to_hide:
+        clean_html = hide_text(clean_html, w)
+
     repl_dict = {}
-    for w in words2hide:
+    for w in words_to_hide:
         repl_dict[w] = len(w)*'_'
         repl_dict[w.capitalize()] = len(w)*'_'
 
     def helper(dic, match):
         word = match.group(0)
         return dic.get(word, word)
+
     clean_html = delete_between_words(
         clean_html,
         '<font size="6"><font size="6">',
@@ -255,8 +243,9 @@ def create_quiz_html(html_res, words2hide):
     return clean_html
 
 
-def update_words2hide(full_headword, words2hide):
-    logger.info("extract_words2hide")
+def update_words_to_hide(full_headword, words_to_hide):
+    # TODO rewrite. Dummy coding, return a lot of junk and f*cks up html file
+    logger.info("extract_words_to_hide")
 
     full_headword = full_headword.encode(encoding='UTF-8', errors='strict')\
         .replace(b'\xcc\xa3', b'').replace(b'\xcc\xb1', b'').decode('utf-8')
@@ -459,5 +448,8 @@ def update_words2hide(full_headword, words2hide):
         indiv_words.append(wrdrr+'s')
         indiv_words.append(wrdrr)
 
-    words2hide = words2hide + indiv_words
-    return words2hide
+    words_to_hide = words_to_hide + indiv_words
+    # workaround to ignore words containing special chars
+    words_to_hide = [elem for elem in words_to_hide if all(
+        c.isalnum() for c in elem)]
+    return words_to_hide

@@ -1,6 +1,5 @@
 # from PyQt5.QtCore import *
 from dataclasses import dataclass, field
-import logging
 import math
 from bs4.builder import HTML
 import pandas as pd
@@ -8,16 +7,13 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup as bs
 from pathlib import Path
 from pandas.core.frame import DataFrame
+from WordProcessing import fix_html_with_custom_example
+
+from utils import set_up_logger
 
 dict_path = Path.home() / 'Dictionnary'
 
-# set up logger
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())
-logger.setLevel(logging.INFO)  # Levels: debug, info, warning, error, critical
-formatter = logging.Formatter(
-    '%(levelname)8s -- %(name)-15s line %(lineno)-4s: %(message)s')
-logger.handlers[0].setFormatter(formatter)
+logger = set_up_logger(__name__)
 
 
 @dataclass
@@ -36,22 +32,36 @@ class QuizEntry():
     def __post_init__(self):
         self.queue_quiz_word()
 
-        self.get_file_paths()
+        self.get_quiz_file_paths()
 
-    def get_file_paths(self):
+    def get_quiz_file_paths(self):
+
+        logger.info("get quiz file paths")
+
         self.quiz_file_path = (dict_path /
                                (self.quiz_params['queued_word'] +
                                 ".quiz.html"))
         with open(self.quiz_file_path, 'r') as f:
             self.quiz_text = f.read()
+
+        self.quiz_text = fix_html_with_custom_example(self.quiz_text)
+        with open(self.quiz_file_path, 'w') as f:
+            f.write(self.quiz_text)
+
         self.full_file_path = (dict_path /
                                (self.quiz_params['queued_word'] +
                                 ".html"))
         with open(self.full_file_path, 'r') as f:
             self.full_text = f.read()
 
+        self.full_text = fix_html_with_custom_example(self.full_text)
+        with open(self.full_file_path, 'w') as f:
+            f.write(self.full_text)
+
     def queue_quiz_word(self):
+
         logger.info("queue_quiz_word")
+
         now = datetime.now() - timedelta(hours=3)
         self.todayscharge = 0
         yesterday = now + timedelta(days=-1)
@@ -86,8 +96,10 @@ class QuizEntry():
                 self._countdown = 1
                 oldest_next_dtm = self.words_dataframe['Next_date'].min()
                 queued_word = self.words_dataframe[
-                    self.words_dataframe['Next_date'] == oldest_next_dtm].index[0]
-                planned_str = f' versäumt {oldest_next_dtm.strftime("%d.%m.%y")}'
+                    self.words_dataframe['Next_date']
+                    == oldest_next_dtm].index[0]
+                planned_str = (' versäumt '
+                               f'{oldest_next_dtm.strftime("%d.%m.%y")}')
 
         elif self.quiz_priority_order == 'old_words':
             logger.debug('Quiz Order set to oldest seen Words')
@@ -110,15 +122,18 @@ class QuizEntry():
 
             last_seen = self.words_dataframe.loc[queued_word, "Previous_date"]\
                 .strftime('%d.%m.%y')
-            self.quiz_window_titel = f'Wörterbuch: Quiz '
-            f'({str(self.todayscharge)}) {planned_str} , Last seen  {last_seen}'
+            self.quiz_window_titel = ('Wörterbuch: Quiz '
+                                      f'({str(self.todayscharge)}) '
+                                      f'{planned_str},'
+                                      f' Last seen  {last_seen}')
 
             repetitions = float(
                 self.words_dataframe.loc[queued_word, "Repetitions"])
             EF_score = float(self.words_dataframe.loc[queued_word, "EF_score"])
             # interval = float(df.loc[queued_word, "Interval"])
-            real_interval = (
-                now - self.words_dataframe.loc[queued_word, "Previous_date"]).days
+            real_interval = (now
+                             - self.words_dataframe.loc[queued_word,
+                                                        "Previous_date"]).days
         else:
             queued_word = ''
             self.quiz_window_titel = 'No Words Left'
@@ -133,6 +148,9 @@ class QuizEntry():
                             'repetitions': repetitions}
 
     def quiz_counter(self):
+
+        logger.info("quiz_counter")
+
         no_words_left4today = False
         reached_daily_limit = False
         if self.todayscharge > 0:
@@ -152,6 +170,7 @@ class FocusEntry():
     focus_part: str = ''
     focus_part_revealed: str = ''
     focus_params_dict: dict = field(default_factory=dict)
+    window_titel: str = 'Focus mode'
 
     def __post_init__(self):
         self.queue_focus_word()
@@ -163,6 +182,8 @@ class FocusEntry():
         before_today = self.focus_df["Next_date"] <= now.strftime("%Y-%m-%d")
         due_words = self.focus_df[before_today]
         due_words['weights'] = 1/due_words['EF_score']
+        ignored_due_words = (due_words['Ignore'] == 1).sum()
+        self.window_titel += f' ({len(due_words) - ignored_due_words})'
         while selected_ignored:
             logger.debug(due_words)
             # TODO more sophisticated weighting
@@ -238,11 +259,13 @@ def ignore_headers(quiz_text):
             if contain_example:
                 ignore_list[index] = 0
                 continue
+        if quiz_list[index].find_all('i'):
+            ignore_list[index] = 0
     # logger.debug('Indexes to Ignore', ignore_list)
     return ignore_list, nb_parts
 
 
-def spaced_repetition(easiness, now,  df, saving_file, EF_score=1,
+def spaced_repetition(easiness, now, df, saving_file, EF_score=1,
                       queued_word='', real_interval='', repetitions=0):
     logger.info("spaced_repetition")
 

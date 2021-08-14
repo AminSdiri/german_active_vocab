@@ -1,16 +1,11 @@
 
-import logging
 from pathlib import Path
 import copy
 
+from utils import set_up_logger
 
-# set up logger
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())  # .setFormatter(formatter)
-logger.setLevel(logging.INFO)  # Levels: debug, info, warning, error, critical
-formatter = logging.Formatter(
-    '%(levelname)8s -- %(name)-15s line %(lineno)-4s: %(message)s')
-logger.handlers[0].setFormatter(formatter)
+
+logger = set_up_logger(__name__)
 
 dict_path = Path.home() / 'Dictionnary'
 
@@ -28,7 +23,7 @@ def recursively_extract(node, exfun, maxdepth=2):
 
 
 def create_synonyms_list(soup):
-    logger.info("synonyms")
+    logger.info("create_synonyms_list")
     # approximate = True
     # name = 'Synonyme zu'
     syn_section = None
@@ -50,7 +45,7 @@ def create_synonyms_list(soup):
 
 
 def extract_def_section_from_duden(soup):
-    logger.info("duden_bedeutung")
+    logger.info("extract_def_section_from_duden")
     # approximate = True
     bedeutung_section = None
     bedeutung_section = soup.find('div', id="bedeutungen")

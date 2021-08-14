@@ -1,13 +1,12 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-import logging
 import subprocess
 from bs4.builder import HTML
 import requests
 import json
 import time
 from pathlib import Path
-import urllib.request
+from urllib import request, error
 from bs4 import BeautifulSoup as bs
 
 from DudenProc import (
@@ -20,17 +19,12 @@ from ProcessData import (
     format_html,
     format_titel_html,
     treat_def_part)
-from WordProcessing import update_words2hide
+from WordProcessing import update_words_to_hide
+from utils import set_up_logger
 
 dict_path = Path.home() / 'Dictionnary'
 
-# set up logger
-logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())  # .setFormatter(formatter)
-logger.setLevel(logging.INFO)  # Levels: debug, info, warning, error, critical
-formatter = logging.Formatter(
-    '%(levelname)8s -- %(name)-15s line %(lineno)-4s: %(message)s')
-logger.handlers[0].setFormatter(formatter)
+logger = set_up_logger(__name__)
 
 # TODO use a database instead of files to save standarized Json and raw Json
 
@@ -48,7 +42,7 @@ class DefEntry():
     debug_mode: bool = False
     defined_html: HTML = ''
     duden_synonyms: list = field(default_factory=list)
-    words2hide: list = field(default_factory=list)
+    words_to_hide: list = field(default_factory=list)
 
     def __post_init__(self):
 
@@ -120,9 +114,11 @@ class DefEntry():
                             duden_soup)
                         self.defined_html = processed_html_duden
                     else:
-                        self.defined_html = '<div align="center"><font size="5"'
-                        ' face="Arial Black">Wort nicht gefunden '
-                        ' in Duden</font></div>'
+                        # TODO use html rendrer
+                        self.defined_html = ('<div align="center">'
+                                             '<font size="6" face="Arial Black">404</font><br>'
+                                             f'<font size="3" face="Arial Black">{self.word} in Duden '
+                                             ' nicht gefunden</font></div>')
                         self.duden_synonyms = ''
                     return
             else:
@@ -136,24 +132,26 @@ class DefEntry():
                             duden_soup)
                         self.defined_html = processed_html_duden
                     else:
-                        self.defined_html = '<div align="center"><font size="5"'
-                        ' face="Arial Black">Wort nicht gefunden '
-                        'weder in Pons nor in Duden</font></div>'
+                        self.defined_html = ('<div align="center">'
+                                             '<font size="6" face="Arial Black">404 mal 2</font><br>'
+                                             f'<font size="3" face="Arial Black">{self.word} ist weder in Pons nor in Duden '
+                                             ' zu finden</font></div>')
                         self.duden_synonyms = ''
                 else:
-                    self.defined_html = '<div align="center"><font size="5" '
-                    'face="Arial Black">Übersetzung '
-                    'nicht gefunden in Pons</font></div>'
+                    self.defined_html = ('<div align="center">'
+                                         '<font size="6" face="Arial Black">404 mal 2</font><br>'
+                                         f'<font size="3" face="Arial Black">Übersetzung von {self.word} ist in Pons nicht gefunden '
+                                         '</font></div>')
                 not_getting_from_pons = 1
 
         if not not_getting_from_pons:
             self.convert_json2Html(json_data, translate, duden_soup)
 
         # return (not_getting_from_pons, json_data, duden_soup,
-        #         self.defined_html, self.duden_synonyms, self.words2hide,
+        #         self.defined_html, self.duden_synonyms, self.words_to_hide,
         #          translate)
 
-    def get_json_from_pons_api(self, filename):
+    def get_json_from_pons_api(self, filename: str):
         logger.debug('Looking in Pons cache')
         json_file, json_cache_found = get_cache(filename)
 
@@ -163,10 +161,9 @@ class DefEntry():
             status_code = 200
             return json_data, status_code
 
-        logger.info('Online searching for Word in Pms')
+        logger.info('Online searching for Word in Pons')
         status_code = 0
-        pons_data_fetched = 0
-        while not pons_data_fetched:
+        while True:
             logger.info('Online searching for Word in Pons')
             if self.translate2en:
                 url = "https://api.pons.com/v1/dictionary?l=deen&q="
@@ -182,6 +179,7 @@ class DefEntry():
                 with open(api_path, 'r') as api_file:
                     api_secret = api_file.read()
                 api_secret = api_secret.replace('\n', '')
+
                 # put your api-key from pons here
                 raw_data = requests.get(url, headers={"X-Secret": api_secret})
 
@@ -202,17 +200,16 @@ class DefEntry():
 
                 if status_code == 200:
                     logger.debug('got Json from Pons')
-                    raw_data = raw_data.json()
+                    json_data = raw_data.json()
 
                     with open(dict_path / 'Json' / filename, 'w') as outfile:
-                        json.dump(raw_data, outfile)
-
+                        json.dump(json_data, outfile)
                 else:
                     logger.info(f'Status Code: {str(status_code)} {message}')
                     json_data = ''
-                    return json_data, status_code
 
-                pons_data_fetched = 1
+                return json_data, status_code
+
             except requests.exceptions.ConnectionError:
                 subprocess.Popen(
                     ['notify-send', 'No Connection to Mutter',
@@ -221,12 +218,11 @@ class DefEntry():
                 time.sleep(10)
                 continue
 
-        json_data = json.loads(raw_data)
-        return json_data, status_code
+    def convert_json2Html(self, json_data: json, translate: bool, soup):
 
-    def convert_json2Html(self, json_data, translate, soup):
         # TODO change function structure to render html from json using
         # a template.html
+
         # TODO use CSS file to format the rendred html
         logger.info("convert_json2Html")
         self.defined_html = bs('<html><body><p></p></body></html>', 'lxml')
@@ -252,7 +248,7 @@ class DefEntry():
 
                 if full_headword != '':
 
-                    self.words_to_hide = update_words2hide(
+                    self.words_to_hide = update_words_to_hide(
                         full_headword, self.words_to_hide)
 
                     full_headword = format_titel_html(
@@ -355,7 +351,7 @@ class DefEntry():
         try_upper = 0
 
         try:
-            with urllib.request.urlopen(url_lowercase) as response:
+            with request.urlopen(url_lowercase) as response:
                 # use whatever encoding as per the webpage
                 duden_html = response.read().decode('utf-8')
             logger.debug('got Duden Html (lower)')
@@ -364,16 +360,11 @@ class DefEntry():
                                             '_duden'), 'w') as outfile:
                 outfile.write(str(duden_html))
             found_in_duden = 1
-        except urllib.error.URLError:
-            logger.error('certificate verify failed: '
-                         'unable to get local issuer certificate')
-            duden_html = 'No certificate installed'
-            found_in_duden = 0
-        except urllib.request.HTTPError as e:
+        except request.HTTPError as e:
             found_in_duden = 0
             if e.code == 404:
                 logger.warning(f"{url_lowercase} is not found")
-                duden_html = 'Wort nicht gefunden'
+                duden_html = '404 Wort nicht gefunden'
                 try_upper = 1
             elif e.code == 503:
                 logger.warning(f'{url_lowercase} '
@@ -382,10 +373,15 @@ class DefEntry():
             else:
                 logger.warning('http error', e)
                 duden_html = 'Error 500'
+        except error.URLError:
+            logger.error('certificate verify failed: '
+                         'unable to get local issuer certificate')
+            duden_html = 'No certificate installed'
+            found_in_duden = 0
 
         if try_upper:
             try:
-                with urllib.request.urlopen(url_uppercase) as response:
+                with request.urlopen(url_uppercase) as response:
                     # use whatever encoding as per the webpage
                     duden_html = response.read().decode('utf-8')
                 logger.debug('got Duden Html (Upper)')
@@ -393,16 +389,11 @@ class DefEntry():
                                                 '_duden'), 'w') as outfile:
                     outfile.write(str(duden_html))
                 found_in_duden = 1
-            except urllib.error.URLError:
-                found_in_duden = 0
-                logger.error('certificate verify failed: '
-                             'unable to get local issuer certificate')
-                duden_html = 'No certificate installed'
-            except urllib.request.HTTPError as e:
+            except request.HTTPError as e:
                 found_in_duden = 0
                 if e.code == 404:
                     logger.warning(f"{url_uppercase} is not found")
-                    duden_html = 'Wort nicht gefunden'
+                    duden_html = '404 Wort nicht gefunden'
                 elif e.code == 503:
                     logger.warning(f'{url_uppercase} '
                                    'base webservices are not available')
@@ -410,6 +401,11 @@ class DefEntry():
                 else:
                     logger.warning('http error', e)
                     duden_html = 'Error 500'
+            except error.URLError:
+                found_in_duden = 0
+                logger.error('certificate verify failed: '
+                             'unable to get local issuer certificate')
+                duden_html = 'No certificate installed'
 
         duden_soup = bs(duden_html, 'html.parser')
         return duden_soup, found_in_duden
@@ -448,7 +444,15 @@ def get_cache(filename):
     return cache_file_content, cache_found
 
 
-def replace_umlauts(word):
+def replace_umlauts(word: str):
+    """[summary]
+
+    Args:
+        word (str): [description]
+
+    Returns:
+        [str]: strings without Umlaut
+    """
     normalized_word = word.replace("ü", "ue")\
         .replace("ö", "oe")\
         .replace("ä", "ae")\
