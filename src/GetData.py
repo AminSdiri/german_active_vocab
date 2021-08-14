@@ -6,7 +6,7 @@ import requests
 import json
 import time
 from pathlib import Path
-import urllib.request
+from urllib import request, error
 from bs4 import BeautifulSoup as bs
 
 from DudenProc import (
@@ -114,9 +114,11 @@ class DefEntry():
                             duden_soup)
                         self.defined_html = processed_html_duden
                     else:
-                        self.defined_html = ('<div align="center"><font size="5"'
-                                             ' face="Arial Black">Wort nicht gefunden '
-                                             ' in Duden</font></div>')
+                        # TODO use html rendrer
+                        self.defined_html = ('<div align="center">'
+                                             '<font size="6" face="Arial Black">404</font><br>'
+                                             f'<font size="3" face="Arial Black">{self.word} in Duden '
+                                             ' nicht gefunden</font></div>')
                         self.duden_synonyms = ''
                     return
             else:
@@ -130,14 +132,16 @@ class DefEntry():
                             duden_soup)
                         self.defined_html = processed_html_duden
                     else:
-                        self.defined_html = ('<div align="center"><font size="5"'
-                                             ' face="Arial Black">Wort nicht gefunden '
-                                             'weder in Pons nor in Duden</font></div>')
+                        self.defined_html = ('<div align="center">'
+                                             '<font size="6" face="Arial Black">404 mal 2</font><br>'
+                                             f'<font size="3" face="Arial Black">{self.word} ist weder in Pons nor in Duden '
+                                             ' zu finden</font></div>')
                         self.duden_synonyms = ''
                 else:
-                    self.defined_html = ('<div align="center"><font size="5" '
-                                         'face="Arial Black">Übersetzung '
-                                         'nicht gefunden in Pons</font></div>')
+                    self.defined_html = ('<div align="center">'
+                                         '<font size="6" face="Arial Black">404 mal 2</font><br>'
+                                         f'<font size="3" face="Arial Black">Übersetzung von {self.word} ist in Pons nicht gefunden '
+                                         '</font></div>')
                 not_getting_from_pons = 1
 
         if not not_getting_from_pons:
@@ -347,7 +351,7 @@ class DefEntry():
         try_upper = 0
 
         try:
-            with urllib.request.urlopen(url_lowercase) as response:
+            with request.urlopen(url_lowercase) as response:
                 # use whatever encoding as per the webpage
                 duden_html = response.read().decode('utf-8')
             logger.debug('got Duden Html (lower)')
@@ -356,16 +360,11 @@ class DefEntry():
                                             '_duden'), 'w') as outfile:
                 outfile.write(str(duden_html))
             found_in_duden = 1
-        except urllib.error.URLError:
-            logger.error('certificate verify failed: '
-                         'unable to get local issuer certificate')
-            duden_html = 'No certificate installed'
-            found_in_duden = 0
-        except urllib.request.HTTPError as e:
+        except request.HTTPError as e:
             found_in_duden = 0
             if e.code == 404:
                 logger.warning(f"{url_lowercase} is not found")
-                duden_html = 'Wort nicht gefunden'
+                duden_html = '404 Wort nicht gefunden'
                 try_upper = 1
             elif e.code == 503:
                 logger.warning(f'{url_lowercase} '
@@ -374,10 +373,15 @@ class DefEntry():
             else:
                 logger.warning('http error', e)
                 duden_html = 'Error 500'
+        except error.URLError:
+            logger.error('certificate verify failed: '
+                         'unable to get local issuer certificate')
+            duden_html = 'No certificate installed'
+            found_in_duden = 0
 
         if try_upper:
             try:
-                with urllib.request.urlopen(url_uppercase) as response:
+                with request.urlopen(url_uppercase) as response:
                     # use whatever encoding as per the webpage
                     duden_html = response.read().decode('utf-8')
                 logger.debug('got Duden Html (Upper)')
@@ -385,16 +389,11 @@ class DefEntry():
                                                 '_duden'), 'w') as outfile:
                     outfile.write(str(duden_html))
                 found_in_duden = 1
-            except urllib.error.URLError:
-                found_in_duden = 0
-                logger.error('certificate verify failed: '
-                             'unable to get local issuer certificate')
-                duden_html = 'No certificate installed'
-            except urllib.request.HTTPError as e:
+            except request.HTTPError as e:
                 found_in_duden = 0
                 if e.code == 404:
                     logger.warning(f"{url_uppercase} is not found")
-                    duden_html = 'Wort nicht gefunden'
+                    duden_html = '404 Wort nicht gefunden'
                 elif e.code == 503:
                     logger.warning(f'{url_uppercase} '
                                    'base webservices are not available')
@@ -402,6 +401,11 @@ class DefEntry():
                 else:
                     logger.warning('http error', e)
                     duden_html = 'Error 500'
+            except error.URLError:
+                found_in_duden = 0
+                logger.error('certificate verify failed: '
+                             'unable to get local issuer certificate')
+                duden_html = 'No certificate installed'
 
         duden_soup = bs(duden_html, 'html.parser')
         return duden_soup, found_in_duden

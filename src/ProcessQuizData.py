@@ -96,8 +96,10 @@ class QuizEntry():
                 self._countdown = 1
                 oldest_next_dtm = self.words_dataframe['Next_date'].min()
                 queued_word = self.words_dataframe[
-                    self.words_dataframe['Next_date'] == oldest_next_dtm].index[0]
-                planned_str = f' versäumt {oldest_next_dtm.strftime("%d.%m.%y")}'
+                    self.words_dataframe['Next_date']
+                    == oldest_next_dtm].index[0]
+                planned_str = (' versäumt '
+                               f'{oldest_next_dtm.strftime("%d.%m.%y")}')
 
         elif self.quiz_priority_order == 'old_words':
             logger.debug('Quiz Order set to oldest seen Words')
@@ -129,8 +131,9 @@ class QuizEntry():
                 self.words_dataframe.loc[queued_word, "Repetitions"])
             EF_score = float(self.words_dataframe.loc[queued_word, "EF_score"])
             # interval = float(df.loc[queued_word, "Interval"])
-            real_interval = (
-                now - self.words_dataframe.loc[queued_word, "Previous_date"]).days
+            real_interval = (now
+                             - self.words_dataframe.loc[queued_word,
+                                                        "Previous_date"]).days
         else:
             queued_word = ''
             self.quiz_window_titel = 'No Words Left'
@@ -262,7 +265,7 @@ def ignore_headers(quiz_text):
     return ignore_list, nb_parts
 
 
-def spaced_repetition(easiness, now,  df, saving_file, EF_score=1,
+def spaced_repetition(easiness, now, df, saving_file, EF_score=1,
                       queued_word='', real_interval='', repetitions=0):
     logger.info("spaced_repetition")
 

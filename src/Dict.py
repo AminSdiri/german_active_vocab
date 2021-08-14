@@ -5,15 +5,23 @@ from pathlib import Path
 import sys
 import os
 import subprocess
-from PyQt5.QtWidgets import QApplication, QMainWindow, QListWidget, QMessageBox
+from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtWidgets import (QApplication,
+                             QErrorMessage,
+                             QMainWindow,
+                             QListWidget,
+                             QMessageBox)
 from PyQt5.QtGui import QTextCharFormat, QFont, QTextCursor, QColor
 from datetime import datetime, timedelta
 import pandas as pd
 from bs4 import BeautifulSoup as bs
+import traceback
 
 from GetData import DefEntry
 from ProcessData import save_function
-from WordProcessing import create_quiz_html, fix_html_with_custom_example, hide_text
+from WordProcessing import (create_quiz_html,
+                            fix_html_with_custom_example,
+                            hide_text)
 from DictWindows import (SearchWindow,
                          DefinitionWindow,
                          QuizWindow,
@@ -85,6 +93,9 @@ class MainWindow(QMainWindow):
             focus_df['Previous_date'])
         focus_df.set_index('Wordpart', inplace=True)
         self.focus_df = focus_df
+
+        self.error_dialog = QErrorMessage()
+        # self.error_dialog.showMessage('Oh no!')
 
     def launch_search_window(self):
 
@@ -183,10 +194,20 @@ class MainWindow(QMainWindow):
         self.def_window.highlight_button.clicked.connect(self.highlight_text)
         self.show()
 
+    def highlight_text(self):
+        logger.info("highlight_text")
+        format = QTextCharFormat()
+        color = QColor(3, 155, 224)
+        color = QColor(220*1.15, 212*1.15, 39*1.15)
+        format.setForeground(color)
+        self.def_window.txt_cont.textCursor().mergeCharFormat(format)
+
     def launch_history_window(self):
 
         logger.info("launch history list window")
 
+        # TODO!!! allow modifing html in history Window
+        # TODO!!! allow deleting html from history Window ( file and DF entry)
         self.resize(400, 500)
         self.move(315, 50)
         self.history_window = HistoryWindow(self)
@@ -203,127 +224,6 @@ class MainWindow(QMainWindow):
         self.allwords.resize(390, 490)
         self.allwords.move(5, 5)
         self.allwords.show()
-
-    def launch_quiz_window(self):
-
-        logger.info("launch_quiz_window")
-
-        self.quiz_obj = QuizEntry(quiz_priority_order=quiz_priority_order,
-                                  words_dataframe=self.wordlist_df,
-                                  maxrevpersession=maxrevpersession)
-
-        logger.debug('queued_word output: ' +
-                     self.quiz_obj.quiz_params['queued_word'])
-
-        no_words_left4today, reached_daily_limit = self.quiz_obj.quiz_counter()
-
-        if reached_daily_limit:
-            self.reached_daily_limit_dialogue()
-
-        if no_words_left4today:
-            self.no_words_left4today_dialogue()
-
-        self.resize(700, 700)
-        self.move(315, 10)
-
-        self.quiz_window = QuizWindow()
-        self.setCentralWidget(self.quiz_window)
-
-        self.setWindowTitle(self.quiz_obj.quiz_window_titel)
-        # self.quiz_window.txt_cont.clear()
-        self.quiz_window.txt_cont.insertHtml(self.quiz_obj.quiz_text)
-
-        self.quiz_window.next_btn.clicked.connect(self.quiz_score)
-        self.quiz_window.next_btn.clicked.connect(self.launch_quiz_window)
-        self.quiz_window.close_button.clicked.connect(self.close)
-        self.quiz_window.populate.clicked.connect(self.reveal_full_html_quiz)
-        self.quiz_window.save_button.clicked.connect(
-            self.save_custom_quiztext_from_quizmode)
-        self.quiz_window.update_button.clicked.connect(self.update_word_html)
-        self.quiz_window.hide_button.clicked.connect(self.hide_word_manually)
-
-        self.show()
-
-    def launch_focus_window(self, index):
-        logger.info("launch_focus_window")
-        self.resize(700, 300)
-        self.move(315, 180)
-        self.focus_window = FocusWindow(self)
-        self.setCentralWidget(self.focus_window)
-
-        self.focus_obj = FocusEntry(focus_df=self.focus_df)
-
-        self.setWindowTitle(self.focus_obj.window_titel)
-        self.focus_window.txt_cont.setFont(focus_font)
-        self.focus_window.txt_cont.insertHtml(self.focus_obj.focus_part)
-
-        self.focus_window.next_btn.clicked.connect(self.focus_score)
-        self.focus_window.next_btn.clicked.connect(self.launch_focus_window)
-        self.focus_window.ignore_button.clicked.connect(self.ignore_part)
-        self.focus_window.ignore_button.clicked.connect(
-            self.launch_focus_window)
-        self.show()
-
-    def quiz_score(self):
-        logger.info("quiz_score")
-        self.rating_diag_quiz = QuizRatingDiag(self)
-        df = self.wordlist_df
-        self.rating_diag_quiz.show()
-        self.reveal_full_html_quiz()
-        if self.rating_diag_quiz.exec_():
-            saving_file = 'wordlist.csv'
-            easiness = self.rating_diag_quiz.easiness
-            spaced_repetition(easiness,
-                              now,
-                              df,
-                              saving_file,
-                              **self.quiz_obj.quiz_params)
-
-    def focus_score(self):
-        logger.info("focus_score")
-        logger.debug('updating wordpart scores')
-        self.rating_diag_focus = FocusRatingDiag(self)
-        self.rating_diag_focus.show()
-        self.reveal_full_html_focus()
-        if self.rating_diag_focus.exec_():
-            saving_file = 'wordpart_list.csv'
-            easiness = self.rating_diag_focus.easiness
-            spaced_repetition(easiness,
-                              now,
-                              self.focus_obj.focus_df,
-                              saving_file,
-                              **self.focus_obj.focus_params_dict)
-
-    def reached_daily_limit_dialogue(self):
-        logger.info("reached_daily_limit_dialogue")
-        choice = QMessageBox.question(self, 'Extract!',
-                                      "you have revisited 10 Words, Well done!"
-                                      " Come back later... "
-                                      "(If you want to continue hit Yes!)",
-                                      QMessageBox.Yes | QMessageBox.Close)
-
-        if choice == QMessageBox.Yes:
-            logger.debug("resetting Count")
-            self.quiz_obj._nb_revisited = 0
-            self.show()
-        else:
-            sys.exit()
-
-    def no_words_left4today_dialogue(self):
-        global quiz_priority_order
-        logger.info("no_words_left4today_dialogue")
-        choice = QMessageBox.question(self, 'Extract!',
-                                      "Well done, you have all planned words "
-                                      "revisited. Want to switch priority to "
-                                      "old words?",
-                                      QMessageBox.Yes | QMessageBox.Close)
-        if choice == QMessageBox.Yes:
-            logger.info("Repeating list Naaaaaaoooww!!!!")
-            quiz_priority_order = 'old_words'
-            logger.debug('mod switch')
-            self.launch_quiz_window()
-        else:
-            sys.exit()
 
     def show_html_from_history_list(self, index):
         logger.info("show_html_from_history_list")
@@ -405,16 +305,91 @@ class MainWindow(QMainWindow):
             ['notify-send', '"'+word+'"', 'Add to Focus Mode'])
         logger.info(f'{word} switched to Focus Mode')
 
-    def ignore_part(self):
-        logger.info("ignore_part")
-        focus_df = self.focus_obj.focus_df
-        focus_df.loc[
-            self.focus_obj.focus_params_dict['queued_word'], "Ignore"] = 1
-        focus_df.to_csv(dict_path / 'wordpart_list.csv')
+    def launch_quiz_window(self):
 
-    def update_word_html(self):
-        logger.info("update_word_html")
-        subprocess.Popen(['dic.py', self.quiz_obj.quiz_params['queued_word']])
+        logger.info("launch_quiz_window")
+
+        self.quiz_obj = QuizEntry(quiz_priority_order=quiz_priority_order,
+                                  words_dataframe=self.wordlist_df,
+                                  maxrevpersession=maxrevpersession)
+
+        logger.debug(
+            f'queued_word output: {self.quiz_obj.quiz_params["queued_word"]}')
+
+        no_words_left4today, reached_daily_limit = self.quiz_obj.quiz_counter()
+
+        if reached_daily_limit:
+            self.reached_daily_limit_dialogue()
+
+        if no_words_left4today:
+            self.no_words_left4today_dialogue()
+
+        self.resize(700, 700)
+        self.move(315, 10)
+
+        self.quiz_window = QuizWindow()
+        self.setCentralWidget(self.quiz_window)
+
+        self.setWindowTitle(self.quiz_obj.quiz_window_titel)
+        # self.quiz_window.txt_cont.clear()
+        self.quiz_window.txt_cont.insertHtml(self.quiz_obj.quiz_text)
+
+        self.quiz_window.next_btn.clicked.connect(self.quiz_score)
+        self.quiz_window.next_btn.clicked.connect(self.launch_quiz_window)
+        self.quiz_window.close_button.clicked.connect(self.close)
+        self.quiz_window.populate.clicked.connect(self.reveal_full_html_quiz)
+        self.quiz_window.save_button.clicked.connect(
+            self.save_custom_quiztext_from_quizmode)
+        self.quiz_window.update_button.clicked.connect(self.update_word_html)
+        self.quiz_window.hide_button.clicked.connect(self.hide_word_manually)
+
+        self.show()
+
+    def quiz_score(self):
+        logger.info("quiz_score")
+        self.rating_diag_quiz = QuizRatingDiag(self)
+        df = self.wordlist_df
+        self.rating_diag_quiz.show()
+        self.reveal_full_html_quiz()
+        if self.rating_diag_quiz.exec_():
+            saving_file = 'wordlist.csv'
+            easiness = self.rating_diag_quiz.easiness
+            spaced_repetition(easiness,
+                              now,
+                              df,
+                              saving_file,
+                              **self.quiz_obj.quiz_params)
+
+    def reached_daily_limit_dialogue(self):
+        logger.info("reached_daily_limit_dialogue")
+        choice = QMessageBox.question(self, 'Extract!',
+                                      "you have revisited 10 Words, Well done!"
+                                      " Come back later... "
+                                      "(If you want to continue hit Yes!)",
+                                      QMessageBox.Yes | QMessageBox.Close)
+
+        if choice == QMessageBox.Yes:
+            logger.debug("resetting Count")
+            self.quiz_obj._nb_revisited = 0
+            self.show()
+        else:
+            sys.exit()
+
+    def no_words_left4today_dialogue(self):
+        global quiz_priority_order
+        logger.info("no_words_left4today_dialogue")
+        choice = QMessageBox.question(self, 'Extract!',
+                                      "Well done, you have all planned words "
+                                      "revisited. Want to switch priority to "
+                                      "old words?",
+                                      QMessageBox.Yes | QMessageBox.Close)
+        if choice == QMessageBox.Yes:
+            logger.info("Repeating list Naaaaaaoooww!!!!")
+            quiz_priority_order = 'old_words'
+            logger.debug('mod switch')
+            self.launch_quiz_window()
+        else:
+            sys.exit()
 
     def hide_word_manually(self):
         logger.info("hide_word_manually")
@@ -438,9 +413,67 @@ class MainWindow(QMainWindow):
             self.save_custom_definition_from_quizmode)
         self.show()
 
+    def update_word_html(self):
+        logger.info("update_word_html")
+        subprocess.Popen(['dic.py', self.quiz_obj.quiz_params['queued_word']])
+
+    def launch_focus_window(self):
+        logger.info("launch_focus_window")
+        self.resize(700, 300)
+        self.move(315, 180)
+        self.focus_window = FocusWindow(self)
+        self.setCentralWidget(self.focus_window)
+
+        self.focus_obj = FocusEntry(focus_df=self.focus_df)
+
+        self.setWindowTitle(self.focus_obj.window_titel)
+        self.focus_window.txt_cont.setFont(focus_font)
+        self.focus_window.txt_cont.insertHtml(self.focus_obj.focus_part)
+
+        self.focus_window.next_btn.clicked.connect(self.focus_score)
+        self.focus_window.next_btn.clicked.connect(self.launch_focus_window)
+        self.focus_window.ignore_button.clicked.connect(
+            self.sure_method)   # sure_method
+        self.show()
+
+    @pyqtSlot()     # just increases button reactivity
+    def sure_method(self):
+        logger.info("sure_method")
+        self.focus_window.txt_cont.clear()
+        self.focus_window.txt_cont.insertHtml(
+            self.focus_obj.focus_part_revealed)
+        self.focus_window.ignore_button.setText('Sure?')
+        self.focus_window.ignore_button.move(50, 240)
+        self.focus_window.ignore_button.clicked.connect(self.ignore_part)
+        self.focus_window.next_btn.clicked.connect(self.launch_focus_window)
+        self.show()
+
+    def focus_score(self):
+        logger.info("focus_score")
+        logger.debug('updating wordpart scores')
+        self.rating_diag_focus = FocusRatingDiag(self)
+        self.rating_diag_focus.show()
+        self.reveal_full_html_focus()
+        if self.rating_diag_focus.exec_():
+            saving_file = 'wordpart_list.csv'
+            easiness = self.rating_diag_focus.easiness
+            spaced_repetition(easiness,
+                              now,
+                              self.focus_obj.focus_df,
+                              saving_file,
+                              **self.focus_obj.focus_params_dict)
+
+    def ignore_part(self):
+        logger.info("ignore_part")
+        focus_df = self.focus_obj.focus_df
+        focus_df.loc[
+            self.focus_obj.focus_params_dict['queued_word'],
+            "Ignore"] = 1
+        focus_df.to_csv(dict_path / 'wordpart_list.csv')
+        self.launch_focus_window()
+
     def reveal_full_html_focus(self):
         logger.info("reveal_full_html_focus")
-        logger.debug('reveal_full_html_focus')
         full_text = self.focus_obj.focus_part_revealed
         self.focus_window = FocusWindow(self)
         self.setWindowTitle("Wörterbuch: Focus")
@@ -451,21 +484,17 @@ class MainWindow(QMainWindow):
         self.focus_window.next_btn.clicked.connect(self.launch_focus_window)
         self.show()
 
-    def highlight_text(self):
-        logger.info("highlight_text")
-        format = QTextCharFormat()
-        color = QColor(3, 155, 224)
-        color = QColor(220*1.15, 212*1.15, 39*1.15)
-        format.setForeground(color)
-        self.def_window.txt_cont.textCursor().mergeCharFormat(format)
-
     def save_definition(self):
         logger.info("save_definition")
 
         studie_tag = self.def_window.save_to_stud.isChecked()
         defined_user_html = self.def_window.txt_cont.toHtml()
+
+        # TODO normalement yabdew fel Quiz Obj chya3mlou lena msaybine?
         beispiel_de = self.def_window.beispiel.text()
         beispiel_en = self.def_window.beispiel2.text()
+        beispiel_de = beispiel_de.replace('- ', '– ')
+        beispiel_en = beispiel_en.replace('- ', '– ')
         words_2_hide = self.def_obj.words_to_hide
         word = self.def_obj.word
         tag = ''
@@ -530,7 +559,18 @@ class MainWindow(QMainWindow):
         #     pass
 
 
+def excepthook(exc_type, exc_value, exc_tb):
+    tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    print("error catched!:")
+    print("error message:\n", tb)
+    subprocess.Popen(['notify-send', 'An Error Occured', exc_value.args[0]])
+    QApplication.quit()
+    sys.exit(1)
+
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    sys.excepthook = excepthook
     w = MainWindow()
-    sys.exit(app.exec_())
+    exit_code = app.exec_()
+    sys.exit(exit_code)

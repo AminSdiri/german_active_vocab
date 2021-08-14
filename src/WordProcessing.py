@@ -20,6 +20,7 @@ def fix_html_with_custom_example(html_text):
                                   'text-indent:0px;">')
     if html_text[-4:] == '</i>':
         html_text += '</p></body></html>'
+
     return html_text
 
 

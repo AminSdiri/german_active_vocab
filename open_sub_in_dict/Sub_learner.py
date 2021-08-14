@@ -68,6 +68,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(535, 150, 210, 50)
         self.word = ''
         # self.subs_de = pysrt.open(self.path_de)
+        # self.path_en='/home/mani/Dokumente/Dictionnary/Subs/That 70s Show – 2x23 – Holy Crap en.srt'
         # self.subs_en = pysrt.open(self.path_en)
         self.index_de = -1
         nbargin = len(sys.argv) - 1
@@ -111,10 +112,10 @@ class MainWindow(QMainWindow):
             search_path_de = videos_path / name_show / search_pattern_ger
             search_pattern_eng = f'{name_show}*{number_episode}*Eng*.srt'
             search_path_en = videos_path / name_show / search_pattern_eng
-            for file in glob.glob(search_path_de):
+            for file in glob.glob(str(search_path_de)):
                 print(file)
                 self.path_de = file
-            for file in glob.glob(search_path_en):
+            for file in glob.glob(str(search_path_en)):
                 print(file)
                 self.path_en = file
         else:
@@ -122,9 +123,9 @@ class MainWindow(QMainWindow):
             search_path_de = videos_path / 'Movies' / f'{name_show}*Ger*.srt'
             search_path_en = videos_path / 'Movies' / f'{name_show}*Eng*.srt'
             print(search_path_de)
-            for file in glob.glob(search_path_de):
+            for file in glob.glob(str(search_path_de)):
                 self.path_de = file
-            for file in glob.glob(search_path_en):
+            for file in glob.glob(str(search_path_en)):
                 self.path_en = file
         try:
             self.subs_de = pysrt.open(self.path_de)
@@ -290,6 +291,7 @@ class MainWindow(QMainWindow):
 
     def save_method(self):
         # open with active Vocabulary trainer
+        print('save_method')
         word = self.ToolTab.line.text()
         Beispiel_de = self.ToolTab.Deu_cont.toPlainText()
         Beispiel_en = self.ToolTab.Eng_cont.toPlainText()
@@ -297,9 +299,11 @@ class MainWindow(QMainWindow):
             "'", "//QUOTE")+" ("+self.file_name+")"
         Beispiel_en = Beispiel_en.replace(
             "'", "//QUOTE")+" ("+self.file_name+")"
-        command_str = f'dic.py {word} "{Beispiel_de}" "{Beispiel_en}"'
+        print('Executing Command')
+        command_str = ('python3 /home/mani/Dokumente/active_vocabulary/src/'
+                       f'Dict.py "{word}" "{Beispiel_de}" "{Beispiel_en}"')
         print(command_str)
-        stream = os.popen()
+        os.popen(command_str) # stream = os...
         # output = stream.read()
 
 

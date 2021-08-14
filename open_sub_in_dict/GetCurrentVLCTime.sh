@@ -24,7 +24,7 @@ if [ 0 -eq $? ]; then
 	echo "vlc_filename: ${vlc_filename}"
 	notify-send "Time is Captured" "$vlc_filename: $timecode"
 	echo $vlc_filename, $timecode >>~/Dokumente/Dictionnary/VLC_saved_time.txt
-	Sub_learner.py "$vlc_filename" "$timecode"
+	/home/mani/Dokumente/active_vocabulary/open_sub_in_dict/Sub_learner.py "$vlc_filename" "$timecode"
 else
 	echo "no data from vlc"
 	notify-send "no data from vlc"

@@ -134,7 +134,7 @@ class QuizRatingDiag(QDialog):
 
         word_already_added_to_focus = any(
             parent.focus_df.Word.str.contains(self.queued_word)
-            )
+        )
         if word_already_added_to_focus:
             self.set_focus_button.setEnabled(False)
 
@@ -226,7 +226,7 @@ class QuizRatingDiag(QDialog):
         df.to_csv(dict_path / 'wordpart_list.csv')
 
         subprocess.Popen(
-            ['notify-send', '"'+word+'"', 'Add to Focus Mode'])
+            ['notify-send', '"'+word+'"', 'Added to Focus Mode'])
         logger.info(f'{word} switched to Focus Mode')
 
 
