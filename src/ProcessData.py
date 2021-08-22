@@ -2,6 +2,7 @@ import pandas as pd
 from bs4 import BeautifulSoup as bs
 from WordProcessing import create_quiz_html, fix_html_with_custom_example
 from pathlib import Path
+import subprocess
 
 from utils import set_up_logger
 
@@ -274,16 +275,15 @@ def append_word_seen_info(word, defined_html):
 
 def treat_def_part(element, is_previous_gra, previous_is_expl,
                    was_gra_here, defined_html):
-    # try:
-    current_is_expl = (
-        element["class"] == ['example'])
-    is_current_gra = (
-        element["class"] == [
-            'idiom_proverb'] or
-        element["class"] == [
-            'grammatical_construction'])
-    # except:
-    #     is_current_an_example = 0
+    try:
+        current_is_expl = element["class"] == ['example']
+        is_current_gra = (
+            element["class"] == ['idiom_proverb'] or
+            element["class"] == ['grammatical_construction']
+            )
+    except KeyError:
+        current_is_expl = False
+        is_current_gra = False
     if (is_previous_gra and
             not is_current_gra):
         was_gra_here = 1
@@ -731,7 +731,7 @@ def save_function(dict_path, word, defined_user_html, beispiel_de,
 
     with open(dict_path / (word+'.quiz.html'), 'w') as f:
         f.write(clean_html)
-    # subprocess.Popen(['notify-send', word + ' gespeichert!'])
+    subprocess.Popen(['notify-send', word + ' gespeichert!'])
     logger.info(word + ' gespeichert')
     # except:
     #     logger.error('Error writing' + word)

@@ -229,69 +229,24 @@ class DefEntry():
         # trennbar = 0
         self.words_to_hide = self.word.split()
 
-        if len(json_data) == 1:
+        if not translate and len(json_data) == 1:
             logger.info(f'language: {json_data[0]["lang"]}')
             json_data = json_data[0]["hits"]
+            self.parse_json_data(json_data, translate)
+        elif translate and len(json_data) == 1:
+            logger.info(f'language: {json_data[0]["lang"]}')
+            json_data = json_data[0]["hits"]
+            self.parse_json_data(json_data, translate)
+        elif translate and len(json_data) == 2:
+            logger.info(f'language: {json_data[0]["lang"]}')
+            json_data_1 = json_data[0]["hits"]
+            self.parse_json_data(json_data_1, translate)
+            self.defined_html.body.append(bs('<hr><hr>', 'lxml'))
+            json_data_2 = json_data[1]["hits"]
+            self.parse_json_data(json_data_2, translate)
         else:
             raise RuntimeError(
-                'json API respense is expected to be of length 1')
-
-        for rom_level in json_data:
-            is_first_word_case = 1
-            for arab_level in rom_level["roms"]:
-                headword = arab_level["headword"]
-                if 'wordclass' in arab_level:
-                    wordclass = arab_level["wordclass"]
-                else:
-                    wordclass = 'Unknown'
-                full_headword = arab_level["headword_full"]
-
-                if full_headword != '':
-
-                    self.words_to_hide = update_words_to_hide(
-                        full_headword, self.words_to_hide)
-
-                    full_headword = format_titel_html(
-                        full_headword, is_first_word_case)
-                    self.defined_html.body.append(full_headword.body.p)
-
-                    is_first_word_case = 0
-
-                for definition_block in arab_level["arabs"]:
-                    block_number = definition_block["header"]
-                    (indented_block_number,
-                     self.defined_html, ignore) = correct_num_indentation(
-                        block_number, self.defined_html)
-                    if ignore:
-                        continue
-                    self.defined_html.body.append(indented_block_number)
-
-                    previous_is_expl = 0
-                    was_gra_here = 0
-                    is_previous_gra = 0
-                    content = definition_block["translations"]
-                    if translate:
-                        data_corpus = ''
-                        for definition_part in content:
-                            (self.defined_html,
-                             data_corpus) = create_translation_table(
-                                self.defined_html, definition_part,
-                                data_corpus)
-                    else:
-                        for definition_part in content:
-                            data_corpus = definition_part["source"]
-                            if data_corpus != '':
-                                for element in bs(data_corpus, 'lxml').body:
-                                    if element is not None:
-                                        (is_previous_gra,
-                                         previous_is_expl,
-                                         was_gra_here,
-                                         self.defined_html) = treat_def_part(
-                                            element,
-                                            is_previous_gra,
-                                            previous_is_expl,
-                                            was_gra_here,
-                                            self.defined_html)
+                'json API respense is expected to be of length 1 or only for translations 2')
 
         if not translate:
             self.defined_html = format_html(self.defined_html)
@@ -330,6 +285,83 @@ class DefEntry():
             f.write(self.defined_html)
 
         return self.words_to_hide, self.duden_synonyms, self.defined_html
+
+    def parse_json_data(self, json_data, translate):
+        for rom_level in json_data:
+            is_first_word_case = 1
+            if "roms" in rom_level:
+                for arab_level in rom_level["roms"]:
+                    headword = arab_level["headword"]
+                    if 'wordclass' in arab_level:
+                        wordclass = arab_level["wordclass"]
+                    else:
+                        wordclass = 'Unknown'
+                    full_headword = arab_level["headword_full"]
+
+                    if full_headword != '':
+                        self.words_to_hide = update_words_to_hide(
+                            full_headword, self.words_to_hide)
+
+                        full_headword = format_titel_html(
+                            full_headword, is_first_word_case)
+                        self.defined_html.body.append(full_headword.body.p)
+
+                        is_first_word_case = 0
+
+                    for definition_block in arab_level["arabs"]:
+                        block_number = definition_block["header"]
+                        (indented_block_number,
+                        self.defined_html, ignore) = correct_num_indentation(
+                            block_number, self.defined_html)
+                        if ignore:
+                            continue
+                        self.defined_html.body.append(indented_block_number)
+
+                        previous_is_expl = 0
+                        was_gra_here = 0
+                        is_previous_gra = 0
+                        content = definition_block["translations"]
+                        if translate:
+                            data_corpus = ''
+                            for definition_part in content:
+                                (self.defined_html,
+                                data_corpus) = create_translation_table(
+                                    self.defined_html, definition_part,
+                                    data_corpus)
+                        else:
+                            for definition_part in content:
+                                data_corpus = definition_part["source"]
+                                if data_corpus != '':
+                                    for element in bs(data_corpus, 'lxml').body:
+                                        if element is not None:
+                                            (is_previous_gra,
+                                            previous_is_expl,
+                                            was_gra_here,
+                                            self.defined_html) = treat_def_part(
+                                                element,
+                                                is_previous_gra,
+                                                previous_is_expl,
+                                                was_gra_here,
+                                                self.defined_html)
+            elif "source" in rom_level:
+                previous_is_expl = 0
+                was_gra_here = 0
+                is_previous_gra = 0
+                data_corpus = rom_level["source"]
+                if data_corpus != '':
+                    for element in bs(data_corpus, 'lxml').body:
+                        if element is not None:
+                            (is_previous_gra,
+                            previous_is_expl,
+                            was_gra_here,
+                            self.defined_html) = treat_def_part(
+                                element,
+                                is_previous_gra,
+                                previous_is_expl,
+                                was_gra_here,
+                                self.defined_html)
+            else:
+                raise KeyError('"roms" or (in the worst case) "source" key is expected"')
 
     def get_duden_soup(self, filename):
         logger.debug('Looking in Duden cache')

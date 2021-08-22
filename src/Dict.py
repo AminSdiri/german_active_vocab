@@ -159,7 +159,7 @@ class MainWindow(QMainWindow):
             logger.debug('Opening from Magical 2 Args')
 
             word = sys.argv[1]
-            beispiel_de = sys.argv[2].replace("//QUOTE", "'")
+            beispiel_de = sys.argv[2].replace("//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
 
             self.def_obj = DefEntry(word=word,
                                     beispiel_de=beispiel_de)
@@ -169,8 +169,8 @@ class MainWindow(QMainWindow):
             logger.debug('Opening from Magical 3 Args')
 
             word = sys.argv[1]
-            beispiel_de = sys.argv[2].replace("//QUOTE", "'")
-            beispiel_en = sys.argv[3].replace("//QUOTE", "'")
+            beispiel_de = sys.argv[2].replace("//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
+            beispiel_en = sys.argv[3].replace("//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
 
             self.def_obj = DefEntry(word=word,
                                     beispiel_de=beispiel_de,
