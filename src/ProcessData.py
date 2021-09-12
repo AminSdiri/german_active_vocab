@@ -18,10 +18,10 @@ def format_html(defined_html):
     if not(titel_word is None):
         for elem in titel_word:
             logger.debug('gc insert')
-            # try:
-            previous_sb = elem.previous_sibling.name
-            # except:
-            #     previous_sb = ''
+            try:
+                previous_sb = elem.previous_sibling.name
+            except AttributeError:
+                previous_sb = ''
             if previous_sb != 'header_num':
                 elem.insert_before(defined_html.new_tag('br'))
                 elem.insert_before('\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0ⓖ ')
@@ -247,6 +247,7 @@ def correct_num_indentation(block_number, defined_html):
     else:
         indented_block_number = bs(
             '\xa0\xa0\xa0\xa0' + block_number, 'lxml').body.p
+    
     try:
         indented_block_number.string.wrap(
             defined_html.new_tag('header_num'))
@@ -257,14 +258,15 @@ def correct_num_indentation(block_number, defined_html):
         except AttributeError:
             indented_block_number.contents[0].wrap(
                 defined_html.new_tag('header_num'))
+
     return indented_block_number, defined_html, ignore
 
 
-def append_word_seen_info(word, defined_html):
+def append_word_seen_info_toHtml(word, defined_html):
     df = pd.read_csv(dict_path / 'wordlist.csv')
-    tata = df[df["Word"] == word]
-    if tata.size != 0:
-        df.set_index('Word', inplace=True)
+    df.set_index('Word', inplace=True)
+    word_is_already_saved = word in df.index
+    if word_is_already_saved:
         rev_str = ('<br><br><font size="3" face="Courier New">Last seen on '
                    + df.loc[word, "Previous_date"] + ', next revision on '
                    + df.loc[word, "Next_date"] + '</font>')
@@ -273,24 +275,40 @@ def append_word_seen_info(word, defined_html):
     return defined_html
 
 
-def treat_def_part(element, is_previous_gra, previous_is_expl,
-                   was_gra_here, defined_html):
+def treat_def_part_new(element, previous_is_expl, defined_html):
     try:
         current_is_expl = element["class"] == ['example']
-        is_current_gra = (
+    except KeyError:
+        current_is_expl = False
+    if not current_is_expl and previous_is_expl:
+        logger.debug('separating gr in new paragraph')
+        element.wrap(defined_html.new_tag('p'))
+        defined_html.body.append(element.parent)
+    else:
+        defined_html.find_all('p')[-1].append(element)
+    previous_is_expl = current_is_expl
+
+    return previous_is_expl, defined_html
+
+
+def treat_def_part(element, is_previous_gra, previous_is_expl,
+                   gra_was_in_block, defined_html):
+    try:
+        current_is_expl = element["class"] == ['example']
+        current_is_gra = (
             element["class"] == ['idiom_proverb'] or
             element["class"] == ['grammatical_construction']
             )
     except KeyError:
         current_is_expl = False
-        is_current_gra = False
+        current_is_gra = False
     if (is_previous_gra and
-            not is_current_gra):
-        was_gra_here = 1
+            not current_is_gra):
+        gra_was_in_block = 1
     if ((not current_is_expl and
         previous_is_expl) or
-        (was_gra_here and
-            is_current_gra)):
+        (gra_was_in_block and
+            current_is_gra)):
         logger.debug(
             'separating gr in '
             'new paragraph')
@@ -302,9 +320,9 @@ def treat_def_part(element, is_previous_gra, previous_is_expl,
         defined_html.find_all(
             'p')[-1].append(element)
     previous_is_expl = current_is_expl
-    is_previous_gra = is_current_gra
+    is_previous_gra = current_is_gra
 
-    return is_previous_gra, previous_is_expl, was_gra_here, defined_html
+    return is_previous_gra, previous_is_expl, gra_was_in_block, defined_html
 
 
 def standarize_json(json_data, translate):
@@ -677,9 +695,9 @@ def standarize_json(json_data, translate):
 def save_function(dict_path, word, defined_user_html, beispiel_de,
                   beispiel_en, tag, words_2_hide, now):
     df = pd.read_csv(dict_path / 'wordlist.csv')
-    tata = df[df["Word"] == word]
     df.set_index('Word', inplace=True)
-    if tata.size != 0:
+    word_is_already_saved = word in df.index
+    if word_is_already_saved:
         defined_user_html = defined_user_html\
             .replace('Last seen on '+df.loc[word, "Previous_date"]
                      + ', next revision on '+df.loc[word, "Next_date"], '')
@@ -688,9 +706,9 @@ def save_function(dict_path, word, defined_user_html, beispiel_de,
         df.loc[word, "Repetitions"] = 0
         df.loc[word, "EF_score"] = 2.5
         df.loc[word, "Interval"] = 1
-        df.loc[word, "Previous_date"] = now.strftime("%d.%m.%y")
-        df.loc[word, "Created"] = now.strftime("%d.%m.%y")
-        df.loc[word, "Next_date"] = now.strftime("%d.%m.%y")
+        df.loc[word, "Previous_date"] = now  # .strftime("%d.%m.%y")
+        df.loc[word, "Created"] = now  # .strftime("%d.%m.%y")
+        df.loc[word, "Next_date"] = now  # .strftime("%d.%m.%y")
         df.loc[word, "Tag"] = tag
         df.to_csv(dict_path / 'wordlist.csv')
 

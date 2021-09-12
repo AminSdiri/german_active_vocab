@@ -5,13 +5,13 @@ from pathlib import Path
 import sys
 import os
 import subprocess
-from PyQt5.QtCore import pyqtSlot
+from PyQt5.QtCore import pyqtSlot, QUrl
 from PyQt5.QtWidgets import (QApplication,
                              QErrorMessage,
                              QMainWindow,
                              QListWidget,
                              QMessageBox)
-from PyQt5.QtGui import QTextCharFormat, QFont, QTextCursor, QColor
+from PyQt5.QtGui import QTextCharFormat, QFont, QTextCursor, QColor, QTextDocument
 from datetime import datetime, timedelta
 import pandas as pd
 from bs4 import BeautifulSoup as bs
@@ -34,10 +34,9 @@ from ProcessQuizData import (
 from utils import set_up_logger
 
 # TODO write test functions for the different functionalities,
-# use the debug_mode variable for pytest
 
 # TODO! create setup.py to take care of
-# - creating dirs
+# - creating dirs and csv files
 # - install requirements.txt
 # etc
 
@@ -147,14 +146,12 @@ class MainWindow(QMainWindow):
             self.def_obj = DefEntry(word=word,
                                     checkbox_en=checkbox_en,
                                     checkbox_fr=checkbox_fr)
-
         elif nbargin == 1:
             logger.debug('Opening from Magical 1 Arg')
 
             word = sys.argv[1]
 
             self.def_obj = DefEntry(word=word)
-
         elif nbargin == 2:
             logger.debug('Opening from Magical 2 Args')
 
@@ -183,6 +180,11 @@ class MainWindow(QMainWindow):
             raise RuntimeError('Number of argument exceeds 3')
 
         self.def_window.txt_cont.setFont(normal_font)
+        directory = os.getcwd()
+        self.def_window.txt_cont.document().setMetaInformation(
+            QTextDocument.DocumentUrl,
+            QUrl.fromLocalFile(directory).toString() + "/",
+            )
         self.def_window.txt_cont.insertHtml(self.def_obj.defined_html)
         self.def_window.txt_cont.moveCursor(
             QTextCursor.Start)  # .textCursor(defined_html)

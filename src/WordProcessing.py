@@ -276,113 +276,124 @@ def update_words_to_hide(full_headword, words_to_hide):
     if 'VERB' in full_headword or 'verb' in full_headword:
         if ':' in cleaner_raw_titel:
             logger.debug('Verb')
-            raw_word = cleaner_raw_titel.split(":")
-            words = raw_word[1].split(", ")
-            raw_word = raw_word[0].replace(' ', '')
-            indiv_words = words[0].split()
-            # try:
-            prateritum = words[1].split()
-            # except:
-            #     prateritum = [raw_word[:-2]+'te']
-            # try:
-            rest_words = words[2].split()
-            # except:
-            #     rest_words = ['hat', raw_word[:-2]+'t']
-            #     rest_words = ['hat', 'ge'+raw_word[:-2]+'t']
+            base_words = cleaner_raw_titel.split(":")
+            conjugations = base_words[1].split(", ")
+            base_word = base_words[0].replace(' ', '')
+            if len(conjugations) == 3:
+                try:
+                    prateritum = conjugations[1].split()
+                except IndexError:
+                    prateritum = [base_word[:-2]+'te']
+                try:
+                    perfekt = conjugations[2].split()
+                except IndexError:
+                   # perfekt = ['hat', base_word[:-2]+'t']
+                    perfekt = ['hat', 'ge'+base_word[:-2]+'t']
+            elif len(conjugations) == 2:
+                try:
+                    prateritum = conjugations[0].split()
+                except IndexError:
+                    prateritum = [base_word[:-2]+'te']
+                try:
+                    perfekt = conjugations[1].split()
+                except IndexError:
+                   # perfekt = ['hat', base_word[:-2]+'t']
+                    perfekt = ['hat', 'ge'+base_word[:-2]+'t']
             if len(prateritum) == 2:
                 logger.debug('trennbar')
                 # trennbar = 1
+                word_variants = conjugations[0].split()
                 trenn_wort = prateritum[1]
                 lentrennwort = len(trenn_wort)
-                indiv_words.append(raw_word[lentrennwort:])
-                indiv_words.append(trenn_wort+'zu'+raw_word[lentrennwort:])
-                indiv_words.append(raw_word[lentrennwort:-1])
-                indiv_words.append(raw_word[lentrennwort:-2]+'t')
-                indiv_words.append(raw_word[lentrennwort:-2])
-                indiv_words.append(raw_word[:-1])
-                indiv_words.append(raw_word[:-2]+'t')
-                indiv_words.append(raw_word[:-2])
-                indiv_words.append(words[0][:-2]+'t')
-                indiv_words.append(words[0][:-2])
-                indiv_words.append(prateritum[0]+'t')
+                word_variants.append(base_word[lentrennwort:])
+                word_variants.append(trenn_wort+'zu'+base_word[lentrennwort:])
+                word_variants.append(base_word[lentrennwort:-1])
+                word_variants.append(base_word[lentrennwort:-2]+'t')
+                word_variants.append(base_word[lentrennwort:-2])
+                word_variants.append(base_word[:-1])
+                word_variants.append(base_word[:-2]+'t')
+                word_variants.append(base_word[:-2])
+                word_variants.append(conjugations[0][:-2]+'t')
+                word_variants.append(conjugations[0][:-2])
+                word_variants.append(prateritum[0]+'t')
                 if prateritum[0][-1] == 'e':
-                    indiv_words.append(prateritum[0]+'n')
+                    word_variants.append(prateritum[0]+'n')
                 else:
-                    indiv_words.append(prateritum[0]+'en')
-                indiv_words.append(prateritum[0]+'st')
-                indiv_words.append(prateritum[0]+'t')
-                indiv_words.append(prateritum[0])
-                indiv_words.append(rest_words[1])
-                indiv_words.append(rest_words[1]+'e')
-                indiv_words.append(rest_words[1]+'es')
-                indiv_words.append(rest_words[1]+'er')
-            elif raw_word[0:2] == 'ab':
+                    word_variants.append(prateritum[0]+'en')
+                word_variants.append(prateritum[0]+'st')
+                word_variants.append(prateritum[0]+'t')
+                word_variants.append(prateritum[0])
+                word_variants.append(perfekt[1])
+                word_variants.append(perfekt[1]+'e')
+                word_variants.append(perfekt[1]+'es')
+                word_variants.append(perfekt[1]+'er')
+            elif base_word[0:2] == 'ab':
                 logger.debug('false trennbar')
-                indiv_words = words[0].split()
-                indiv_words.append('ab')
-                indiv_words.append(raw_word[2:-1])
-                indiv_words.append(raw_word[2:-2]+'t')
-                indiv_words.append(raw_word[2:-1]+'t')
-                indiv_words.append(raw_word[2:-2])
-                indiv_words.append(raw_word[2:-2]+'st')
-                indiv_words.append(raw_word[2:-1]+'st')
-                indiv_words.append(prateritum[0]+'t')
+                word_variants = conjugations[0].split()
+                word_variants.append('ab')
+                word_variants.append(base_word[2:-1])
+                word_variants.append(base_word[2:-2]+'t')
+                word_variants.append(base_word[2:-1]+'t')
+                word_variants.append(base_word[2:-2])
+                word_variants.append(base_word[2:-2]+'st')
+                word_variants.append(base_word[2:-1]+'st')
+                word_variants.append(prateritum[0]+'t')
                 if prateritum[0][-1] == 'e':
-                    indiv_words.append(prateritum[0]+'n')
+                    word_variants.append(prateritum[0]+'n')
                 else:
-                    indiv_words.append(prateritum[0]+'en')
-                indiv_words.append(prateritum[0]+'st')
-                indiv_words.append(prateritum[0]+'t')
-                indiv_words.append(prateritum[0])
-                indiv_words.append(rest_words[1])
-                indiv_words.append('ab'+'ge'+raw_word[2:-1]+'t')
+                    word_variants.append(prateritum[0]+'en')
+                word_variants.append(prateritum[0]+'st')
+                word_variants.append(prateritum[0]+'t')
+                word_variants.append(prateritum[0])
+                word_variants.append(perfekt[1])
+                word_variants.append('ab'+'ge'+base_word[2:-1]+'t')
             else:
                 logger.debug('einfach')
-                indiv_words = words[0].split()
-                indiv_words.append(raw_word)
-                indiv_words.append(raw_word[:-1])
-                indiv_words.append(raw_word[:-1]+'e')
-                indiv_words.append(words[0][:-2])
-                indiv_words.append(words[0][:-2]+'t')
-                indiv_words.append(words[0][:-2]+'et')
-                indiv_words.append(raw_word[:-2]+'t')
-                indiv_words.append(raw_word[:-2]+'et')
-                indiv_words.append(raw_word[:-1]+'t')
-                indiv_words.append(raw_word[:-1]+'et')
-                indiv_words.append(prateritum[0])
-                indiv_words.append(prateritum[0]+'st')
-                indiv_words.append(prateritum[0]+'t')
-                indiv_words.append(prateritum[0]+'n')
-                indiv_words.append(raw_word+'d')
-                # try:
-                indiv_words.append(rest_words[1])
-                # except:
-                #     indiv_words.append('ge'+raw_word[:-2]+'t')
-                #     indiv_words.append('ge'+raw_word[:-1]+'t')
+                word_variants = conjugations[0].split()
+                word_variants.append(base_word)
+                word_variants.append(base_word[:-1])
+                word_variants.append(base_word[:-1]+'e')
+                word_variants.append(conjugations[0][:-2])
+                word_variants.append(conjugations[0][:-2]+'t')
+                word_variants.append(conjugations[0][:-2]+'et')
+                word_variants.append(base_word[:-2]+'t')
+                word_variants.append(base_word[:-2]+'et')
+                word_variants.append(base_word[:-1]+'t')
+                word_variants.append(base_word[:-1]+'et')
+                word_variants.append(prateritum[0])
+                word_variants.append(prateritum[0]+'st')
+                word_variants.append(prateritum[0]+'t')
+                word_variants.append(prateritum[0]+'n')
+                word_variants.append(base_word+'d')
+                try:
+                    word_variants.append(perfekt[1])
+                except IndexError:
+                    word_variants.append('ge'+base_word[:-2]+'t')
+                    word_variants.append('ge'+base_word[:-1]+'t')
         else:
             logger.debug('without flexion')
-            raw_word = cleaner_raw_titel.replace(' ', '')
-            indiv_words = [raw_word]
-            indiv_words.append(raw_word[:-1])
-            indiv_words.append(raw_word[:-1]+'e')
-            indiv_words.append(raw_word[:-2])
-            indiv_words.append(raw_word[:-2]+'e')
-            indiv_words.append(raw_word[:-1]+'est')
-            indiv_words.append(raw_word[:-2]+'st')
-            indiv_words.append(raw_word[:-2]+'t')
-            indiv_words.append(raw_word[:-2]+'et')
-            indiv_words.append(raw_word[:-1]+'t')
-            indiv_words.append(raw_word[:-1]+'et')
-            indiv_words.append(raw_word[:-2]+'te')
-            indiv_words.append(raw_word[:-2]+'test')
-            indiv_words.append(raw_word[:-2]+'tet')
-            indiv_words.append(raw_word[:-2]+'ten')
-            indiv_words.append(raw_word[:-1]+'te')
-            indiv_words.append(raw_word[:-1]+'test')
-            indiv_words.append(raw_word[:-1]+'tet')
-            indiv_words.append(raw_word[:-1]+'ten')
-            indiv_words.append('ge'+raw_word[:-2]+'t')
-            indiv_words.append('ge'+raw_word[:-1]+'t')
+            base_word = cleaner_raw_titel.replace(' ', '')
+            word_variants = [base_word]
+            word_variants.append(base_word[:-1])
+            word_variants.append(base_word[:-1]+'e')
+            word_variants.append(base_word[:-2])
+            word_variants.append(base_word[:-2]+'e')
+            word_variants.append(base_word[:-1]+'est')
+            word_variants.append(base_word[:-2]+'st')
+            word_variants.append(base_word[:-2]+'t')
+            word_variants.append(base_word[:-2]+'et')
+            word_variants.append(base_word[:-1]+'t')
+            word_variants.append(base_word[:-1]+'et')
+            word_variants.append(base_word[:-2]+'te')
+            word_variants.append(base_word[:-2]+'test')
+            word_variants.append(base_word[:-2]+'tet')
+            word_variants.append(base_word[:-2]+'ten')
+            word_variants.append(base_word[:-1]+'te')
+            word_variants.append(base_word[:-1]+'test')
+            word_variants.append(base_word[:-1]+'tet')
+            word_variants.append(base_word[:-1]+'ten')
+            word_variants.append('ge'+base_word[:-2]+'t')
+            word_variants.append('ge'+base_word[:-1]+'t')
     else:
         cleaner_raw_titel = delete_between_words(
             cleaner_raw_titel, '<', '>', '>')
@@ -393,62 +404,62 @@ def update_words_to_hide(full_headword, words_to_hide):
             .replace('die ', ' ')\
             .replace('das ', ' ')
         if ':' in cleaner_raw_titel:
-            raw_word = cleaner_raw_titel.split(":")
-            logger.debug(raw_word)
-            if ',' in raw_word[1]:
-                flexion = raw_word[1].split(",")
+            base_word = cleaner_raw_titel.split(":")
+            logger.debug(base_word)
+            if ',' in base_word[1]:
+                flexion = base_word[1].split(",")
             else:
-                flexion = raw_word[1].split()
+                flexion = base_word[1].split()
             logger.debug(flexion)
             try:
                 plural = flexion[1]
                 wrdrr = plural
-                indiv_words = flexion
+                word_variants = flexion
             except IndexError:
-                words = raw_word[0].split()
-                if (words[0] == 'der' or
-                    words[0] == 'die' or
-                        words[0] == 'das'):
-                    wrdrr = words[1].replace('·', '').replace('', '')
+                conjugations = base_word[0].split()
+                if (conjugations[0] == 'der' or
+                    conjugations[0] == 'die' or
+                        conjugations[0] == 'das'):
+                    wrdrr = conjugations[1].replace('·', '').replace('', '')
                 else:
-                    wrdrr = words[0].replace('·', '').replace('', '')
-                indiv_words = [wrdrr]
-            indiv_words.append(wrdrr+'e')
-            indiv_words.append(wrdrr+'en')
-            indiv_words.append(wrdrr+'er')
-            indiv_words.append(wrdrr+'em')
-            indiv_words.append(wrdrr+'es')
-            indiv_words.append(wrdrr+'n')
-            indiv_words.append(wrdrr+'r')
-            indiv_words.append(wrdrr+'m')
-            indiv_words.append(wrdrr+'s')
-            words = raw_word[0].split()
-            if words[0] == 'der' or words[0] == 'die' or words[0] == 'das':
-                wrdrr = words[1].replace('·', '').replace('', '')
+                    wrdrr = conjugations[0].replace('·', '').replace('', '')
+                word_variants = [wrdrr]
+            word_variants.append(wrdrr+'e')
+            word_variants.append(wrdrr+'en')
+            word_variants.append(wrdrr+'er')
+            word_variants.append(wrdrr+'em')
+            word_variants.append(wrdrr+'es')
+            word_variants.append(wrdrr+'n')
+            word_variants.append(wrdrr+'r')
+            word_variants.append(wrdrr+'m')
+            word_variants.append(wrdrr+'s')
+            conjugations = base_word[0].split()
+            if conjugations[0] == 'der' or conjugations[0] == 'die' or conjugations[0] == 'das':
+                wrdrr = conjugations[1].replace('·', '').replace('', '')
             else:
-                wrdrr = words[0].replace('·', '').replace('', '')
+                wrdrr = conjugations[0].replace('·', '').replace('', '')
         else:
-            indiv_words = cleaner_raw_titel.split()
-            logger.debug(indiv_words)
+            word_variants = cleaner_raw_titel.split()
+            logger.debug(word_variants)
             logger.debug(cleaner_raw_titel)
-            if (indiv_words[0] == 'der' or
-                indiv_words[0] == 'die' or
-                    indiv_words[0] == 'das'):
-                wrdrr = indiv_words[1].replace('·', '').replace('', '')
+            if (word_variants[0] == 'der' or
+                word_variants[0] == 'die' or
+                    word_variants[0] == 'das'):
+                wrdrr = word_variants[1].replace('·', '').replace('', '')
             else:
-                wrdrr = indiv_words[0].replace('·', '').replace('', '')
-        indiv_words.append(wrdrr+'e')
-        indiv_words.append(wrdrr+'en')
-        indiv_words.append(wrdrr+'er')
-        indiv_words.append(wrdrr+'em')
-        indiv_words.append(wrdrr+'es')
-        indiv_words.append(wrdrr+'n')
-        indiv_words.append(wrdrr+'r')
-        indiv_words.append(wrdrr+'m')
-        indiv_words.append(wrdrr+'s')
-        indiv_words.append(wrdrr)
+                wrdrr = word_variants[0].replace('·', '').replace('', '')
+        word_variants.append(wrdrr+'e')
+        word_variants.append(wrdrr+'en')
+        word_variants.append(wrdrr+'er')
+        word_variants.append(wrdrr+'em')
+        word_variants.append(wrdrr+'es')
+        word_variants.append(wrdrr+'n')
+        word_variants.append(wrdrr+'r')
+        word_variants.append(wrdrr+'m')
+        word_variants.append(wrdrr+'s')
+        word_variants.append(wrdrr)
 
-    words_to_hide = words_to_hide + indiv_words
+    words_to_hide = words_to_hide + word_variants
     # workaround to ignore words containing special chars
     words_to_hide = [elem for elem in words_to_hide if all(
         c.isalnum() for c in elem)]
