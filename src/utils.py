@@ -68,9 +68,8 @@ def replace_umlauts_2(word: str):
     return normalized_word
 
 
-# todo (1) USE IT WHENEVER THER IST A REPLACE('DFDFD', '')
 def remove_from_str(string: str, substrings: list):
-    # TODO (1) use with long replace chains
+    # DONE (1) use with long replace chains
     string = string.encode(encoding='UTF-8', errors='strict')
     for substring in substrings:
         string = string.replace(substring, b'')

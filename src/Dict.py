@@ -29,8 +29,8 @@ from DefEntry import DefEntry
 from SavingToQuiz import save_from_defmode, save_from_quizmode
 from WordProcessing import (fix_html_with_custom_example,
                             hide_text)
-from ProcessQuizData import (
-    FocusEntry, QuizEntry, ignore_headers, spaced_repetition)
+from ProcessQuizData import (FocusEntry, QuizEntry,
+                             ignore_headers, spaced_repetition)
 from utils import read_str_from_file, set_up_logger, write_str_to_file
 
 # TODO (2) List the different fonctionalities for the readme.md

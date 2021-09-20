@@ -222,7 +222,7 @@ def extract_parts_from_dudensoup(soup):
 
     wortart = get_wordclass_from_soup(soup)
 
-    # TODO (1) add word usage frequency to pons dict
+    # DONE (1) add word usage frequency to pons dict
     word_freq = get_word_freq_from_soup(soup)
 
     bedeutung_soup = get_meaning_section_from_soup(soup)

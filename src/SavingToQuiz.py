@@ -159,7 +159,8 @@ def save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
     if dict_dict:
         word_added_manually = False
     else:
-        # BUG: this allows only one example
+        # BUG: this allows only one example to persist
+        # for manually written defs
         word_added_manually = True
         dict_dict = dict()
         dict_dict['custom_examples'] = dict()

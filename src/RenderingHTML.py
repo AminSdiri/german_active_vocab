@@ -109,7 +109,7 @@ def treat_class_def(value, class_name, previous_class_name,
     '''workaround because of css21'''
     logger.info(f"treating class: {class_name}")
 
-    value = value.strip()
+    # value = value.strip()
 
     if class_name == 'headword':
         return value
@@ -134,10 +134,17 @@ def treat_class_def(value, class_name, previous_class_name,
             value = '<font color="#d24dff">' + value + '</font>'
         return value
 
+    if class_name == 'word_freq':
+        if value > 0:
+            value = '▰' * value + '▱' * (5 - value)
+        elif value == -1:
+            value = ''
+        value = '<br>' + '&nbsp;'*4 + 'Häufigkeit: ' + value
+        return value
+
     if class_name == 'verbclass':
         value = value.replace('with SICH', 'mit sich')\
-                     .replace('with obj', 'mit obj')\
-                     .replace('without obj', 'ohne obj')
+                     .replace('with', 'mit')
         return value
 
     if class_name == 'header_num':
@@ -312,10 +319,10 @@ def treat_class_du(value, class_name, previous_class_name,
 
     if class_name == 'word_freq':
         if value > 0:
-            value = '▰' * value
+            value = '▰' * value + '▱' * (5 - value)
         elif value == -1:
             value = ''
-        value = '<br>' + value
+        value = '<br>' + '&nbsp;'*4 + 'Häufigkeit: ' + value
         return value
 
     if class_name == 'genus':

@@ -6,7 +6,7 @@ import ast
 
 from GetData import get_word_from_source
 from ParsingData.ParsingJson import parse_json_data
-from ParsingData.ParsingSoup import (create_synonyms_list,
+from ParsingData.ParsingSoup import (create_synonyms_list, get_word_freq_from_soup,
                                      parse_duden_html_to_dict)
 from WordProcessing import fix_html_with_custom_example
 from utils import (get_cache,
@@ -84,7 +84,9 @@ def standart_dict(saving_word, translate, translate2fr, translate2en,
                                            _duden_syn_soup,
                                            _syns_found_in_duden,
                                            word,
-                                           translate)
+                                           translate,
+                                           _duden_soup,
+                                           _found_in_duden)
 
         elif not translate:
             dict_dict = standart_duden_dict(
@@ -102,7 +104,9 @@ def standart_dict(saving_word, translate, translate2fr, translate2en,
 
 
 def standart_pons_dict(_pons_json, dict_dict_path,
-                       _duden_syn_soup, _syns_found_in_duden, word, translate):
+                       _duden_syn_soup, _syns_found_in_duden, word, translate,
+                       _duden_soup,
+                       _found_in_duden):
     '''
     standarize json file ans save it before rendering
 
@@ -133,6 +137,13 @@ def standart_pons_dict(_pons_json, dict_dict_path,
                          'english': []
                      }
                      }
+
+        if _found_in_duden:
+            word_freq = get_word_freq_from_soup(_duden_soup)
+        else:
+            word_freq = -1
+
+        dict_dict['word_freq'] = word_freq
 
     elif translate and len(_pons_json) == 1:
         logger.info(f'language: {_pons_json[0]["lang"]}')

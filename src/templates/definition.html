@@ -39,6 +39,11 @@
             font-size: x-large;
         }
 
+        .word_freq{
+            font-size: large;
+            font-weight: 500; 
+        }
+
         h2 {
             page-break-before: always;
             text-indent: 20px;
@@ -95,15 +100,15 @@
     </style>
 </head>
 <body>
-    {% set ns = namespace(is_first_big_section = true) %}
+    {% set ns = namespace() %}
+    {% set ns.is_first_big_section = true %}
     {% for big_section in dict_dict["content"] %}
         {% if not ns.is_first_big_section %}
         <hr>
         {% endif %}
-        {% set ns.is_first_big_section = false %}
         <h1>
-        {% set ns = namespace(previous_h1_key="")%}
-        {% set ns = namespace(previous_h1_value="")%}
+        {% set ns.previous_h1_key="" %}
+        {% set ns.previous_h1_value="" %}
         {% for h1_key,h1_value in big_section.items() %}
             {% if h1_key != 'word_subclass' %}
                 <span class={{h1_key}}>{{h1_value|treat_class(h1_key, ns.previous_h1_key, ns.previous_h1_value)}} </span>
@@ -111,11 +116,15 @@
             {% set ns.previous_h1_key = h1_key %}
             {% set ns.previous_h1_value = h1_value %}
         {% endfor %}
+        {% if ns.is_first_big_section %}
+            <span class="word_freq">{{dict_dict["word_freq"]|treat_class("word_freq", ns.previous_h1_key, ns.previous_h1_value)}} </span>
+        {% endif %}
+        {% set ns.is_first_big_section = false %}
         </h1>
         {% for small_section in big_section["word_subclass"] %}
             <h2>
-            {% set ns = namespace(previous_h2_key="")%}
-            {% set ns = namespace(previous_h2_value="")%}
+            {% set ns.previous_h2_key="" %}
+            {% set ns.previous_h2_value="" %}
             {% for h2_key,h2_value in small_section.items() %}
                 {% if h2_key != 'def_blocks' %}
                     <span class={{h2_key}}>{{h2_value|treat_class(h2_key, ns.previous_h2_key, ns.previous_h2_value)}} </span>
@@ -126,8 +135,8 @@
             </h2>
             {% for def_block in small_section["def_blocks"] %}
                 <p>
-                {% set ns = namespace(previous_h3_key="")%}
-                {% set ns = namespace(previous_h3_value="")%}
+                {% set ns.previous_h3_key="" %}
+                {% set ns.previous_h3_value="" %}
                 {% for h3_key,h3_value in def_block.items() %}
                     {% if h3_value|is_list %}
                         {% for h4_value in h3_value %}
