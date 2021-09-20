@@ -11,17 +11,13 @@ from PyQt5.QtWidgets import (QApplication,
                              QMainWindow,
                              QListWidget,
                              QMessageBox)
-from PyQt5.QtGui import QTextCharFormat, QFont, QTextCursor, QColor, QTextDocument
+from PyQt5.QtGui import (QTextCharFormat, QFont,
+                         QTextCursor, QColor, QTextDocument)
 from datetime import datetime, timedelta
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 import traceback
 
-from GetData import DefEntry
-from ProcessData import save_function
-from WordProcessing import (create_quiz_html,
-                            fix_html_with_custom_example,
-                            hide_text)
 from DictWindows import (SearchWindow,
                          DefinitionWindow,
                          QuizWindow,
@@ -29,30 +25,32 @@ from DictWindows import (SearchWindow,
                          FocusRatingDiag,
                          QuizRatingDiag,
                          HistoryWindow)
+from DefEntry import DefEntry
+from SavingToQuiz import save_from_defmode, save_from_quizmode
+from WordProcessing import (fix_html_with_custom_example,
+                            hide_text)
 from ProcessQuizData import (
     FocusEntry, QuizEntry, ignore_headers, spaced_repetition)
-from utils import set_up_logger
+from utils import read_str_from_file, set_up_logger, write_str_to_file
 
-# TODO write test functions for the different functionalities,
+# TODO (2) List the different fonctionalities for the readme.md
 
-# TODO! create setup.py to take care of
+# TODO (3) write test functions for the different functionalities,
+
+# TODO (2) create setup.py to take care of
 # - creating dirs and csv files
 # - install requirements.txt
 # etc
 
-# TODO! add licence for only personal use, no commercial use
+# TODO (2) add licence for only personal use, no commercial use
 
-# TODO! find alternative to notify-send for windows and macos
-# os-agnostic notification alternative
-
-# subprocess.Popen(['notify-send', 'N-Dict'])
-
-
-# TODO convert functions to methods for Def, Quiz and Focus entries classes
+# TODO (2) find os-agnostic alternative to notify-send for windows and macos
+# example: from plyer import notification
 
 logger = set_up_logger(__name__)
 
-dict_path = Path.home() / 'Dictionnary'
+dict_data_path = Path.home() / 'Dictionnary'
+
 Main_word_font = '"Arial Black"'
 Conjugation_font = '"Lato"'
 Word_classe_font = '"Lato"'
@@ -60,6 +58,8 @@ normal_font = QFont("Arial", 12)  # 3, QFont.Bold)
 focus_font = QFont("Arial", 20)
 quiz_priority_order: str = 'due_words'
 maxrevpersession = 10
+
+# .strftime("%d.%m.%y") is a bad idea! losing the time information
 now = datetime.now() - timedelta(hours=3)
 
 
@@ -72,7 +72,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(535, 150, 210, 50)
         self.launch_search_window()
 
-        df = pd.read_csv(dict_path / 'wordlist.csv')
+        df = pd.read_csv(dict_data_path / 'wordlist.csv')
         df.set_index('Word', inplace=True)
         df['Next_date'] = pd.to_datetime(
             df['Next_date'])  # , format='%d.%m.%y')
@@ -81,9 +81,9 @@ class MainWindow(QMainWindow):
             df['Previous_date'])
         self.wordlist_df = df
 
-        # TODO! check datetimeformat by writing df to csv
+        # DONE (1) check datetimeformat by writing df to csv
         # (WARNING: inconsistant datetimes)
-        focus_df = pd.read_csv(dict_path / 'wordpart_list.csv')
+        focus_df = pd.read_csv(dict_data_path / 'wordpart_list.csv')
         focus_df['Next_date'] = pd.to_datetime(
             focus_df['Next_date'])
         focus_df['Created'] = pd.to_datetime(
@@ -156,7 +156,8 @@ class MainWindow(QMainWindow):
             logger.debug('Opening from Magical 2 Args')
 
             word = sys.argv[1]
-            beispiel_de = sys.argv[2].replace("//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
+            beispiel_de = sys.argv[2].replace(
+                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
 
             self.def_obj = DefEntry(word=word,
                                     beispiel_de=beispiel_de)
@@ -166,8 +167,10 @@ class MainWindow(QMainWindow):
             logger.debug('Opening from Magical 3 Args')
 
             word = sys.argv[1]
-            beispiel_de = sys.argv[2].replace("//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
-            beispiel_en = sys.argv[3].replace("//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
+            beispiel_de = sys.argv[2].replace(
+                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
+            beispiel_en = sys.argv[3].replace(
+                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
 
             self.def_obj = DefEntry(word=word,
                                     beispiel_de=beispiel_de,
@@ -184,7 +187,7 @@ class MainWindow(QMainWindow):
         self.def_window.txt_cont.document().setMetaInformation(
             QTextDocument.DocumentUrl,
             QUrl.fromLocalFile(directory).toString() + "/",
-            )
+        )
         self.def_window.txt_cont.insertHtml(self.def_obj.defined_html)
         self.def_window.txt_cont.moveCursor(
             QTextCursor.Start)  # .textCursor(defined_html)
@@ -214,7 +217,7 @@ class MainWindow(QMainWindow):
         self.move(315, 50)
         self.history_window = HistoryWindow(self)
         self.setWindowTitle("Wörterbuch")
-        files = dict_path.glob("*.html")
+        files = dict_data_path.glob("*.html")
         files = list(files)
         files.sort(key=os.path.getmtime, reverse=True)
         files = [x.stem for x in files]
@@ -241,9 +244,8 @@ class MainWindow(QMainWindow):
         else:
             self.history_entry = index.text()
 
-        name = dict_path / (self.history_entry+'.html')
-        with open(name, 'r') as file:
-            text = file.read()
+        history_entry_path = dict_data_path / (self.history_entry+'.html')
+        text = read_str_from_file(history_entry_path)
 
         self.history_window.txt_cont.insertHtml(text)
 
@@ -260,20 +262,17 @@ class MainWindow(QMainWindow):
 
         word = self.history_entry.replace('.quiz', '')
 
-        quiz_file_path = (dict_path / (word+".quiz.html"))
-        with open(quiz_file_path, 'r') as f:
-            quiz_text = f.read()
+        quiz_file_path = (dict_data_path / (word+".quiz.html"))
+        quiz_text = read_str_from_file(quiz_file_path)
 
-        full_file_path = (dict_path / (word+".html"))
-        with open(full_file_path, 'r') as f:
-            full_text = f.read()
+        full_file_path = (dict_data_path / (word+".html"))
+        full_text = read_str_from_file(full_file_path)
 
         full_text = fix_html_with_custom_example(full_text)
-        with open(full_file_path, 'w') as f:
-            f.write(full_text)
+        write_str_to_file(full_file_path, full_text)
+
         quiz_text = fix_html_with_custom_example(quiz_text)
-        with open(quiz_file_path, 'w') as f:
-            f.write(quiz_text)
+        write_str_to_file(quiz_file_path, quiz_text)
 
         quiz_parts = bs(quiz_text, "lxml").find_all('p')
         full_parts = bs(full_text, "lxml").find_all('p')
@@ -284,10 +283,11 @@ class MainWindow(QMainWindow):
 
         general_EF = self.wordlist_df.loc[word, 'EF_score']
         self.wordlist_df.loc[word, 'Focused'] = 1
-        self.wordlist_df.to_csv(dict_path / 'wordlist.csv')
+        self.wordlist_df.to_csv(dict_data_path / 'wordlist.csv')
 
-        # TODO Read dfs only one time, save it multiple times after modifying
-        df = pd.read_csv(dict_path / 'wordpart_list.csv')
+        # TODO (2) Read dfs only one time
+        # save it multiple times after modifying
+        df = pd.read_csv(dict_data_path / 'wordpart_list.csv')
         df.set_index("Wordpart", inplace=True)
         for k in range(0, nb_parts):
             wordpart = word+' '+str(k)
@@ -295,13 +295,13 @@ class MainWindow(QMainWindow):
             df.loc[wordpart, "Repetitions"] = 0
             df.loc[wordpart, "EF_score"] = general_EF
             df.loc[wordpart, "Interval"] = 6
-            df.loc[wordpart, "Previous_date"] = now     # .strftime("%d.%m.%y")
-            df.loc[wordpart, "Created"] = now   # .strftime("%d.%m.%y")
+            df.loc[wordpart, "Previous_date"] = now
+            df.loc[wordpart, "Created"] = now
             insixdays = now + timedelta(days=6)
-            df.loc[wordpart, "Next_date"] = insixdays   # .strftime("%d.%m.%y")
+            df.loc[wordpart, "Next_date"] = insixdays
             df.loc[wordpart, "Part"] = k
             df.loc[wordpart, "Ignore"] = ignore_list[k]
-        df.to_csv(dict_path / 'wordpart_list.csv')
+        df.to_csv(dict_data_path / 'wordpart_list.csv')
 
         subprocess.Popen(
             ['notify-send', '"'+word+'"', 'Add to Focus Mode'])
@@ -350,9 +350,11 @@ class MainWindow(QMainWindow):
     def quiz_score(self):
         logger.info("quiz_score")
         self.rating_diag_quiz = QuizRatingDiag(self)
+        self.rating_diag_quiz.word = self.quiz_obj.quiz_params["queued_word"]
         df = self.wordlist_df
         self.rating_diag_quiz.show()
         self.reveal_full_html_quiz()
+
         if self.rating_diag_quiz.exec_():
             saving_file = 'wordlist.csv'
             easiness = self.rating_diag_quiz.easiness
@@ -417,7 +419,9 @@ class MainWindow(QMainWindow):
 
     def update_word_html(self):
         logger.info("update_word_html")
-        subprocess.Popen(['dic.py', self.quiz_obj.quiz_params['queued_word']])
+        subprocess.Popen(['python3',
+                          '/home/mani/Dokumente/active_vocabulary/src/Dict.py',
+                         self.quiz_obj.quiz_params['queued_word']])
 
     def launch_focus_window(self):
         logger.info("launch_focus_window")
@@ -471,7 +475,7 @@ class MainWindow(QMainWindow):
         focus_df.loc[
             self.focus_obj.focus_params_dict['queued_word'],
             "Ignore"] = 1
-        focus_df.to_csv(dict_path / 'wordpart_list.csv')
+        focus_df.to_csv(dict_data_path / 'wordpart_list.csv')
         self.launch_focus_window()
 
     def reveal_full_html_focus(self):
@@ -490,21 +494,21 @@ class MainWindow(QMainWindow):
         logger.info("save_definition")
 
         studie_tag = self.def_window.save_to_stud.isChecked()
-        defined_user_html = self.def_window.txt_cont.toHtml()
+        custom_qt_html = self.def_window.txt_cont.toHtml()
 
-        # TODO normalement yabdew fel Quiz Obj chya3mlou lena msaybine?
         beispiel_de = self.def_window.beispiel.text()
         beispiel_en = self.def_window.beispiel2.text()
         beispiel_de = beispiel_de.replace('- ', '– ')
         beispiel_en = beispiel_en.replace('- ', '– ')
-        words_2_hide = self.def_obj.words_to_hide
         word = self.def_obj.word
+        dict_dict = self.def_obj.dict_dict
         tag = ''
         if studie_tag:
             tag = 'Studium'
 
-        save_function(dict_path, word, defined_user_html, beispiel_de,
-                      beispiel_en, tag, words_2_hide, now)
+        save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
+                          beispiel_en, tag, now,
+                          dict_dict, self.def_obj.dict_dict_path)
 
     def save_custom_definition_from_quizmode(self):
         logger.info("save_custom_definition_from_quizmode")
@@ -512,37 +516,14 @@ class MainWindow(QMainWindow):
         beispiel_de = self.quiz_window.beispiel.text()
         defined_html = self.quiz_obj.full_text
         clean_html = self.quiz_obj.quiz_text
+        words_to_hide = self.def_obj.words_to_hide
+        quiz_file_path = self.quiz_obj.quiz_file_path
+        full_file_path = self.quiz_obj.full_file_path
 
-        if not beispiel_de == '':
-            clean_beispiel_de = create_quiz_html(
-                beispiel_de, self.def_obj.words_to_hide)
-            if 'Eigenes Beispiel' in defined_html:
-                clean_html += ('<br><i>&nbsp;&nbsp;&nbsp;&nbsp;' +
-                               clean_beispiel_de+'</i>')
-                defined_html += ('<br><i>&nbsp;&nbsp;&nbsp;&nbsp;' +
-                                 beispiel_de+'</i>')
-            else:
-                clean_html += ('<br><br><b>Eigenes Beispiel:</b><br><i>&nbsp;'
-                               '&nbsp;&nbsp;&nbsp;' + clean_beispiel_de+'</i>')
-                defined_html += ('<br><br><b>Eigenes Beispiel:</b><br><i>'
-                                 '&nbsp;&nbsp;&nbsp;&nbsp;' +
-                                 beispiel_de+'</i>')
+        save_from_quizmode(beispiel_de, defined_html, clean_html,
+                           words_to_hide, quiz_file_path, full_file_path)
 
-        # TODO Overwrite files?, in wich case I want to do that
-        # in wich ccase I want to reset DF ries
-        with open(self.quiz_obj.quiz_file_path, 'w') as f:
-            f.write(defined_html)
-
-        with open(self.quiz_obj.full_file_path, 'w') as f:
-            f.write(clean_html)
-
-        # subprocess.Popen(['notify-send', 'Beispiel gespeichert!'])
         logger.info('Beispiel gespeichert!')
-
-        # except:
-        #     logger.error('Error writing')
-        #     # subprocess.Popen(['notify-send', 'Error writing'])
-        #     pass
 
     def save_custom_quiztext_from_quizmode(self):
         logger.info("save_custom_quiztext_from_quizmode")
@@ -551,8 +532,7 @@ class MainWindow(QMainWindow):
         quiz_file_path = self.quiz_obj.quiz_file_path
 
         # try:
-        with open(quiz_file_path, 'w') as f:
-            f.write(clean_html)
+        write_str_to_file(quiz_file_path, clean_html)
         # subprocess.Popen(['notify-send', 'gespeichert!'])
         logger.info('gespeichert!')
         # except:

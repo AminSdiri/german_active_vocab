@@ -101,8 +101,10 @@
     <!-- {% if dict_dict["lang"] == "de" %}
         {% else %}
         {% endif %} -->
-
+    {% if dict_dict["lang"]|length %}
     <h1 style="text-align:center">{{dict_dict["lang"]}}</h1>
+    {% endif %}
+    
     {% set dict_dict = dict_dict["content"]%}
 
     {% set ns = namespace(is_first_big_section = true) %}
@@ -192,19 +194,7 @@
     {% endfor %}
 
     {% endfor %}
-    <!-- <h2>
-            <span class="verbclass">with obj</span>
-        </h2>
 
-            <p>
-                <div>
-                    <span class="header_num">    1. </header_num>
-                    <span class="grammatical_construction"> ⓖ <acronym title="jemand">jd</acronym> macht etwas</span> 
-                </div>
-                <div class="definition">(an)fertigen, produzieren</div>
-                <div class="example">Wer hat diesen Tisch gemacht?</div>
-                <div class="example">Kannst du ein Foto von uns machen?</div>
-            </p> -->
 </body>
 
 </html>

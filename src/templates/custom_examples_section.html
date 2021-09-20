@@ -1,0 +1,21 @@
+<html>
+<body>
+    {% if dict_dict["custom_examples"]["german"]|length %}
+        <br>
+        <p class='custom_examples'><b>Eigenes Beispiel:</b>
+            <br>
+            {% for beispiel_de in dict_dict["custom_examples"]["german"] %}
+                <i>&nbsp;&nbsp;&nbsp;&nbsp;{{beispiel_de}}</i>
+                <br>
+            {% endfor %}
+            {% if dict_dict["custom_examples"]["english"]|length %}
+            <br><b>Auf Englisch:</b><br>
+            {% for beispiel_en in dict_dict["custom_examples"]["english"] %}
+                <i>&nbsp;&nbsp;&nbsp;&nbsp;{{beispiel_en}}</i>
+                <br>
+            {% endfor %}
+            {% endif %}
+        </p>
+    {% endif %}
+</body>
+</html>

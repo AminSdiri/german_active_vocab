@@ -14,7 +14,7 @@ from utils import set_up_logger
 
 logger = set_up_logger(__name__)
 
-dict_path = Path.home() / 'Dictionnary'
+dict_data_path = Path.home() / 'Dictionnary'
 
 
 class SearchWindow(QWidget):
@@ -78,28 +78,28 @@ class QuizWindow(QWidget):
         self.txt_cont.resize(690, 615)
         self.txt_cont.setReadOnly(True)
 
-        self.beispiel = QLineEdit(self)
-        self.beispiel.move(5, 625)
-        self.beispiel.resize(690, 40)
+        # self.beispiel = QLineEdit(self)
+        # self.beispiel.move(5, 625)
+        # self.beispiel.resize(690, 40)
 
-        self.next_btn = QPushButton('>', self)
-        self.next_btn.resize(200, 27)
-        self.next_btn.move(50, 670)
+        self.next_btn = QPushButton('>>>>>>', self)
+        self.next_btn.resize(220, 40)
+        self.next_btn.move(5, 625)
 
         self.save_button = QPushButton('Save', self)
-        self.save_button.move(390, 670)
+        self.save_button.move(390, 625)
 
         self.populate = QPushButton('Populate', self)
-        self.populate.move(490, 670)
+        self.populate.move(490, 625)
 
         self.close_button = QPushButton('Close', self)
-        self.close_button.move(590, 670)
+        self.close_button.move(590, 625)
 
         self.hide_button = QPushButton('Hide', self)
-        self.hide_button.move(290, 670)
+        self.hide_button.move(290, 625)
 
         self.update_button = QPushButton('Update', self)
-        self.update_button.move(590, 710)
+        self.update_button.move(590, 670)
 
 
 class QuizRatingDiag(QDialog):
@@ -186,6 +186,12 @@ class QuizRatingDiag(QDialog):
                 'recall ever knowing the answer')
 
     def closing_dialog(self):
+        # TODO vorübergehend, to updatge dict_dicts
+        subprocess.Popen(['python3',
+                          '/home/mani/Dokumente/active_vocabulary/src/Dict.py',
+                          f'{self.word}'])
+        # sleep(3)
+        # subprocess.Popen(['wmctrl', '-a','"Quiz"'])
         logger.info("closing_dialog")
         self.accept()
 
@@ -203,12 +209,12 @@ class QuizRatingDiag(QDialog):
         full_parts = bs(self.full_text, "lxml").find_all('p')
         assert len(quiz_parts) == len(full_parts)
 
-        df_quiz = pd.read_csv(dict_path / 'wordlist.csv')
+        df_quiz = pd.read_csv(dict_data_path / 'wordlist.csv')
         df_quiz.set_index("Word", inplace=True)
         df_quiz.loc[word, "Focused"] = 1
-        df_quiz.to_csv(dict_path / 'wordlist.csv')
+        df_quiz.to_csv(dict_data_path / 'wordlist.csv')
 
-        df = pd.read_csv(dict_path / 'wordpart_list.csv')
+        df = pd.read_csv(dict_data_path / 'wordpart_list.csv')
         df.set_index("Wordpart", inplace=True)
         for k in range(0, nb_parts):
             wordpart = word+' '+str(k)
@@ -223,7 +229,7 @@ class QuizRatingDiag(QDialog):
             df.loc[wordpart, "Part"] = k
             df.loc[wordpart, "Halfway_date_from_quiz"] = self.halfway_date
             df.loc[wordpart, "Ignore"] = ignore_list[k]
-        df.to_csv(dict_path / 'wordpart_list.csv')
+        df.to_csv(dict_data_path / 'wordpart_list.csv')
 
         subprocess.Popen(
             ['notify-send', '"'+word+'"', 'Added to Focus Mode'])

@@ -7,11 +7,11 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup as bs
 from pathlib import Path
 from pandas.core.frame import DataFrame
+
 from WordProcessing import fix_html_with_custom_example
+from utils import read_str_from_file, set_up_logger, write_str_to_file
 
-from utils import set_up_logger
-
-dict_path = Path.home() / 'Dictionnary'
+dict_data_path = Path.home() / 'Dictionnary'
 
 logger = set_up_logger(__name__)
 
@@ -38,25 +38,19 @@ class QuizEntry():
 
         logger.info("get quiz file paths")
 
-        self.quiz_file_path = (dict_path /
-                               (self.quiz_params['queued_word'] +
-                                ".quiz.html"))
-        with open(self.quiz_file_path, 'r') as f:
-            self.quiz_text = f.read()
+        self.quiz_file_path = dict_data_path / \
+            f'{self.quiz_params["queued_word"]}.quiz.html'
+        self.quiz_text = read_str_from_file(self.quiz_file_path)
 
         self.quiz_text = fix_html_with_custom_example(self.quiz_text)
-        with open(self.quiz_file_path, 'w') as f:
-            f.write(self.quiz_text)
+        write_str_to_file(self.quiz_file_path, self.quiz_text)
 
-        self.full_file_path = (dict_path /
-                               (self.quiz_params['queued_word'] +
-                                ".html"))
-        with open(self.full_file_path, 'r') as f:
-            self.full_text = f.read()
+        self.full_file_path = dict_data_path / \
+            f'{self.quiz_params["queued_word"]}.html'
+        self.full_text = read_str_from_file(self.full_file_path)
 
         self.full_text = fix_html_with_custom_example(self.full_text)
-        with open(self.full_file_path, 'w') as f:
-            f.write(self.full_text)
+        write_str_to_file(self.full_file_path, self.full_text)
 
     def queue_quiz_word(self):
 
@@ -179,6 +173,7 @@ class FocusEntry():
         now = datetime.now() - timedelta(hours=3)
         logger.info("queue_focus_word")
         selected_ignored = 1
+        # TODO (2) Comparing dtm with str? check
         before_today = self.focus_df["Next_date"] <= now.strftime("%Y-%m-%d")
         due_words = self.focus_df[before_today]
         due_words['weights'] = 1/due_words['EF_score']
@@ -186,7 +181,7 @@ class FocusEntry():
         self.window_titel += f' ({len(due_words) - ignored_due_words})'
         while selected_ignored:
             logger.debug(due_words)
-            # TODO more sophisticated weighting
+            # TODO (4) more sophisticated weighting
             random_focus_df = due_words.sample(n=1, weights='weights')
             selected_ignored = int(random_focus_df['Ignore'].values[0])
             word = random_focus_df['Word'].values[0]
@@ -194,12 +189,10 @@ class FocusEntry():
             part_idx = int(part_idx.item())
             wordpart = random_focus_df.index[0]
 
-            quiz_file = dict_path / (word+".quiz.html")
-            full_file = dict_path / (word+".html")
-            with open(quiz_file, 'r') as quiz_file:
-                quiz_txt = quiz_file.read()
-            with open(full_file, 'r') as full_file:
-                full_txt = full_file.read()
+            quiz_file = dict_data_path / f'{word}.quiz.html'
+            full_file = dict_data_path / f'{word}.html'
+            quiz_txt = read_str_from_file(quiz_file)
+            full_txt = read_str_from_file(full_file)
 
             quiz_parts = bs(quiz_txt, "lxml").find_all('p')
             full_parts = bs(full_txt, "lxml").find_all('p')
@@ -230,13 +223,13 @@ def update_train_data(queued_word, df, now, easiness, interval):
                      "Last_Interval": [df.loc[queued_word, "Interval"]],
                      "Last_easiness": [df.loc[queued_word, "Easiness"]],
                      "Previous_date": [df.loc[queued_word, "Previous_date"]],
-                     "Revist_date": [now.strftime("%d.%m.%y")],
+                     "Revist_date": [now],
                      "Current_easiness": [easiness],
                      "Current_Interval": [interval]}
     new_train_row = pd.DataFrame(new_train_row)
 
     train_data = pd.read_csv(
-        dict_path / 'train_data.csv', index_col=0)
+        dict_data_path / 'train_data.csv', index_col=0)
     train_data = train_data.append(new_train_row, ignore_index=True)
     cols = ['Word', 'Revist_date', 'Planned_date',
             'Previous_date', 'Current_Interval',
@@ -244,7 +237,7 @@ def update_train_data(queued_word, df, now, easiness, interval):
             'Repetitions', 'EF_score', 'Tag']
     train_data = train_data[cols]
 
-    train_data.to_csv(dict_path / 'train_data.csv')
+    train_data.to_csv(dict_data_path / 'train_data.csv')
 
 
 def ignore_headers(quiz_text):
@@ -287,13 +280,11 @@ def spaced_repetition(easiness, now, df, saving_file, EF_score=1,
         interval = real_interval * EF_score
     next_date = now + timedelta(days=math.ceil(interval))
 
-    # TODO standarize datetime writing format
-    # next_date = next_date.strftime("%d.%m.%y")
     update_train_data(queued_word, df, now, easiness, interval)
     df.loc[queued_word, "Next_date"] = next_date
     df.loc[queued_word, "Repetitions"] = repetitions
     df.loc[queued_word, "EF_score"] = EF_score
     df.loc[queued_word, "Interval"] = interval
     df.loc[queued_word, "Easiness"] = easiness
-    df.loc[queued_word, "Previous_date"] = now  # .strftime("%d.%m.%y")
-    df.to_csv(dict_path / saving_file)
+    df.loc[queued_word, "Previous_date"] = now
+    df.to_csv(dict_data_path / saving_file)
