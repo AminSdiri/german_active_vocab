@@ -103,6 +103,8 @@ def read_str_from_file(path: Path):
 
 
 def write_str_to_file(path: Path, string: str, notification=[]):
+    # TODO (3) Overwrite files?, in which case I want to do that
+    # in which case I want to reset DF entries
     path_str = replace_umlauts(str(path))
     path = Path(path_str)
     with open(path, 'w') as f:

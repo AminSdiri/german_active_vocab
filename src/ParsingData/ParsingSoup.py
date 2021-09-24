@@ -71,7 +71,7 @@ def populate_content_entry(bedeutung_soup):
             child for child in bedeutung_soup.ol.contents if child.name == 'li']
 
     except AttributeError:
-        # TODO schrumplen w makharjetch chay
+        # for z.B. schrumpeln
         dict_content = [None]
         dict_content[0] = [None]
         dict_content[0][0] = dict()
@@ -266,9 +266,6 @@ def get_meaning_section_from_soup(soup):
     bedeutung_soup = soup.find('div', id="bedeutungen")
     if bedeutung_soup is None:
         bedeutung_soup = soup.find('div', id="bedeutung")
-        # bedeutung_section = str(bedeutung_section.p)
-        # BUG not everything is in <p> tag, leider Beispiel is not always there
-    # bedeutung_soup = bedeutung_soup.ol
     return bedeutung_soup
 
 

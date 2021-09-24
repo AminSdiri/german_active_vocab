@@ -214,7 +214,7 @@ def save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
     # clean_html = clean_html.replace('.:.', '')
 
     # insert custom examples properly
-    # TODO (1) when do you need fix_html_with_custom_example?
+    # TODO (1) when do I need fix_html_with_custom_example?
     # remove it when it's redundant
     # custom_qt_html = fix_html_with_custom_example(custom_qt_html)
     # clean_html = fix_html_with_custom_example(clean_html)
@@ -224,26 +224,3 @@ def save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
     write_str_to_file(dict_data_path / 'html' / f'{word}.quiz.html', clean_html)
     logger.info(word + ' gespeichert')
 
-
-def save_from_quizmode(beispiel_de, defined_html, clean_html, words_to_hide, quiz_file_path, full_file_path):
-    # TODO (1) revisit and update.
-    # Probabily not even used at all.
-    logger.warning('using the unchecked, outdated "save_from_quizmode" function')
-    if not beispiel_de == '':
-        clean_beispiel_de = create_quiz_html(words_to_hide)
-        if 'Eigenes Beispiel' in defined_html:
-            clean_html += ('<br><i>&nbsp;&nbsp;&nbsp;&nbsp;' +
-                           clean_beispiel_de+'</i>')
-            defined_html += ('<br><i>&nbsp;&nbsp;&nbsp;&nbsp;' +
-                             beispiel_de+'</i>')
-        else:
-            clean_html += ('<br><br><b>Eigenes Beispiel:</b><br><i>&nbsp;'
-                           '&nbsp;&nbsp;&nbsp;' + clean_beispiel_de+'</i>')
-            defined_html += ('<br><br><b>Eigenes Beispiel:</b><br><i>'
-                             '&nbsp;&nbsp;&nbsp;&nbsp;' +
-                             beispiel_de+'</i>')
-
-    # TODO (3) Overwrite files?, in which case I want to do that
-    # in wich case I want to reset DF entries
-    write_str_to_file(quiz_file_path, defined_html)
-    write_str_to_file(full_file_path, clean_html)

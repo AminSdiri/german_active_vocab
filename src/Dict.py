@@ -26,7 +26,7 @@ from DictWindows import (SearchWindow,
                          QuizRatingDiag,
                          HistoryWindow)
 from DefEntry import DefEntry
-from SavingToQuiz import save_from_defmode, save_from_quizmode
+from SavingToQuiz import save_from_defmode
 from WordProcessing import (fix_html_with_custom_example,
                             hide_text)
 from ProcessQuizData import (FocusEntry, QuizEntry,
@@ -41,8 +41,6 @@ from utils import read_str_from_file, set_up_logger, write_str_to_file
 # - creating dirs and csv files
 # - install requirements.txt
 # etc
-
-# TODO (2) add licence for only personal use, no commercial use
 
 # TODO (2) find os-agnostic alternative to notify-send for windows and macos
 # example: from plyer import notification
@@ -71,16 +69,18 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(parent)
         self.setGeometry(535, 150, 210, 50)
 
-        # TODO remove after updating all dicts
-        try:
-            print(sys.argv[1])
-            if 'html' in sys.argv[2]:
-                print('Opening HTML:')
-                self.show_html_from_history_list(sys.argv[1])
-            else:
-                self.launch_search_window()
-        except IndexError:
-            self.launch_search_window()
+        # # uncomment when updating entries with generate dicts
+        # try:
+        #     print(sys.argv[1])
+        #     if 'html' in sys.argv[2]:
+        #         print('Opening HTML:')
+        #         self.show_html_from_history_list(sys.argv[1])
+        #     else:
+        #         self.launch_search_window()
+        # except IndexError:
+        #     self.launch_search_window()
+        
+        self.launch_search_window()
 
         df = pd.read_csv(dict_data_path / 'wordlist.csv')
         df.set_index('Word', inplace=True)
@@ -199,8 +199,7 @@ class MainWindow(QMainWindow):
             QUrl.fromLocalFile(directory).toString() + "/",
         )
         self.def_window.txt_cont.insertHtml(self.def_obj.defined_html)
-        self.def_window.txt_cont.moveCursor(
-            QTextCursor.Start)  # .textCursor(defined_html)
+        self.def_window.txt_cont.moveCursor(QTextCursor.Start)
 
         self.def_window.return_button.clicked.connect(
             self.launch_search_window)
@@ -221,8 +220,8 @@ class MainWindow(QMainWindow):
 
         logger.info("launch history list window")
 
-        # TODO!!! allow modifing html in history Window
-        # TODO!!! allow deleting html from history Window ( file and DF entry)
+        # TODO (3) allow modifing html in history Window
+        # TODO (3) allow deleting html from history Window ( file and DF entry)
         self.resize(400, 500)
         self.move(315, 50)
         self.history_window = HistoryWindow(self)
@@ -258,7 +257,7 @@ class MainWindow(QMainWindow):
         text = read_str_from_file(history_entry_path)
 
         self.history_window.txt_cont.insertHtml(text)
-        # TODO add to all opening QTextEdit
+        # move the view to the beginning
         self.history_window.txt_cont.moveCursor(QTextCursor.Start)
 
         self.history_window.return_button.clicked.connect(
@@ -426,7 +425,7 @@ class MainWindow(QMainWindow):
         self.quiz_window.next_btn.clicked.connect(self.quiz_score)
         self.quiz_window.next_btn.clicked.connect(self.launch_quiz_window)
         self.quiz_window.save_button.clicked.connect(
-            self.save_custom_definition_from_quizmode)
+            self.save_custom_quiztext_from_quizmode)
         self.show()
 
     def update_word_html(self):
@@ -522,20 +521,6 @@ class MainWindow(QMainWindow):
                           beispiel_en, tag, now,
                           dict_dict, self.def_obj.dict_dict_path)
 
-    def save_custom_definition_from_quizmode(self):
-        logger.info("save_custom_definition_from_quizmode")
-
-        beispiel_de = self.quiz_window.beispiel.text()
-        defined_html = self.quiz_obj.full_text
-        clean_html = self.quiz_obj.quiz_text
-        words_to_hide = self.def_obj.words_to_hide
-        quiz_file_path = self.quiz_obj.quiz_file_path
-        full_file_path = self.quiz_obj.full_file_path
-
-        save_from_quizmode(beispiel_de, defined_html, clean_html,
-                           words_to_hide, quiz_file_path, full_file_path)
-
-        logger.info('Beispiel gespeichert!')
 
     def save_custom_quiztext_from_quizmode(self):
         logger.info("save_custom_quiztext_from_quizmode")
@@ -545,6 +530,7 @@ class MainWindow(QMainWindow):
 
         write_str_to_file(quiz_file_path, clean_html,
                           notification=['gespeichert!'])
+
         logger.info('gespeichert!')
 
 

@@ -293,7 +293,7 @@ def treat_class_def(value, class_name, previous_class_name,
 
     if class_name == 'topic':
         # PHYS...
-        # TODO text is in Tag <acronym> so capitalize will not reach content
+        # TODO (3) text is in Tag <acronym> so capitalize will not reach content
         # value = value.lower().capitalize()
         return value
 
@@ -319,8 +319,7 @@ def treat_class_def(value, class_name, previous_class_name,
 def treat_class_trans(value, class_name, previous_class_name,
                       previous_class_value):
     '''workaround because of css21'''
-    # TODO (2) ken source feha class w target mafihech
-    # wrapi target fel class mta3 source zeda
+    # TODO (2) wrap target in the same class as source
 
     logger.info(f"treating class: {class_name}")
 
