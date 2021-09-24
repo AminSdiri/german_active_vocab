@@ -3,7 +3,6 @@ from bs4 import BeautifulSoup as bs
 
 from utils import set_up_logger
 
-dict_data_path = Path.home() / 'Dictionnary'
 dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
 
 logger = set_up_logger(__name__)
@@ -56,14 +55,30 @@ def parse_duden_html_to_dict(_duden_soup):
     duden_dict['custom_examples'] = {'german': [],
                                      'english': []}
 
-    duden_dict["content"] = populate_content_entry(bedeutung_soup)
+    if bedeutung_soup is not None:
+        duden_dict["content"] = populate_content_entry(bedeutung_soup)
+    else:
+        logger.warning('duden_soup is empty!, try other variant of the word'
+                       ' (exp: stehenbleiben -> stehen_bleiben)')
+        duden_dict["content"] = {}
 
     return duden_dict
 
 
 def populate_content_entry(bedeutung_soup):
-    fst_lvl_li_children = [
-        child for child in bedeutung_soup.ol.contents if child.name == 'li']
+    try:
+        fst_lvl_li_children = [
+            child for child in bedeutung_soup.ol.contents if child.name == 'li']
+
+    except AttributeError:
+        # TODO schrumplen w makharjetch chay
+        dict_content = [None]
+        dict_content[0] = [None]
+        dict_content[0][0] = dict()
+        snd_lvl_dict = dict_content[0][0]
+        snd_lvl_dict['header'] = ''
+        parse_child(bedeutung_soup, snd_lvl_dict)
+        return dict_content
 
     # TODO (3) use recursive function like recursivly_extract?
     # only if you notice if sometimes there is more than 2 levels
@@ -86,10 +101,8 @@ def populate_content_entry(bedeutung_soup):
                 dict_content[fst_lvl_num][0] = dict()
                 snd_lvl_dict = dict_content[fst_lvl_num][0]
 
-                if len(fst_lvl_li_children) > 1:
-                    snd_lvl_dict['header'] = f'{fst_lvl_num+1}. '
-                else:
-                    snd_lvl_dict['header'] = ''
+                snd_lvl_dict['header'] = get_header_num(fst_lvl_num,
+                                                        len_fst_lvl_li_children=len(fst_lvl_li_children))
 
                 parse_child(fst_lvl_child, snd_lvl_dict)
             else:
@@ -105,37 +118,45 @@ def populate_content_entry(bedeutung_soup):
                 dict_content[fst_lvl_num][snd_lvl_num] = dict()
                 snd_lvl_dict = dict_content[fst_lvl_num][snd_lvl_num]
 
-                # TODO (1) check when each case is true
-                # (maybe its a lot of cases) and then refractor to function
-                if len(fst_lvl_li_children) > 1 and len(snd_lvl_li_children) > 1:
-                    snd_lvl_ltr = chr(97 + snd_lvl_num)
-                    if snd_lvl_num == 0:
-                        snd_lvl_dict['header'] = f'{fst_lvl_num+1}. a) '
-                    else:
-                        snd_lvl_dict['header'] = f'   {snd_lvl_ltr}) '
-
-                elif len(fst_lvl_li_children) > 1:
-                    # not needed (maybe)
-                    snd_lvl_dict['header'] = f'{fst_lvl_num+1}. '
-                else:
-                    # not needed (maybe)
-                    snd_lvl_dict['header'] = ''
-
+                snd_lvl_dict['header'] = get_header_num(fst_lvl_num,
+                                                        snd_lvl_num=snd_lvl_num,
+                                                        len_fst_lvl_li_children=len(
+                                                            fst_lvl_li_children),
+                                                        len_snd_lvl_li_children=len(
+                                                            snd_lvl_li_children))
                 parse_child(snd_lvl_child, snd_lvl_dict)
 
     return dict_content
 
 
+def get_header_num(fst_lvl_num, snd_lvl_num=0, len_fst_lvl_li_children=0, len_snd_lvl_li_children=0):
+
+    if len_fst_lvl_li_children > 1 and len_snd_lvl_li_children > 1:
+        snd_lvl_ltr = chr(97 + snd_lvl_num)
+        if snd_lvl_num == 0:
+            header_num = f'{fst_lvl_num+1}. a) '
+        else:
+            header_num = f'    {snd_lvl_ltr}) '
+
+    elif len_fst_lvl_li_children > 1:
+        header_num = f'{fst_lvl_num+1}. '
+    else:
+        header_num = ''
+
+    return header_num
+
+
 def parse_child(second_lvl_child, second_lvl_dict):
     for element in second_lvl_child.contents:
+        p_tag = False
         try:
             element_class_name = element['class'][0]
         except KeyError:
-            continue
+            p_tag = element.name == 'p'
         except TypeError:
             continue
 
-        if element_class_name == 'enumeration__text':
+        if element_class_name == 'enumeration__text' or p_tag:
             second_lvl_dict['definition'] = element.text
         elif element_class_name == 'note':
             key_name = element.find('dt', class_='note__title').text
@@ -146,14 +167,19 @@ def parse_child(second_lvl_child, second_lvl_dict):
             second_lvl_dict[key_name] = element.find(
                 'dd', class_='tuple__val').text
         else:
+            logger.warning(f'Class {element_class_name} is not '
+                           '"enumeration__text" or "note" or "tuple".')
             pass
             # raise RuntimeError(f'Class {element_class_name} is not '
             #                    '"enumeration__text" or "note" or "tuple".')
 
 
 def process_data_corpus(data_corpus):
-    '''return dict: {class_name: class_content
+    '''
+    (For pons json content)
+    return dict: {class_name: class_content
                         class_name2: ... }
+                        
 
     3 cases:
         only one entry:
@@ -183,24 +209,29 @@ def process_data_corpus(data_corpus):
         else:
             raise ValueError('Element have more than one class')
 
+        # ignoring cant be done here also
+        # headword sometime in the 'source' entry
+        if key_class == 'headword':
+            continue
+
         if element.parent is None:
             # because it's already deleted
-            logger.warning(
+            logger.info(
                 f'subclass {element["class"]} tag already deleted')
             continue
 
         if element.parent.name not in ['body', 'p']:
-            logger.warning(f'found subclass {key_class} '
-                           f'inside {element.parent.name} \n'
-                           f'source_soup: {data_corpus}.\n'
-                           'Passing')
+            logger.info(f'found subclass {key_class} '
+                        f'inside {element.parent.name} \n'
+                        f'source_soup: {data_corpus}.\n'
+                        'Passing')
             continue
 
         if element.findChildren(class_=True):
             for child_element in element.findChildren(class_=True):
-                logger.warning(f'dissolving subclass {child_element["class"]} '
-                               f'tag inside {key_class} \n'
-                               f'source_soup: {data_corpus}.')
+                logger.info(f'dissolving subclass {child_element["class"]} '
+                            f'tag inside {key_class} \n'
+                            f'source_soup: {data_corpus}.')
                 child_element.unwrap()
 
         source_content = ''.join(
@@ -259,6 +290,7 @@ def get_word_freq_from_soup(soup):
             5 - most frequent
             """
     h1_titles = soup.find_all('h1')
+
     headword_sieblings_iterator = h1_titles[0].parent.next_siblings
     for sib in headword_sieblings_iterator:
         try:

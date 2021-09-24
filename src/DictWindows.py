@@ -186,12 +186,6 @@ class QuizRatingDiag(QDialog):
                 'recall ever knowing the answer')
 
     def closing_dialog(self):
-        # TODO vorübergehend, to updatge dict_dicts
-        subprocess.Popen(['python3',
-                          '/home/mani/Dokumente/active_vocabulary/src/Dict.py',
-                          f'{self.word}'])
-        # sleep(3)
-        # subprocess.Popen(['wmctrl', '-a','"Quiz"'])
         logger.info("closing_dialog")
         self.accept()
 

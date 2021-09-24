@@ -106,6 +106,11 @@ def update_words_to_hide(dict_dict):
                     except IndexError:
                         # perfekt = ['hat', base_word[:-2]+'t']
                         perfekt = ['hat', 'ge'+base_word[:-2]+'t']
+                else:
+                    prateritum = base_word
+                    perfekt = base_word
+                    # reinziehen [ziehst, rein, zog rein, hat/ist reingezogen] 
+                    # from pons -_-
                 if len(prateritum) == 2:
                     logger.debug('trennbar')
                     # trennbar = 1

@@ -7,7 +7,6 @@ from RenderingHTML import get_seen_word_info, render_html
 from utils import (log_word_in_wordlist_history, set_up_logger,
                    replace_umlauts)
 
-dict_data_path = Path.home() / 'Dictionnary'
 dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
 
 logger = set_up_logger(__name__)
@@ -51,7 +50,8 @@ class DefEntry():
                                           self.translate2en,
                                           self.get_from_duden,
                                           self.word,
-                                          self._ignore_cache)
+                                          self._ignore_cache,
+                                          self._ignore_dict)
 
         word_info = get_seen_word_info(self.word)
 
@@ -65,9 +65,15 @@ class DefEntry():
     def process_input(self):
         logger.info("process_input")
 
-        if ' new' in self.word:
+        if ' new_dict' in self.word:
+            self._ignore_dict = True
+            self.word = self.word.replace(' new_dict', '')
+        else:
+            self._ignore_dict = False
+
+        if ' new_cache' in self.word:
             self._ignore_cache = True
-            self.word = self.word.replace(' new', '')
+            self.word = self.word.replace(' new_cache', '')
         else:
             self._ignore_cache = False
 

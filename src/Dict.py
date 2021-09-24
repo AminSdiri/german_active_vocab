@@ -70,7 +70,17 @@ class MainWindow(QMainWindow):
 
         super(MainWindow, self).__init__(parent)
         self.setGeometry(535, 150, 210, 50)
-        self.launch_search_window()
+
+        # TODO remove after updating all dicts
+        try:
+            print(sys.argv[1])
+            if 'html' in sys.argv[2]:
+                print('Opening HTML:')
+                self.show_html_from_history_list(sys.argv[1])
+            else:
+                self.launch_search_window()
+        except IndexError:
+            self.launch_search_window()
 
         df = pd.read_csv(dict_data_path / 'wordlist.csv')
         df.set_index('Word', inplace=True)
@@ -217,7 +227,7 @@ class MainWindow(QMainWindow):
         self.move(315, 50)
         self.history_window = HistoryWindow(self)
         self.setWindowTitle("Wörterbuch")
-        files = dict_data_path.glob("*.html")
+        files = (dict_data_path / 'html').glob("*.html")
         files = list(files)
         files.sort(key=os.path.getmtime, reverse=True)
         files = [x.stem for x in files]
@@ -244,10 +254,12 @@ class MainWindow(QMainWindow):
         else:
             self.history_entry = index.text()
 
-        history_entry_path = dict_data_path / (self.history_entry+'.html')
+        history_entry_path = dict_data_path / 'html' /(self.history_entry+'.html')
         text = read_str_from_file(history_entry_path)
 
         self.history_window.txt_cont.insertHtml(text)
+        # TODO add to all opening QTextEdit
+        self.history_window.txt_cont.moveCursor(QTextCursor.Start)
 
         self.history_window.return_button.clicked.connect(
             self.launch_history_window)
@@ -262,10 +274,10 @@ class MainWindow(QMainWindow):
 
         word = self.history_entry.replace('.quiz', '')
 
-        quiz_file_path = (dict_data_path / (word+".quiz.html"))
+        quiz_file_path = (dict_data_path / 'html' / (word+".quiz.html"))
         quiz_text = read_str_from_file(quiz_file_path)
 
-        full_file_path = (dict_data_path / (word+".html"))
+        full_file_path = (dict_data_path / 'html' / (word+".html"))
         full_text = read_str_from_file(full_file_path)
 
         full_text = fix_html_with_custom_example(full_text)
@@ -304,7 +316,7 @@ class MainWindow(QMainWindow):
         df.to_csv(dict_data_path / 'wordpart_list.csv')
 
         subprocess.Popen(
-            ['notify-send', '"'+word+'"', 'Add to Focus Mode'])
+            ['notify-send', f'"{word}"', 'Add to Focus Mode'])
         logger.info(f'{word} switched to Focus Mode')
 
     def launch_quiz_window(self):
@@ -531,14 +543,9 @@ class MainWindow(QMainWindow):
 
         quiz_file_path = self.quiz_obj.quiz_file_path
 
-        # try:
-        write_str_to_file(quiz_file_path, clean_html)
-        # subprocess.Popen(['notify-send', 'gespeichert!'])
+        write_str_to_file(quiz_file_path, clean_html,
+                          notification=['gespeichert!'])
         logger.info('gespeichert!')
-        # except:
-        #     logger.error('Error writing')
-        #     # subprocess.Popen(['notify-send', 'Error writing'])
-        #     pass
 
 
 def excepthook(exc_type, exc_value, exc_tb):

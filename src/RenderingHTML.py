@@ -58,6 +58,29 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
         # autoescape=select_autoescape(["html", "xml"]),
     )
 
+    # background-color (from pyqt darktheme styling) = #2D2D2D
+    color_palette_dict = {
+        # Main Primary color
+        'primary_0': "#FFFF00",
+        'primary_1': "#FFFF99",
+        'primary_2': "#FFFF67",
+        'primary_3': "#CFCF00",
+        'primary_4': "#9E9E00",
+        # Main Secondary color (1)
+        'secondary_1_0': "#AAFF00",
+        'secondary_1_1': "#DDFF99",
+        'secondary_1_2': "#CCFF67",
+        'secondary_1_3': "#81C200",
+        'secondary_1_4': "#629300",
+        # Main Secondary color (2)
+        'secondary_2_0': "#FFD300",
+        'secondary_2_1': "#FFED99",
+        'secondary_2_2': "#FFE567",
+        'secondary_2_3': "#CFAC00",
+        'secondary_2_4': "#9E8300"
+
+    }
+
     env.filters["is_list"] = is_list
     if html_type == 'definition':
         env.filters["treat_class"] = treat_class_def
@@ -66,7 +89,8 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
         tmpl = env.from_string(tmpl_string)
         defined_html = tmpl.render(
             dict_dict=dict_dict,
-            word_info=word_info)
+            word_info=word_info,
+            col_pal=color_palette_dict)
     elif html_type == 'translation':
         env.filters["treat_class"] = treat_class_trans
         path_str = dict_src_path / 'templates/translation.html'
@@ -88,14 +112,13 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
                            for line in defined_html.split("\n"))
 
     write_str_to_file(
-        dict_data_path / 'renderd_innocent_html.html', defined_html)
+        dict_data_path / 'rendered_html_b4_qt.html', defined_html)
 
-    classes = [value
-               for element in
-               bs(defined_html, "html.parser").find_all(class_=True)
-               for value in element["class"]]
+    # classes = [value for element in
+    #            bs(defined_html, "html.parser").find_all(class_=True)
+    #            for value in element["class"]]
 
-    print('classes: ', set(classes))
+    # print('classes: ', set(classes))
 
     return defined_html
 
@@ -137,24 +160,33 @@ def treat_class_def(value, class_name, previous_class_name,
     if class_name == 'word_freq':
         if value > 0:
             value = '▰' * value + '▱' * (5 - value)
+            value = '<br>' + '&nbsp;'*4 + 'Häufigkeit: ' + value
         elif value == -1:
             value = ''
-        value = '<br>' + '&nbsp;'*4 + 'Häufigkeit: ' + value
         return value
 
     if class_name == 'verbclass':
         value = value.replace('with SICH', 'mit sich')\
-                     .replace('with', 'mit')
+                     .replace('with ', 'mit ')\
+                     .replace('without ', 'ohne ')
         return value
+
+    if class_name == 'phonetics':
+        # ignoring
+        return ''
 
     if class_name == 'header_num':
         value = '&nbsp;'*4 + value
+        value = value.replace('Phrases:', '')
         if len(value) > 30:
-            value = '<font color="#ffff00">' + value + \
+            value = '<font color="#ff5131">' + value + \
                 ' (Warning)' + '</font>' + '<br>' + '&nbsp;'*4
+        # ignoring can be also done here
         if 'Zusammenschreibung' in value:
             value = ''
         return value
+
+    # grammar
 
     if class_name == 'grammatical_construction':
         if previous_class_name != 'header_num':
@@ -162,6 +194,15 @@ def treat_class_def(value, class_name, previous_class_name,
         else:
             value = 'ⓖ ' + value
         value += '&nbsp;'
+        return value
+
+    if class_name == 'case':
+        # ignoring because already exists in grammatical_construction
+        # return ''
+        return value
+
+    if class_name == 'auxiliary_verb':
+        # +sein ...
         return value
 
     if class_name == 'idiom_proverb':
@@ -172,13 +213,36 @@ def treat_class_def(value, class_name, previous_class_name,
         value += '&nbsp;'
         return value
 
-    if class_name == 'synonym':
-        value = '≈ ' + value
+    if class_name == 'info':
+        # no pl...
         return value
 
-    if class_name == 'opposition':
-        value = '≠ ' + value
+    if class_name == 'feminine':
+        # Sünder -> Sünderin
         return value
+
+    if class_name == 'object-case':
+        # zu -> +Dat
+        return value
+
+    if class_name == 'full_collocation':
+        # "ebenso gern" by "ebenso" for example
+        value += '&nbsp;'
+        return value
+
+    # references ? probably useless for us => ignoring
+
+    if class_name == 'indirect_reference_RQ':
+        # zu, zu
+        value += '&nbsp;'
+        return ''
+
+    if class_name == 'indirect_reference_OTHER':
+        # zu, --> zu
+        value += '&nbsp;'
+        return ''
+
+    # definitions
 
     if class_name == 'definition':
         if previous_class_name != 'header_num':
@@ -192,10 +256,28 @@ def treat_class_def(value, class_name, previous_class_name,
         value += '&nbsp;'
         return value
 
+    if class_name == 'reference_qualification':
+        if previous_class_name != 'header_num':
+            value = '<br>' + '&nbsp;'*8 + value
+        value += '&nbsp;'
+        return value
+
+    if class_name == 'synonym':
+        value = '≈ ' + value
+        return value
+
+    if class_name == 'opposition':
+        value = '≠ ' + value
+        return value
+
+    # example
+
     if class_name == 'example':
         if previous_class_name != 'header_num':
             value = '<br>' + '&nbsp;'*16 + value
         return value
+
+    # usage
 
     if class_name == 'restriction':
         value += '&nbsp;'
@@ -205,19 +287,32 @@ def treat_class_def(value, class_name, previous_class_name,
         value = value.replace('>inf', '>umg')
         return value
 
-    if class_name == 'case':
-        # ignoring because already exists in grammatical_construction
-        # return ''
-        return value
-
     if class_name == 'rhetoric':
         # pejorativ...
+        return value
+
+    if class_name == 'topic':
+        # PHYS...
+        # TODO text is in Tag <acronym> so capitalize will not reach content
+        # value = value.lower().capitalize()
+        return value
+
+    if class_name == 'region':
+        # SGer...
+        return value
+
+    if class_name == 'etymology':
+        # (yidd)...
+        return value
+
+    if class_name == 'age':
+        # veralt...
         return value
 
     logger.warning(f"Class: {class_name} not treated!")
     # unknown classes will be colored
     value = f'<acronym title="{class_name}">' + value + '</acronym>'
-    value = '<font color="#ffff00">' + value + '</font>'
+    value = '<font color="#ff5131">' + value + '</font>'
     return value
 
 
@@ -228,6 +323,8 @@ def treat_class_trans(value, class_name, previous_class_name,
     # wrapi target fel class mta3 source zeda
 
     logger.info(f"treating class: {class_name}")
+
+    # base color: #4ae08c
 
     if class_name == 'source':
         # TODO (2) this treatement should be done before standerised json
@@ -254,11 +351,11 @@ def treat_class_trans(value, class_name, previous_class_name,
 
     if class_name == 'genus':
         if value == 'der':
-            value = '<font color="#0099cc">' + value + '</font>'
+            value = '<font color="#4EAAD7">' + value + '</font>'
         elif value == 'die':
-            value = '<font color="#ff99ff">' + value + '</font>'
+            value = '<font color="#FF7854">' + value + '</font>'
         elif value == 'das':
-            value = '<font color="#d24dff">' + value + '</font>'
+            value = '<font color="#FFB054">' + value + '</font>'
         return value
 
     if class_name == 'verbclass':
@@ -269,6 +366,7 @@ def treat_class_trans(value, class_name, previous_class_name,
 
     if class_name == 'header_num':
         value = '&nbsp;'*4 + value
+        value = value.replace('Phrases:', '')
         if 'Zusammenschreibung' in value:
             value = ''
         return value
