@@ -18,6 +18,9 @@ import pandas as pd
 from bs4 import BeautifulSoup as bs
 import traceback
 from plyer import notification
+import platform
+import darkdetect
+from darktheme.widget_template import DarkPalette
 
 from DictWindows import (SearchWindow,
                          DefinitionWindow,
@@ -34,10 +37,11 @@ from ProcessQuizData import (FocusEntry, QuizEntry,
                              ignore_headers, spaced_repetition)
 from utils import read_str_from_file, set_up_logger, write_str_to_file
 
+# user needs to generate API and put in in API path...
+# TODO (0) Using a public API for testing the app
+# TODO (0) using boxLayout with percentages instead of hardcoded dimensions
 # TODO (2) List the different fonctionalities for the readme.md
-
 # TODO (3) write test functions for the different functionalities,
-
 # TODO (2) create setup.py to take care of
 # - creating dirs and csv files
 # - install requirements.txt
@@ -547,8 +551,31 @@ def excepthook(exc_type, exc_value, exc_tb):
     sys.exit(1)
 
 
+def set_theme(app):
+    # TODO find os-compatible themes
+    # I'm using (adwaita-qt in ubuntu)
+    # tried qdarkstyle (blueisch)
+    # this one is close enough
+    if darkdetect.isDark():
+        if 'Linux' in platform.system():
+            pass
+        elif 'Darwin' in platform.system():
+            # QT supposedly adapts it's the automaticly in MacOs
+            # app.setPalette(DarkPalette())
+            pass
+        elif 'Windows' in platform.system():
+            pass
+        app.setPalette(DarkPalette())
+    else:
+        # sadely, using a light theme is not thought about yet! :D
+        # TODO generate a white theme color palette for template rendering
+        app.setPalette(DarkPalette())
+        pass
+
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    set_theme(app)
     sys.excepthook = excepthook
     w = MainWindow()
     exit_code = app.exec_()

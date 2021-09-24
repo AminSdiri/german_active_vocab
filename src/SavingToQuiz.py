@@ -1,6 +1,7 @@
 import json
 import re
 from jinja2 import Environment, PackageLoader, Template
+from jinja2.loaders import FileSystemLoader
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 from WordProcessing import (hide_text,
@@ -180,7 +181,7 @@ def save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
     # generate new custom_examples html section (if examples exist)
     if dict_dict['custom_examples']['german']:
         path_str = dict_src_path / 'templates/custom_examples_section.html'
-        env = Environment(loader=PackageLoader("tests", "templates"),
+        env = Environment(loader=FileSystemLoader(dict_src_path / 'templates'),
                           trim_blocks=True,
                           lstrip_blocks=True)
         tmpl_string = read_str_from_file(path_str)

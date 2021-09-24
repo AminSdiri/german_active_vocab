@@ -1,3 +1,4 @@
+from jinja2.loaders import FileSystemLoader
 import pandas as pd
 from pathlib import Path
 from bs4 import BeautifulSoup as bs
@@ -52,7 +53,7 @@ def render_html(dict_dict, word_info, translate, _found_in_pons,
 
 def render_html_from_dict(html_type: str, dict_dict, word_info={}):
     env = Environment(
-        loader=PackageLoader("tests", "templates"),
+        loader=FileSystemLoader(dict_src_path / 'templates'),
         trim_blocks=True,
         lstrip_blocks=True
         # autoescape=select_autoescape(["html", "xml"]),
@@ -84,6 +85,8 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
     env.filters["is_list"] = is_list
     if html_type == 'definition':
         env.filters["treat_class"] = treat_class_def
+        # TODO (0) use this insteade loding the file from path
+        # template = env.get_template('mytemplate.html')
         path_str = dict_src_path / 'templates/definition.html'
         tmpl_string = read_str_from_file(path_str)
         tmpl = env.from_string(tmpl_string)
