@@ -109,7 +109,7 @@ def update_words_to_hide(dict_dict):
                 else:
                     prateritum = base_word
                     perfekt = base_word
-                    # reinziehen [ziehst, rein, zog rein, hat/ist reingezogen] 
+                    # reinziehen [ziehst, rein, zog rein, hat/ist reingezogen]
                     # from pons -_-
                 if len(prateritum) == 2:
                     logger.debug('trennbar')

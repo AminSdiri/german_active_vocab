@@ -1,4 +1,4 @@
-import subprocess
+from plyer import notification
 import requests
 import json
 import time
@@ -41,7 +41,8 @@ def get_word_from_source(translate2fr, translate2en, get_from_duden,
         # getting root headword
         if _found_in_pons:
             try:
-                duden_search_word = _pons_json[0]['hits'][0]['roms'][0]['headword']
+                duden_search_word = _pons_json[0]['hits'][0][
+                    'roms'][0]['headword']
                 duden_search_word = remove_from_str(
                     duden_search_word, [b'\xcc\xa3', b'\xcc\xb1', b'\xc2\xb7'])
             except KeyError:
@@ -241,9 +242,9 @@ def get_json_from_pons_api(word, filename: str, translate2en,
             return json_data, status_code == 200
 
         except requests.exceptions.ConnectionError:
-            subprocess.Popen(
-                ['notify-send', 'No Connection to Mutter',
-                    'Retrying in 10s'])
+            notification.notify(title='No Connection to Mutter',
+                                message='Retrying in 10s',
+                                timeout=5)
             logger.warning('No connection to Mutter, retying in 10s')
             time.sleep(10)
             continue

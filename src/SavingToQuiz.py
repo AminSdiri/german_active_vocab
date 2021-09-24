@@ -189,7 +189,8 @@ def save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
             dict_dict=dict_dict)
 
         custom_section_html = "".join(line.strip()
-                                      for line in custom_section_html.split("\n"))
+                                      for line
+                                      in custom_section_html.split("\n"))
 
         # insert the custum examples list in html again
         custom_section_soup = bs(custom_section_html, 'lxml')
@@ -220,7 +221,7 @@ def save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
     # clean_html = fix_html_with_custom_example(clean_html)
 
     write_str_to_file(dict_data_path / 'html' / f'{word}.html', custom_qt_html,
-                      notification=[f'{word} gespeichert!'])
-    write_str_to_file(dict_data_path / 'html' / f'{word}.quiz.html', clean_html)
+                      notification_list=[f'{word} gespeichert!'])
+    write_str_to_file(dict_data_path / 'html' /
+                      f'{word}.quiz.html', clean_html)
     logger.info(word + ' gespeichert')
-

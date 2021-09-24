@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 import traceback
+from plyer import notification
 
 from DictWindows import (SearchWindow,
                          DefinitionWindow,
@@ -42,7 +43,7 @@ from utils import read_str_from_file, set_up_logger, write_str_to_file
 # - install requirements.txt
 # etc
 
-# TODO (2) find os-agnostic alternative to notify-send for windows and macos
+# DONE (2) find os-agnostic alternative to notify-send for windows and macos
 # example: from plyer import notification
 
 logger = set_up_logger(__name__)
@@ -79,7 +80,7 @@ class MainWindow(QMainWindow):
         #         self.launch_search_window()
         # except IndexError:
         #     self.launch_search_window()
-        
+
         self.launch_search_window()
 
         df = pd.read_csv(dict_data_path / 'wordlist.csv')
@@ -253,7 +254,8 @@ class MainWindow(QMainWindow):
         else:
             self.history_entry = index.text()
 
-        history_entry_path = dict_data_path / 'html' /(self.history_entry+'.html')
+        history_entry_path = dict_data_path / \
+            'html' / f'{self.history_entry}.html'
         text = read_str_from_file(history_entry_path)
 
         self.history_window.txt_cont.insertHtml(text)
@@ -314,8 +316,9 @@ class MainWindow(QMainWindow):
             df.loc[wordpart, "Ignore"] = ignore_list[k]
         df.to_csv(dict_data_path / 'wordpart_list.csv')
 
-        subprocess.Popen(
-            ['notify-send', f'"{word}"', 'Add to Focus Mode'])
+        notification.notify(title=f'"{word}"',
+                            message='Added to Focus Mode',
+                            timeout=2)
         logger.info(f'{word} switched to Focus Mode')
 
     def launch_quiz_window(self):
@@ -521,7 +524,6 @@ class MainWindow(QMainWindow):
                           beispiel_en, tag, now,
                           dict_dict, self.def_obj.dict_dict_path)
 
-
     def save_custom_quiztext_from_quizmode(self):
         logger.info("save_custom_quiztext_from_quizmode")
         clean_html = self.quiz_window.txt_cont.toHtml()
@@ -538,7 +540,9 @@ def excepthook(exc_type, exc_value, exc_tb):
     tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
     print("error catched!:")
     print("error message:\n", tb)
-    subprocess.Popen(['notify-send', 'An Error Occured', exc_value.args[0]])
+    notification.notify(title='An Error Occured',
+                        message=exc_value.args[0],
+                        timeout=10)
     QApplication.quit()
     sys.exit(1)
 

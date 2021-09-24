@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import logging
 from pathlib import Path
-import subprocess
+from plyer import notification
 
 dict_data_path = Path.home() / 'Dictionnary'
 
@@ -102,16 +102,17 @@ def read_str_from_file(path: Path):
     return file_string
 
 
-def write_str_to_file(path: Path, string: str, notification=[]):
+def write_str_to_file(path: Path, string: str, notification_list=[]):
     # TODO (3) Overwrite files?, in which case I want to do that
     # in which case I want to reset DF entries
     path_str = replace_umlauts(str(path))
     path = Path(path_str)
     with open(path, 'w') as f:
         f.write(string)
-    if notification:
-        notification_command = ['notify-send'] + notification
-        subprocess.Popen(notification_command)
+    if notification_list:
+        notification.notify(title=notification_list[0],
+                            message='\n'.join(notification_list[1:]),
+                            timeout=5)
 
     # TODO (4) add try, except and notify
 
@@ -119,5 +120,5 @@ def write_str_to_file(path: Path, string: str, notification=[]):
     #     %%%%%%%%%%%%%
     # except:
     #     logger.error('Error writing')
-    #     # subprocess.Popen(['notify-send', 'Error writing'])
+    #     # notify
     #     pass

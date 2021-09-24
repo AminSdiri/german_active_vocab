@@ -67,8 +67,8 @@ def parse_duden_html_to_dict(_duden_soup):
 
 def populate_content_entry(bedeutung_soup):
     try:
-        fst_lvl_li_children = [
-            child for child in bedeutung_soup.ol.contents if child.name == 'li']
+        fst_lvl_li_children = [x for x in bedeutung_soup.ol.contents
+                               if x.name == 'li']
 
     except AttributeError:
         # for z.B. schrumpeln
@@ -91,7 +91,8 @@ def populate_content_entry(bedeutung_soup):
         parse_child(bedeutung_soup, snd_lvl_dict)
         return dict_content
 
-    dict_content = [None] * len(fst_lvl_li_children)
+    len_arabs = len(fst_lvl_li_children)
+    dict_content = [None] * len_arabs
 
     for fst_lvl_num, fst_lvl_child in enumerate(fst_lvl_li_children):
         ol_section = fst_lvl_child.find('ol')
@@ -102,7 +103,7 @@ def populate_content_entry(bedeutung_soup):
                 snd_lvl_dict = dict_content[fst_lvl_num][0]
 
                 snd_lvl_dict['header'] = get_header_num(fst_lvl_num,
-                                                        len_fst_lvl_li_children=len(fst_lvl_li_children))
+                                                        len_arabs=len_arabs)
 
                 parse_child(fst_lvl_child, snd_lvl_dict)
             else:
@@ -120,25 +121,24 @@ def populate_content_entry(bedeutung_soup):
 
                 snd_lvl_dict['header'] = get_header_num(fst_lvl_num,
                                                         snd_lvl_num=snd_lvl_num,
-                                                        len_fst_lvl_li_children=len(
-                                                            fst_lvl_li_children),
-                                                        len_snd_lvl_li_children=len(
+                                                        len_arabs=len_arabs,
+                                                        len_letters=len(
                                                             snd_lvl_li_children))
                 parse_child(snd_lvl_child, snd_lvl_dict)
 
     return dict_content
 
 
-def get_header_num(fst_lvl_num, snd_lvl_num=0, len_fst_lvl_li_children=0, len_snd_lvl_li_children=0):
+def get_header_num(fst_lvl_num, snd_lvl_num=0, len_arabs=0, len_letters=0):
 
-    if len_fst_lvl_li_children > 1 and len_snd_lvl_li_children > 1:
+    if len_arabs > 1 and len_letters > 1:
         snd_lvl_ltr = chr(97 + snd_lvl_num)
         if snd_lvl_num == 0:
             header_num = f'{fst_lvl_num+1}. a) '
         else:
             header_num = f'    {snd_lvl_ltr}) '
 
-    elif len_fst_lvl_li_children > 1:
+    elif len_arabs > 1:
         header_num = f'{fst_lvl_num+1}. '
     else:
         header_num = ''
@@ -178,8 +178,8 @@ def process_data_corpus(data_corpus):
     '''
     (For pons json content)
     return dict: {class_name: class_content
-                        class_name2: ... }
-                        
+                  class_name2: ... ,
+                  }
 
     3 cases:
         only one entry:

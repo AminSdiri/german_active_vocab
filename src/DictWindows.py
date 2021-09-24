@@ -1,5 +1,4 @@
 import math
-import subprocess
 import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -8,6 +7,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QPushButton, QWidget, QLabel,
                              QLineEdit, QTextEdit, QCheckBox,
                              QSlider, QDialog, QVBoxLayout)
+from plyer import notification
 
 from ProcessQuizData import ignore_headers
 from utils import set_up_logger
@@ -225,8 +225,9 @@ class QuizRatingDiag(QDialog):
             df.loc[wordpart, "Ignore"] = ignore_list[k]
         df.to_csv(dict_data_path / 'wordpart_list.csv')
 
-        subprocess.Popen(
-            ['notify-send', '"'+word+'"', 'Added to Focus Mode'])
+        notification.notify(title=f'"{word}"',
+                            message='Added to Focus Mode',
+                            timeout=2)
         logger.info(f'{word} switched to Focus Mode')
 
 
