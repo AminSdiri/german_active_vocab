@@ -1,0 +1,195 @@
+<html>
+<head>
+    <!-- meta name="qrichtext" content="1" /-->
+    <!-- <link rel="stylesheet" href="src/templates/styles.css"> -->
+    <style>
+        /* margin-left: 20px; */
+        /* text-indent: 20px; */
+        /* page-break-before: always; */
+        /* white-space:pre; */
+        /* display: inline-block; */
+        /* h2:before {
+            content: '\A• ';
+        } */
+
+        body {
+            font-family: 'Arial';
+            font-size: 12pt;
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        .headword {
+            font-family: 'Arial Black';
+            font-size: xx-large;
+        }
+
+        .flexion {
+            font-size: large;
+            font-weight: 600; 
+        }
+
+        .genus{
+            font-size: x-large;
+            font-weight: 600; 
+            
+        }
+
+        .wordclass {
+            font-size: x-large;
+        }
+
+        .word_freq{
+            font-size: large;
+            font-weight: 500; 
+        }
+
+        h2 {
+            page-break-before: always;
+            text-indent: 20px;
+            /* -qt-block-indent: 1; */
+        }
+
+        .verbclass {
+            font-size: x-large;
+        }
+
+        .definition {
+            font-weight: bold;
+            /* -qt-block-indent: 1; */
+        }
+
+        .sense{
+            font-weight: bold;
+        }
+
+        .example {
+            font-style: italic;
+            /* -qt-block-indent: 2; */
+        }
+
+        .synonym{
+            font-weight: bold;
+        }
+
+        .opposition{
+            font-weight: bold;
+        }
+
+        .restriction{
+            color: #cfff70;
+        }
+
+        .style{
+            color: #cfff70;
+        }
+
+        .rhetoric{
+            color: #cfff70;
+        }
+
+        .case{
+            color: #6CB693;
+        }
+
+        .seen_info{
+            font-size: medium;
+            font-family: "Courier New";
+        }
+
+    </style>
+</head>
+<body>
+    {% set ns = namespace() %}
+    {% set ns.is_first_big_section = true %}
+    {% for big_section in dict_dict["content"] %}
+        {% if not ns.is_first_big_section %}
+        <hr>
+        {% endif %}
+        <h1>
+        {% set ns.previous_h1_key="" %}
+        {% set ns.previous_h1_value="" %}
+        {% for h1_key,h1_value in big_section.items() %}
+            {% if h1_key != 'word_subclass' %}
+                <span class={{h1_key}}>{{h1_value|treat_class(h1_key, ns.previous_h1_key, ns.previous_h1_value)}} </span>
+            {% endif %}
+            {% set ns.previous_h1_key = h1_key %}
+            {% set ns.previous_h1_value = h1_value %}
+        {% endfor %}
+        {% if ns.is_first_big_section %}
+            <span class="word_freq">{{dict_dict["word_freq"]|treat_class("word_freq", ns.previous_h1_key, ns.previous_h1_value)}} </span>
+        {% endif %}
+        {% set ns.is_first_big_section = false %}
+        </h1>
+        {% for small_section in big_section["word_subclass"] %}
+            <h2>
+            {% set ns.previous_h2_key="" %}
+            {% set ns.previous_h2_value="" %}
+            {% for h2_key,h2_value in small_section.items() %}
+                {% if h2_key != 'def_blocks' %}
+                    <span class={{h2_key}}>{{h2_value|treat_class(h2_key, ns.previous_h2_key, ns.previous_h2_value)}} </span>
+                {% endif %}
+                {% set ns.previous_h2_key = h2_key %}
+                {% set ns.previous_h2_value = h2_value %}
+            {% endfor %}
+            </h2>
+            {% for def_block in small_section["def_blocks"] %}
+                <p>
+                {% set ns.previous_h3_key="" %}
+                {% set ns.previous_h3_value="" %}
+                {% for h3_key,h3_value in def_block.items() %}
+                    {% if h3_value|is_list %}
+                        {% for h4_value in h3_value %}
+                            <span class={{h3_key}}>{{h4_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)}} </span>
+                        {% endfor %}
+                    {% else %}
+                        <span class={{h3_key}}>{{h3_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)}} </span>
+                    {% endif %}
+                    {% set ns.previous_h3_key = h3_key %}
+                    {% set ns.previous_h3_value = h3_value %}
+                {% endfor %}
+                </p>
+            {% endfor %}
+        {% endfor %} 
+    {% endfor %}
+    {# Adding Synonymes #}
+    {% if dict_dict["synonymes"]|length %}
+        <hr>
+        <p>
+        <font size="5" color="#ffb84d">Synonyme</font>
+        <br>
+        {% for item in dict_dict["synonymes"] %}
+        <br>
+            <span>&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;{{item|join(', ')}}</span>
+        {% endfor %}
+        </p>
+    {% else %}
+       <hr>
+        <p><font size="4" color="#ffb84d">Synonyme zu {{word_info["word"]}} in duden nicht gefunden</font></p>
+    {% endif %}
+    {# Adding custom examples section #}
+    {% if dict_dict["custom_examples"]["german"]|length %}
+        <hr>
+        <p class='custom_examples'>
+            <b>Eigenes Beispiel:</b>
+            <br>
+            {% for beispiel_de in dict_dict["custom_examples"]["german"] %}
+                <i>&nbsp;&nbsp;&nbsp;&nbsp;{{beispiel_de}}</i>
+                <br>
+            {% endfor %}
+            {% if dict_dict["custom_examples"]["english"]|length %}
+            <br><b>Auf Englisch:</b><br>
+            {% for beispiel_en in dict_dict["custom_examples"]["english"] %}
+                <i>&nbsp;&nbsp;&nbsp;&nbsp;{{beispiel_en}}</i>
+                <br>
+            {% endfor %}
+            {% endif %}
+        </p>
+    {% endif %}
+    {# Adding Word seen datetime infos #}
+    {% if "Previous_date" in word_info %}
+        <hr>
+        <p class="seen_info">Last seen on {{word_info["Previous_date"]}}, next revision on {{word_info["Next_date"]}} </font>
+    {% endif %}
+</body>
+</html>
