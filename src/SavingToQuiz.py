@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup as bs
 from WordProcessing import (hide_text,
                             update_words_to_hide)
 from pathlib import Path
-import subprocess
 
 from utils import read_str_from_file, set_up_logger, write_str_to_file
 
@@ -171,8 +170,9 @@ def save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
     if beispiel_de:
         # update custom examples list in dict_dict
         dict_dict['custom_examples']['german'].append(beispiel_de)
-        if beispiel_en:
-            dict_dict['custom_examples']['english'].append(beispiel_en)
+        if not beispiel_en:
+            beispiel_en = '#'*len(beispiel_de)
+        dict_dict['custom_examples']['english'].append(beispiel_en)
 
         # (re)save dict_dict
         write_str_to_file(dict_dict_path, json.dumps(dict_dict))
@@ -219,20 +219,16 @@ def save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
     # custom_qt_html = fix_html_with_custom_example(custom_qt_html)
     # clean_html = fix_html_with_custom_example(clean_html)
 
-    # try:
-    write_str_to_file(dict_data_path / f'{word}.html', custom_qt_html)
-    write_str_to_file(dict_data_path / f'{word}.quiz.html', clean_html)
-    subprocess.Popen(['notify-send', word + ' gespeichert!'])
+    write_str_to_file(dict_data_path / 'html' / f'{word}.html', custom_qt_html,
+                      notification=[f'{word} gespeichert!'])
+    write_str_to_file(dict_data_path / 'html' / f'{word}.quiz.html', clean_html)
     logger.info(word + ' gespeichert')
-    # except:
-    #     logger.error('Error writing' + word)
-    #     subprocess.Popen(['notify-send', 'Error writing' + word])
-    #     pass
 
 
 def save_from_quizmode(beispiel_de, defined_html, clean_html, words_to_hide, quiz_file_path, full_file_path):
     # TODO (1) revisit and update.
     # Probabily not even used at all.
+    logger.warning('using the unchecked, outdated "save_from_quizmode" function')
     if not beispiel_de == '':
         clean_beispiel_de = create_quiz_html(words_to_hide)
         if 'Eigenes Beispiel' in defined_html:

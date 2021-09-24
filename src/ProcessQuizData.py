@@ -39,14 +39,14 @@ class QuizEntry():
         logger.info("get quiz file paths")
 
         self.quiz_file_path = dict_data_path / \
-            f'{self.quiz_params["queued_word"]}.quiz.html'
+            'html' / f'{self.quiz_params["queued_word"]}.quiz.html'
         self.quiz_text = read_str_from_file(self.quiz_file_path)
 
         self.quiz_text = fix_html_with_custom_example(self.quiz_text)
         write_str_to_file(self.quiz_file_path, self.quiz_text)
 
         self.full_file_path = dict_data_path / \
-            f'{self.quiz_params["queued_word"]}.html'
+            'html' / f'{self.quiz_params["queued_word"]}.html'
         self.full_text = read_str_from_file(self.full_file_path)
 
         self.full_text = fix_html_with_custom_example(self.full_text)
@@ -189,8 +189,8 @@ class FocusEntry():
             part_idx = int(part_idx.item())
             wordpart = random_focus_df.index[0]
 
-            quiz_file = dict_data_path / f'{word}.quiz.html'
-            full_file = dict_data_path / f'{word}.html'
+            quiz_file = dict_data_path / 'html' / f'{word}.quiz.html'
+            full_file = dict_data_path / 'html' / f'{word}.html'
             quiz_txt = read_str_from_file(quiz_file)
             full_txt = read_str_from_file(full_file)
 

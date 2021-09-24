@@ -20,7 +20,7 @@ logger = set_up_logger(__name__)
 
 
 def standart_dict(saving_word, translate, translate2fr, translate2en,
-                  get_from_duden, word, ignore_cache):
+                  get_from_duden, word, ignore_cache, ignore_dict):
 
     # pons or duden depending on the saving word
     logger.debug('Looking in dict cache')
@@ -39,7 +39,7 @@ def standart_dict(saving_word, translate, translate2fr, translate2en,
                 f'{saving_word}_standerised.json'
 
     error_reading_json = False
-    if dict_cache_found and not ignore_cache:
+    if dict_cache_found and not ignore_cache and not ignore_dict:
         try:
             dict_dict = ast.literal_eval(dict_string)
         except SyntaxError:
@@ -55,7 +55,7 @@ def standart_dict(saving_word, translate, translate2fr, translate2en,
                 _found_in_pons = True
                 _found_in_duden = None
 
-    if not dict_cache_found or error_reading_json or ignore_cache:
+    if not dict_cache_found or error_reading_json or ignore_cache or ignore_dict:
         (_pons_json,
          _found_in_pons,
          _duden_soup,
@@ -128,7 +128,7 @@ def standart_pons_dict(_pons_json, dict_dict_path,
     if not translate and len(_pons_json) == 1:
         logger.info(f'language: {_pons_json[0]["lang"]}')
         json_data = _pons_json[0]["hits"]
-        dict_dict = parse_json_data(json_data, translate)
+        dict_dict = parse_json_data(json_data, translate, word)
 
         dict_dict = {'content': dict_dict,
                      'synonymes': [],
@@ -148,7 +148,7 @@ def standart_pons_dict(_pons_json, dict_dict_path,
     elif translate and len(_pons_json) == 1:
         logger.info(f'language: {_pons_json[0]["lang"]}')
         json_data = _pons_json[0]["hits"]
-        dict_dict = parse_json_data(json_data, translate)
+        dict_dict = parse_json_data(json_data, translate, word)
 
         dict_dict = [
             {'lang': '',
@@ -157,10 +157,10 @@ def standart_pons_dict(_pons_json, dict_dict_path,
     elif translate and len(_pons_json) == 2:
         logger.info(f'language: {_pons_json[0]["lang"]}')
         json_data_1 = _pons_json[0]["hits"]
-        dict_dict_1 = parse_json_data(json_data_1, translate)
+        dict_dict_1 = parse_json_data(json_data_1, translate, word)
 
         json_data_2 = _pons_json[1]["hits"]
-        dict_dict_2 = parse_json_data(json_data_2, translate)
+        dict_dict_2 = parse_json_data(json_data_2, translate, word)
 
         # language=json_data[0]['lang']
         dict_dict = [
@@ -220,7 +220,7 @@ def extract_custom_examples_from_html_to_dict(dict_dict, word):
     df.set_index('Word', inplace=True)
     word_is_already_saved = word in df.index
     if word_is_already_saved:
-        old_html_path = dict_data_path / f'{word}.html'
+        old_html_path = dict_data_path / 'html' / f'{word}.html'
         old_html_str = read_str_from_file(old_html_path)
 
         alt_beispiel_de, alt_beispiel_en = get_custom_example_from_html(

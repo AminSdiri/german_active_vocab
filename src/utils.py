@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import logging
 from pathlib import Path
+import subprocess
 
 dict_data_path = Path.home() / 'Dictionnary'
 
@@ -101,16 +102,19 @@ def read_str_from_file(path: Path):
     return file_string
 
 
-def write_str_to_file(path: Path, string: str):
+def write_str_to_file(path: Path, string: str, notification=[]):
     path_str = replace_umlauts(str(path))
     path = Path(path_str)
     with open(path, 'w') as f:
         f.write(string)
+    if notification:
+        notification_command = ['notify-send'] + notification
+        subprocess.Popen(notification_command)
 
-    # TODO (2) add try, except and notify when notification exist
+    # TODO (4) add try, except and notify
+
     # try:
-    #     %%%%%%%%%%%%%5
-    #     subprocess.Popen(['notify-send', 'gespeichert!'])
+    #     %%%%%%%%%%%%%
     # except:
     #     logger.error('Error writing')
     #     # subprocess.Popen(['notify-send', 'Error writing'])

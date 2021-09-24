@@ -4,13 +4,12 @@ from ParsingData.ParsingSoup import process_data_corpus
 from utils import (remove_from_str,
                    set_up_logger)
 
-dict_data_path = Path.home() / 'Dictionnary'
 dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
 
 logger = set_up_logger(__name__)
 
 
-def parse_json_data(json_data, translate):
+def parse_json_data(json_data, translate, word):
     '''
     convert json_data to standerized dict
 
@@ -141,8 +140,8 @@ def parse_json_data(json_data, translate):
 
                                 if key_class == 'NO_CLASS':
                                     if source_content:
-                                        logger.warning('Naked Text found!\n'
-                                                       f': {source_content}')
+                                        logger.info('Naked Text found!\n'
+                                                    f': {source_content}')
                                     continue
 
                                 (def_block_dict,
@@ -167,6 +166,7 @@ def parse_json_data(json_data, translate):
 
             dict_dict[rom_idx] = dict()
             rom_level_dict = dict_dict[rom_idx]
+            rom_level_dict["headword"] = word
             rom_level_dict["word_subclass"] = [None]
             arab_idx = 0
             rom_level_dict["word_subclass"][arab_idx] = dict()
@@ -261,8 +261,8 @@ def populate_rom_and_arab_level_dict(full_headword, rom_level_dict, arab_level_d
 
             if key_class == 'NO_CLASS':
                 if source_content:
-                    logger.warning('Naked Text found!\n'
-                                   f'Text: {source_content}')
+                    logger.info('Naked Text found!\n'
+                                f'Text: {source_content}')
                 continue
 
             if key_class == 'separator':
