@@ -13,7 +13,7 @@ from utils import (get_cache,
                    set_up_logger,
                    write_str_to_file)
 
-dict_data_path = Path.home() / 'Dictionnary'
+dict_data_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'data'
 dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
 
 logger = set_up_logger(__name__)
@@ -75,7 +75,7 @@ def get_duden_soup(word, filename, ignore_cache, duden_source):
     filename = filename if '_du' in filename else f'{filename}_du'
     if duden_source == 'synonymes':
         filename += '_syn'
-    cache_path = dict_data_path / 'Json' / filename
+    cache_path = dict_data_path / 'cache' / filename
     duden_html, duden_cache_found = get_cache(cache_path)
 
     if duden_cache_found and not ignore_cache:
@@ -172,7 +172,7 @@ def get_duden_soup(word, filename, ignore_cache, duden_source):
             else:
                 duden_soup = duden_soup[0]
 
-        write_str_to_file(dict_data_path / 'Json' / filename, str(duden_soup))
+        write_str_to_file(dict_data_path / 'cache' / filename, str(duden_soup))
     else:
         duden_soup = None
 
@@ -182,7 +182,7 @@ def get_duden_soup(word, filename, ignore_cache, duden_source):
 def get_json_from_pons_api(word, filename: str, translate2en,
                            translate2fr, ignore_cache):
     logger.debug('Looking in Pons cache')
-    cache_path = dict_data_path / 'Json' / filename.replace('_du', '')
+    cache_path = dict_data_path / 'cache' / filename.replace('_du', '')
     json_file, json_cache_found = get_cache(cache_path)
 
     if json_cache_found and not ignore_cache:
@@ -231,7 +231,7 @@ def get_json_from_pons_api(word, filename: str, translate2en,
                 logger.debug('got Json from Pons')
                 json_data = raw_data.json()
 
-                write_str_to_file(dict_data_path / 'Json' /
+                write_str_to_file(dict_data_path / 'cache' /
                                   filename, json.dumps(json_data))
 
             else:
