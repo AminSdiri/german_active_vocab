@@ -55,7 +55,12 @@ class QuizEntry():
     def queue_quiz_word(self):
 
         logger.info("queue_quiz_word")
-
+        if len(self.words_dataframe) == 0:
+            raise RuntimeError('No queued words yet.\n'
+                               'You should add words to the queue first:\n'
+                               '  1. Search a word\n'
+                               '  2. Hit the save button if you want to learn it\n'
+                               '  3. enter the quiz mode again')
         now = datetime.now() - timedelta(hours=3)
         self.todayscharge = 0
         yesterday = now + timedelta(days=-1)
@@ -63,7 +68,6 @@ class QuizEntry():
         logger.debug('quiz_priority_order: '+self.quiz_priority_order)
         if self.quiz_priority_order == 'due_words':
             logger.debug('Quiz Order set to planned Words')
-
             # Start by words due Today then yesteday
             # then queue the oldest due word
             # than oldest seen words
