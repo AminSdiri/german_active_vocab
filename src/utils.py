@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from plyer import notification
 
-dict_data_path = Path.home() / 'Dictionnary'
+dict_data_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'data'
 
 
 def set_up_logger(logger_name, level=logging.INFO):

@@ -14,7 +14,7 @@ from utils import set_up_logger
 
 logger = set_up_logger(__name__)
 
-dict_data_path = Path.home() / 'Dictionnary'
+dict_data_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'data'
 
 
 class SearchWindow(QWidget):

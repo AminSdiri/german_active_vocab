@@ -1,6 +1,7 @@
 # !/usr/bin/env python3
 # coding = utf-8
 
+# import setuptools
 from pathlib import Path
 import sys
 import os
@@ -38,7 +39,7 @@ from ProcessQuizData import (FocusEntry, QuizEntry,
 from utils import read_str_from_file, set_up_logger, write_str_to_file
 
 # user needs to generate API and put in in API path...
-# TODO (0) Using a public API for testing the app
+# TODO (0) create a public API for testing the app
 # TODO (0) using boxLayout with percentages instead of hardcoded dimensions
 # TODO (2) List the different fonctionalities for the readme.md
 # TODO (3) write test functions for the different functionalities,
@@ -52,7 +53,8 @@ from utils import read_str_from_file, set_up_logger, write_str_to_file
 
 logger = set_up_logger(__name__)
 
-dict_data_path = Path.home() / 'Dictionnary'
+dict_data_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'data'
+dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
 
 Main_word_font = '"Arial Black"'
 Conjugation_font = '"Lato"'
@@ -437,9 +439,8 @@ class MainWindow(QMainWindow):
 
     def update_word_html(self):
         logger.info("update_word_html")
-        subprocess.Popen(['python3',
-                          '/home/mani/Dokumente/active_vocabulary/src/Dict.py',
-                         self.quiz_obj.quiz_params['queued_word']])
+        subprocess.Popen(['python3', str(dict_src_path / 'main.py'),
+                          self.quiz_obj.quiz_params['queued_word']])
 
     def launch_focus_window(self):
         logger.info("launch_focus_window")
@@ -535,7 +536,7 @@ class MainWindow(QMainWindow):
         quiz_file_path = self.quiz_obj.quiz_file_path
 
         write_str_to_file(quiz_file_path, clean_html,
-                          notification=['gespeichert!'])
+                          notification_list=['gespeichert!'])
 
         logger.info('gespeichert!')
 
@@ -553,7 +554,7 @@ def excepthook(exc_type, exc_value, exc_tb):
 
 def set_theme(app):
     # TODO find os-compatible themes
-    # I'm using (adwaita-qt in ubuntu)
+    # I'm using (adwaita-qt in ubuntu or maybe qt5ct)
     # tried qdarkstyle (blueisch)
     # this one is close enough
     if darkdetect.isDark():

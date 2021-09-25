@@ -7,7 +7,7 @@ from jinja2 import Environment, PackageLoader, Template
 from utils import (read_str_from_file, set_up_logger,
                    write_str_to_file)
 
-dict_data_path = Path.home() / 'Dictionnary'
+dict_data_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'data'
 dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
 
 logger = set_up_logger(__name__)
