@@ -85,27 +85,19 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
     env.filters["is_list"] = is_list
     if html_type == 'definition':
         env.filters["treat_class"] = treat_class_def
-        # TODO (0) use this insteade loding the file from path
-        # template = env.get_template('mytemplate.html')
-        path_str = dict_src_path / 'templates/definition.html'
-        tmpl_string = read_str_from_file(path_str)
-        tmpl = env.from_string(tmpl_string)
+        tmpl = env.get_template('definition.html')
         defined_html = tmpl.render(
             dict_dict=dict_dict,
             word_info=word_info,
             col_pal=color_palette_dict)
     elif html_type == 'translation':
         env.filters["treat_class"] = treat_class_trans
-        path_str = dict_src_path / 'templates/translation.html'
-        tmpl_string = read_str_from_file(path_str)
-        tmpl = env.from_string(tmpl_string)
+        tmpl = env.get_template('translation.html')
         defined_html = tmpl.render(
             lang_dict=dict_dict)
     elif html_type == 'duden':
         env.filters["treat_class"] = treat_class_du
-        path_str = dict_src_path / 'templates/definition_du.html'
-        tmpl_string = read_str_from_file(path_str)
-        tmpl = env.from_string(tmpl_string)
+        tmpl = env.get_template('definition_du.html')
         defined_html = tmpl.render(
             du_dict=dict_dict,
             word_info=word_info)

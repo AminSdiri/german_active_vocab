@@ -21,8 +21,9 @@ class SearchWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         logger.info("init Search_win")
-        self.define_button = QPushButton("Define", self)
-        self.define_button.move(100, 350)
+
+        # self.define_button = QPushButton("Define", self)
+        # self.define_button.move(100, 350)
         self.line = QLineEdit(self)
         self.line.setFocus()
         self.line.move(5, 5)
@@ -40,6 +41,25 @@ class SearchWindow(QWidget):
         self.focus_button = QPushButton('Fc', self)
         self.focus_button.resize(30, 30)
         self.focus_button.move(310, 10)
+
+        # TODO adaptable window layout
+        # self.focus_button.setSizePolicy(QSizePolicy.Expanding,
+        #                                 QSizePolicy.Expanding)
+
+        # checkboxes = QVBoxLayout()
+        # checkboxes.addWidget(self.translate_fr)
+        # checkboxes.addWidget(self.translate_en)
+
+        # buttons = QHBoxLayout()
+        # buttons.addWidget(self.history_button)
+        # buttons.addWidget(self.quiz_button)
+        # buttons.addWidget(self.focus_button)
+
+        # layout = QGridLayout(self)
+        # layout.addWidget(self.line, 1, 1, 1, 5)
+        # layout.addLayout(checkboxes, 1, 6, 1, 1)
+        # layout.addLayout(buttons, 1, 7, 1, 3)
+        # self.setLayout(layout)
 
 
 class DefinitionWindow(QWidget):

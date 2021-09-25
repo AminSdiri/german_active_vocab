@@ -130,8 +130,8 @@ class MainWindow(QMainWindow):
                 self.search_form.line.setText(self.def_obj.word)
             self.search_form.line.returnPressed.connect(
                 self.launch_definition_window)
-            self.search_form.define_button.clicked.connect(
-                self.launch_definition_window)
+            #self.search_form.define_button.clicked.connect(
+            #    self.launch_definition_window)
             self.search_form.history_button.clicked.connect(
                 self.launch_history_window)
             self.search_form.quiz_button.clicked.connect(
