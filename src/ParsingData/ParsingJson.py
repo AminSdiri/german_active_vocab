@@ -32,7 +32,7 @@ def parse_json_data(json_data, translate, word):
                         [   # BLOCKS
                             {
                                 'header_num': '',   # 1. /2. ...
-                                'grammatical_construction': '',  # jd macht jemanden
+                                'grammatical_construction': '',  # jd macht etw
                                 'definition': '',
                                 'example': '',  # []
                                 'rhetoric': ''  # pejorativ...
@@ -242,8 +242,9 @@ def update_dict_w_appending(def_block_dict, key_class, source_content):
 def update_dict_w_ignoring(rom_level_dict, key, value):
     # only replace entry if content is ''
     if key in rom_level_dict:
-        logger.debug(
-            f'Key: {key}\nOld value: {rom_level_dict[key]}\nNew value: {value}')
+        logger.debug(f'Key: {key}\n'
+                     f'Old value: {rom_level_dict[key]}\n'
+                     f'New value: {value}')
         if rom_level_dict[key] == '':
             rom_level_dict[key] = value
     else:

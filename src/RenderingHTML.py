@@ -1,3 +1,4 @@
+from jinja2.loaders import FileSystemLoader
 import pandas as pd
 from pathlib import Path
 from bs4 import BeautifulSoup as bs
@@ -52,7 +53,7 @@ def render_html(dict_dict, word_info, translate, _found_in_pons,
 
 def render_html_from_dict(html_type: str, dict_dict, word_info={}):
     env = Environment(
-        loader=PackageLoader("tests", "templates"),
+        loader=FileSystemLoader(dict_src_path / 'templates'),
         trim_blocks=True,
         lstrip_blocks=True
         # autoescape=select_autoescape(["html", "xml"]),
@@ -84,25 +85,19 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
     env.filters["is_list"] = is_list
     if html_type == 'definition':
         env.filters["treat_class"] = treat_class_def
-        path_str = dict_src_path / 'templates/definition.html'
-        tmpl_string = read_str_from_file(path_str)
-        tmpl = env.from_string(tmpl_string)
+        tmpl = env.get_template('definition.html')
         defined_html = tmpl.render(
             dict_dict=dict_dict,
             word_info=word_info,
             col_pal=color_palette_dict)
     elif html_type == 'translation':
         env.filters["treat_class"] = treat_class_trans
-        path_str = dict_src_path / 'templates/translation.html'
-        tmpl_string = read_str_from_file(path_str)
-        tmpl = env.from_string(tmpl_string)
+        tmpl = env.get_template('translation.html')
         defined_html = tmpl.render(
             lang_dict=dict_dict)
     elif html_type == 'duden':
         env.filters["treat_class"] = treat_class_du
-        path_str = dict_src_path / 'templates/definition_du.html'
-        tmpl_string = read_str_from_file(path_str)
-        tmpl = env.from_string(tmpl_string)
+        tmpl = env.get_template('definition_du.html')
         defined_html = tmpl.render(
             du_dict=dict_dict,
             word_info=word_info)
@@ -293,7 +288,7 @@ def treat_class_def(value, class_name, previous_class_name,
 
     if class_name == 'topic':
         # PHYS...
-        # TODO text is in Tag <acronym> so capitalize will not reach content
+        # TODO (3) text is in Tag <acronym> so capitalize will not reach content
         # value = value.lower().capitalize()
         return value
 
@@ -319,8 +314,7 @@ def treat_class_def(value, class_name, previous_class_name,
 def treat_class_trans(value, class_name, previous_class_name,
                       previous_class_value):
     '''workaround because of css21'''
-    # TODO (2) ken source feha class w target mafihech
-    # wrapi target fel class mta3 source zeda
+    # TODO (2) wrap target in the same class as source
 
     logger.info(f"treating class: {class_name}")
 

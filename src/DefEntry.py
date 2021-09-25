@@ -16,7 +16,7 @@ logger = set_up_logger(__name__)
 
 # TODO (4) type-hinting in every function
 
-# TODO (4) positional variables ywaliw bel esm fel les fct lkol
+# TODO (4) positional args vs keyword args
 
 
 @dataclass

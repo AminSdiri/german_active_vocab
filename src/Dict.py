@@ -17,6 +17,10 @@ from datetime import datetime, timedelta
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 import traceback
+from plyer import notification
+import platform
+import darkdetect
+from darktheme.widget_template import DarkPalette
 
 from DictWindows import (SearchWindow,
                          DefinitionWindow,
@@ -26,25 +30,24 @@ from DictWindows import (SearchWindow,
                          QuizRatingDiag,
                          HistoryWindow)
 from DefEntry import DefEntry
-from SavingToQuiz import save_from_defmode, save_from_quizmode
+from SavingToQuiz import save_from_defmode
 from WordProcessing import (fix_html_with_custom_example,
                             hide_text)
 from ProcessQuizData import (FocusEntry, QuizEntry,
                              ignore_headers, spaced_repetition)
 from utils import read_str_from_file, set_up_logger, write_str_to_file
 
+# user needs to generate API and put in in API path...
+# TODO (0) Using a public API for testing the app
+# TODO (0) using boxLayout with percentages instead of hardcoded dimensions
 # TODO (2) List the different fonctionalities for the readme.md
-
 # TODO (3) write test functions for the different functionalities,
-
 # TODO (2) create setup.py to take care of
 # - creating dirs and csv files
 # - install requirements.txt
 # etc
 
-# TODO (2) add licence for only personal use, no commercial use
-
-# TODO (2) find os-agnostic alternative to notify-send for windows and macos
+# DONE (2) find os-agnostic alternative to notify-send for windows and macos
 # example: from plyer import notification
 
 logger = set_up_logger(__name__)
@@ -71,16 +74,18 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(parent)
         self.setGeometry(535, 150, 210, 50)
 
-        # TODO remove after updating all dicts
-        try:
-            print(sys.argv[1])
-            if 'html' in sys.argv[2]:
-                print('Opening HTML:')
-                self.show_html_from_history_list(sys.argv[1])
-            else:
-                self.launch_search_window()
-        except IndexError:
-            self.launch_search_window()
+        # # uncomment when updating entries with generate dicts
+        # try:
+        #     print(sys.argv[1])
+        #     if 'html' in sys.argv[2]:
+        #         print('Opening HTML:')
+        #         self.show_html_from_history_list(sys.argv[1])
+        #     else:
+        #         self.launch_search_window()
+        # except IndexError:
+        #     self.launch_search_window()
+
+        self.launch_search_window()
 
         df = pd.read_csv(dict_data_path / 'wordlist.csv')
         df.set_index('Word', inplace=True)
@@ -125,8 +130,8 @@ class MainWindow(QMainWindow):
                 self.search_form.line.setText(self.def_obj.word)
             self.search_form.line.returnPressed.connect(
                 self.launch_definition_window)
-            self.search_form.define_button.clicked.connect(
-                self.launch_definition_window)
+            #self.search_form.define_button.clicked.connect(
+            #    self.launch_definition_window)
             self.search_form.history_button.clicked.connect(
                 self.launch_history_window)
             self.search_form.quiz_button.clicked.connect(
@@ -199,8 +204,7 @@ class MainWindow(QMainWindow):
             QUrl.fromLocalFile(directory).toString() + "/",
         )
         self.def_window.txt_cont.insertHtml(self.def_obj.defined_html)
-        self.def_window.txt_cont.moveCursor(
-            QTextCursor.Start)  # .textCursor(defined_html)
+        self.def_window.txt_cont.moveCursor(QTextCursor.Start)
 
         self.def_window.return_button.clicked.connect(
             self.launch_search_window)
@@ -221,8 +225,8 @@ class MainWindow(QMainWindow):
 
         logger.info("launch history list window")
 
-        # TODO!!! allow modifing html in history Window
-        # TODO!!! allow deleting html from history Window ( file and DF entry)
+        # TODO (3) allow modifing html in history Window
+        # TODO (3) allow deleting html from history Window ( file and DF entry)
         self.resize(400, 500)
         self.move(315, 50)
         self.history_window = HistoryWindow(self)
@@ -254,11 +258,12 @@ class MainWindow(QMainWindow):
         else:
             self.history_entry = index.text()
 
-        history_entry_path = dict_data_path / 'html' /(self.history_entry+'.html')
+        history_entry_path = dict_data_path / \
+            'html' / f'{self.history_entry}.html'
         text = read_str_from_file(history_entry_path)
 
         self.history_window.txt_cont.insertHtml(text)
-        # TODO add to all opening QTextEdit
+        # move the view to the beginning
         self.history_window.txt_cont.moveCursor(QTextCursor.Start)
 
         self.history_window.return_button.clicked.connect(
@@ -315,8 +320,9 @@ class MainWindow(QMainWindow):
             df.loc[wordpart, "Ignore"] = ignore_list[k]
         df.to_csv(dict_data_path / 'wordpart_list.csv')
 
-        subprocess.Popen(
-            ['notify-send', f'"{word}"', 'Add to Focus Mode'])
+        notification.notify(title=f'"{word}"',
+                            message='Added to Focus Mode',
+                            timeout=2)
         logger.info(f'{word} switched to Focus Mode')
 
     def launch_quiz_window(self):
@@ -426,7 +432,7 @@ class MainWindow(QMainWindow):
         self.quiz_window.next_btn.clicked.connect(self.quiz_score)
         self.quiz_window.next_btn.clicked.connect(self.launch_quiz_window)
         self.quiz_window.save_button.clicked.connect(
-            self.save_custom_definition_from_quizmode)
+            self.save_custom_quiztext_from_quizmode)
         self.show()
 
     def update_word_html(self):
@@ -522,21 +528,6 @@ class MainWindow(QMainWindow):
                           beispiel_en, tag, now,
                           dict_dict, self.def_obj.dict_dict_path)
 
-    def save_custom_definition_from_quizmode(self):
-        logger.info("save_custom_definition_from_quizmode")
-
-        beispiel_de = self.quiz_window.beispiel.text()
-        defined_html = self.quiz_obj.full_text
-        clean_html = self.quiz_obj.quiz_text
-        words_to_hide = self.def_obj.words_to_hide
-        quiz_file_path = self.quiz_obj.quiz_file_path
-        full_file_path = self.quiz_obj.full_file_path
-
-        save_from_quizmode(beispiel_de, defined_html, clean_html,
-                           words_to_hide, quiz_file_path, full_file_path)
-
-        logger.info('Beispiel gespeichert!')
-
     def save_custom_quiztext_from_quizmode(self):
         logger.info("save_custom_quiztext_from_quizmode")
         clean_html = self.quiz_window.txt_cont.toHtml()
@@ -545,6 +536,7 @@ class MainWindow(QMainWindow):
 
         write_str_to_file(quiz_file_path, clean_html,
                           notification=['gespeichert!'])
+
         logger.info('gespeichert!')
 
 
@@ -552,13 +544,38 @@ def excepthook(exc_type, exc_value, exc_tb):
     tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
     print("error catched!:")
     print("error message:\n", tb)
-    subprocess.Popen(['notify-send', 'An Error Occured', exc_value.args[0]])
+    notification.notify(title='An Error Occured',
+                        message=exc_value.args[0],
+                        timeout=10)
     QApplication.quit()
     sys.exit(1)
 
 
+def set_theme(app):
+    # TODO find os-compatible themes
+    # I'm using (adwaita-qt in ubuntu)
+    # tried qdarkstyle (blueisch)
+    # this one is close enough
+    if darkdetect.isDark():
+        if 'Linux' in platform.system():
+            pass
+        elif 'Darwin' in platform.system():
+            # QT supposedly adapts it's the automaticly in MacOs
+            # app.setPalette(DarkPalette())
+            pass
+        elif 'Windows' in platform.system():
+            pass
+        app.setPalette(DarkPalette())
+    else:
+        # sadely, using a light theme is not thought about yet! :D
+        # TODO generate a white theme color palette for template rendering
+        app.setPalette(DarkPalette())
+        pass
+
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    set_theme(app)
     sys.excepthook = excepthook
     w = MainWindow()
     exit_code = app.exec_()

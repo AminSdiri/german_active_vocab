@@ -6,7 +6,8 @@ import ast
 
 from GetData import get_word_from_source
 from ParsingData.ParsingJson import parse_json_data
-from ParsingData.ParsingSoup import (create_synonyms_list, get_word_freq_from_soup,
+from ParsingData.ParsingSoup import (create_synonyms_list,
+                                     get_word_freq_from_soup,
                                      parse_duden_html_to_dict)
 from WordProcessing import fix_html_with_custom_example
 from utils import (get_cache,
@@ -55,7 +56,10 @@ def standart_dict(saving_word, translate, translate2fr, translate2en,
                 _found_in_pons = True
                 _found_in_duden = None
 
-    if not dict_cache_found or error_reading_json or ignore_cache or ignore_dict:
+    if (not dict_cache_found
+            or error_reading_json
+            or ignore_cache
+            or ignore_dict):
         (_pons_json,
          _found_in_pons,
          _duden_soup,

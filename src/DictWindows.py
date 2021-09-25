@@ -1,5 +1,4 @@
 import math
-import subprocess
 import pandas as pd
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -8,6 +7,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QPushButton, QWidget, QLabel,
                              QLineEdit, QTextEdit, QCheckBox,
                              QSlider, QDialog, QVBoxLayout)
+from plyer import notification
 
 from ProcessQuizData import ignore_headers
 from utils import set_up_logger
@@ -21,8 +21,9 @@ class SearchWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         logger.info("init Search_win")
-        self.define_button = QPushButton("Define", self)
-        self.define_button.move(100, 350)
+
+        # self.define_button = QPushButton("Define", self)
+        # self.define_button.move(100, 350)
         self.line = QLineEdit(self)
         self.line.setFocus()
         self.line.move(5, 5)
@@ -40,6 +41,25 @@ class SearchWindow(QWidget):
         self.focus_button = QPushButton('Fc', self)
         self.focus_button.resize(30, 30)
         self.focus_button.move(310, 10)
+
+        # TODO adaptable window layout
+        # self.focus_button.setSizePolicy(QSizePolicy.Expanding,
+        #                                 QSizePolicy.Expanding)
+
+        # checkboxes = QVBoxLayout()
+        # checkboxes.addWidget(self.translate_fr)
+        # checkboxes.addWidget(self.translate_en)
+
+        # buttons = QHBoxLayout()
+        # buttons.addWidget(self.history_button)
+        # buttons.addWidget(self.quiz_button)
+        # buttons.addWidget(self.focus_button)
+
+        # layout = QGridLayout(self)
+        # layout.addWidget(self.line, 1, 1, 1, 5)
+        # layout.addLayout(checkboxes, 1, 6, 1, 1)
+        # layout.addLayout(buttons, 1, 7, 1, 3)
+        # self.setLayout(layout)
 
 
 class DefinitionWindow(QWidget):
@@ -225,8 +245,9 @@ class QuizRatingDiag(QDialog):
             df.loc[wordpart, "Ignore"] = ignore_list[k]
         df.to_csv(dict_data_path / 'wordpart_list.csv')
 
-        subprocess.Popen(
-            ['notify-send', '"'+word+'"', 'Added to Focus Mode'])
+        notification.notify(title=f'"{word}"',
+                            message='Added to Focus Mode',
+                            timeout=2)
         logger.info(f'{word} switched to Focus Mode')
 
 
