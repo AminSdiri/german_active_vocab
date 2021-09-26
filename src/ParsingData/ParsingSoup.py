@@ -1,9 +1,6 @@
-from pathlib import Path
 from bs4 import BeautifulSoup as bs
 
 from utils import set_up_logger
-
-dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
 
 logger = set_up_logger(__name__)
 

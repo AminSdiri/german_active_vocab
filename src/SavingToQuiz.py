@@ -1,17 +1,12 @@
 import json
 import re
-from jinja2 import Environment, PackageLoader, Template
-from jinja2.loaders import FileSystemLoader
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 from WordProcessing import (hide_text,
                             update_words_to_hide)
-from pathlib import Path
 
-from utils import read_str_from_file, set_up_logger, write_str_to_file
-
-dict_data_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'data'
-dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
+from utils import set_up_logger, write_str_to_file
+from settings import jinja_env
 
 logger = set_up_logger(__name__)
 
@@ -180,12 +175,7 @@ def save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
 
     # generate new custom_examples html section (if examples exist)
     if dict_dict['custom_examples']['german']:
-        path_str = dict_src_path / 'templates/custom_examples_section.html'
-        env = Environment(loader=FileSystemLoader(dict_src_path / 'templates'),
-                          trim_blocks=True,
-                          lstrip_blocks=True)
-        tmpl_string = read_str_from_file(path_str)
-        tmpl = env.from_string(tmpl_string)
+        tmpl = jinja_env.get_template('custom_examples_section.html')
         custom_section_html = tmpl.render(
             dict_dict=dict_dict)
 

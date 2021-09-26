@@ -12,9 +12,7 @@ from utils import (get_cache,
                    replace_umlauts_2,
                    set_up_logger,
                    write_str_to_file)
-
-dict_data_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'data'
-dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
+from settings import dict_data_path
 
 logger = set_up_logger(__name__)
 

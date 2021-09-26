@@ -1,10 +1,7 @@
-from pathlib import Path
 from ParsingData.ParsingSoup import process_data_corpus
 
 from utils import (remove_from_str,
                    set_up_logger)
-
-dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
 
 logger = set_up_logger(__name__)
 

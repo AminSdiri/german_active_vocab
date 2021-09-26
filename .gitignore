@@ -3,7 +3,3 @@
 .venv_gav/
 generate_dicts.py
 data/**
-data/train_data.csv
-data/wordlist.csv
-data/Wordlist.txt
-data/wordpart_list.csv

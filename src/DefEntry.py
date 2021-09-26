@@ -1,13 +1,10 @@
 from dataclasses import dataclass, field
 from bs4.builder import HTML
-from pathlib import Path
 from ParsingData.ParsingData import standart_dict
 from RenderingHTML import get_seen_word_info, render_html
 
 from utils import (log_word_in_wordlist_history, set_up_logger,
                    replace_umlauts)
-
-dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
 
 logger = set_up_logger(__name__)
 
