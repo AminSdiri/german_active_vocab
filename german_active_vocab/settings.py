@@ -4,6 +4,7 @@ from PyQt5.QtGui import QFont
 from jinja2 import Environment
 from jinja2.loaders import FileSystemLoader
 
+# TODO (4) expose this vars to user interraction
 
 dict_data_path = Path(__file__).parents[1].resolve() / 'data'
 dict_src_path = Path(__file__).parents[0].resolve()

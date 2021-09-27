@@ -42,7 +42,8 @@ from settings import (dict_data_path,
                       dict_src_path,
                       maxrevpersession,
                       normal_font,
-                      focus_font
+                      focus_font,
+                      quiz_priority_order
                       )
 
 # user needs to generate API and put in in API path...
@@ -435,7 +436,7 @@ class MainWindow(QMainWindow):
     def update_word_html(self):
         logger.info("update_word_html")
         subprocess.Popen(['python3', str(dict_src_path / 'main.py'),
-                          self.quiz_obj.quiz_params['queued_word']])
+                          f'{self.quiz_obj.quiz_params["queued_word"]} new_dict'])
 
     def launch_focus_window(self):
         logger.info("launch_focus_window")

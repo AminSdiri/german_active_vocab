@@ -14,8 +14,10 @@ from PyQt5.QtWidgets import (QApplication,
                              QTextEdit,
                              QProgressBar)
 
-# videos_path = Path.home() / 'Videos' / 'Shows'
+# TODO UPDATE and move to the right directory
+
 videos_path = Path('/media/mani/50 jdida') / 'Videos' / 'Shows'
+
 
 def clean_subtitle(subs):
     subs = subs.replace('</i>', '')\
@@ -131,7 +133,8 @@ class MainWindow(QMainWindow):
             self.subs_de = pysrt.open(self.path_de)
         except UnicodeEncodeError:
             self.subs_de = pysrt.open(self.path_de, encoding='iso-8859-1')
-        self.subs_en = pysrt.open(self.path_en, error_handling=pysrt.ERROR_PASS)
+        self.subs_en = pysrt.open(
+            self.path_en, error_handling=pysrt.ERROR_PASS)
         hour, minute, second = self.curr_time.split(':')
         minute = int(minute) + 60*int(hour)
         parts_de = self.subs_de.slice(starts_before={'minutes': int(minute),
@@ -295,13 +298,15 @@ class MainWindow(QMainWindow):
         word = self.ToolTab.line.text()
         Beispiel_de = self.ToolTab.Deu_cont.toPlainText()
         Beispiel_en = self.ToolTab.Eng_cont.toPlainText()
-        Beispiel_de = Beispiel_de.replace("'", "//QUOTE").replace('"', "//DOUBLEQUOTE") + " ("+self.file_name+")"
-        Beispiel_en = Beispiel_en.replace("'", "//QUOTE").replace('"', "//DOUBLEQUOTE") + " ("+self.file_name+")"
+        Beispiel_de = Beispiel_de.replace(
+            "'", "//QUOTE").replace('"', "//DOUBLEQUOTE") + " ("+self.file_name+")"
+        Beispiel_en = Beispiel_en.replace(
+            "'", "//QUOTE").replace('"', "//DOUBLEQUOTE") + " ("+self.file_name+")"
         print('Executing Command')
-        command_str = ('python3 /home/mani/Dokumente/active_vocabulary/src/'
-                       f'Dict.py "{word}" "{Beispiel_de}" "{Beispiel_en}"')
+        command_str = ('python3 /home/mani/Dokumente/active_vocabulary/german_activ_vocabulary/'
+                       f'main.py "{word}" "{Beispiel_de}" "{Beispiel_en}"')
         print(command_str)
-        os.popen(command_str) # stream = os...
+        os.popen(command_str)  # stream = os...
         # output = stream.read()
 
 

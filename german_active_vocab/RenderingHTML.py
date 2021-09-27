@@ -194,7 +194,8 @@ def treat_class_def(value, class_name, previous_class_name,
 
     if class_name == 'feminine':
         # Sünder -> Sünderin
-        return value
+        # doesn't get hidden without extra processing, don't need it
+        return ''
 
     if class_name == 'object-case':
         # zu -> +Dat
