@@ -106,7 +106,7 @@ def write_str_to_file(path: Path, string: str, notification_list=[]):
     # in which case I want to reset DF entries
     path_str = replace_umlauts(str(path))
     path = Path(path_str)
-    with open(path, 'w') as f:
+    with open(path, 'w', encoding='utf-8') as f:
         f.write(string)
     if notification_list:
         notification.notify(title=notification_list[0],
