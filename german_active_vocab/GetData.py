@@ -208,13 +208,11 @@ def get_json_from_pons_api(word, filename: str, translate2en,
             # (https://en.pons.com/open_dict/public_api/secret)
             api_path = dict_data_path / 'PONS_API'
             api_secret = read_str_from_file(api_path)
-
             api_secret = api_secret.replace('\n', '')
 
             raw_data = requests.get(url, headers={"X-Secret": api_secret})
 
             status_code = raw_data.status_code
-
             if status_code == 200:
                 message = 'OK'
             elif status_code == 204:
@@ -231,10 +229,8 @@ def get_json_from_pons_api(word, filename: str, translate2en,
             if status_code == 200:
                 logger.debug('got Json from Pons')
                 json_data = raw_data.json()
-
                 write_str_to_file(dict_data_path / 'cache' /
                                   filename, json.dumps(json_data))
-
             else:
                 logger.warning(
                     f'Status Code: {str(status_code)} {message}')
