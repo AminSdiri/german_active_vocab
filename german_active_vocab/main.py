@@ -22,6 +22,7 @@ import traceback
 from plyer import notification
 import platform
 import darkdetect
+import qdarkstyle
 from darktheme.widget_template import DarkPalette
 
 from DictWindows import (SearchWindow,
@@ -553,21 +554,23 @@ def set_theme(app):
     # I'm using (adwaita-qt in ubuntu or maybe qt5ct)
     # tried qdarkstyle (blueisch)
     # this one is close enough
-    if darkdetect.isDark():
-        if 'Linux' in platform.system():
-            pass
-        elif 'Darwin' in platform.system():
-            # QT supposedly adapts it's the automaticly in MacOs
-            # app.setPalette(DarkPalette())
-            pass
-        elif 'Windows' in platform.system():
-            pass
-        app.setPalette(DarkPalette())
-    else:
-        # sadely, using a light theme is not thought about yet! :D
-        # TODO generate a white theme color palette for template rendering
-        app.setPalette(DarkPalette())
-        pass
+    # if darkdetect.isDark():
+    #     if 'Linux' in platform.system():
+    #         pass
+    #     elif 'Darwin' in platform.system():
+    #         # QT supposedly adapts it's the automaticly in MacOs
+    #         # app.setPalette(DarkPalette())
+    #         pass
+    #     elif 'Windows' in platform.system():
+    #         pass
+    #     app.setPalette(DarkPalette())
+    # else:
+    #     # sadely, using a light theme is not thought about yet! :D
+    #     # TODO generate a white theme color palette for template rendering
+    #     app.setPalette(DarkPalette())
+    #     pass
+    dark_stylesheet = qdarkstyle.load_stylesheet_pyqt5()
+    app.setStyleSheet(dark_stylesheet)
 
 
 if __name__ == '__main__':
