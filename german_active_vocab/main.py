@@ -2,7 +2,6 @@
 # coding = utf-8
 
 # import setuptools
-from pathlib import Path
 import sys
 import os
 import subprocess
@@ -12,8 +11,10 @@ from PyQt5.QtWidgets import (QApplication,
                              QMainWindow,
                              QListWidget,
                              QMessageBox)
-from PyQt5.QtGui import (QTextCharFormat, QFont,
-                         QTextCursor, QColor, QTextDocument)
+from PyQt5.QtGui import (QTextCharFormat,
+                         QTextCursor,
+                         QColor,
+                         QTextDocument)
 from datetime import datetime, timedelta
 import pandas as pd
 from bs4 import BeautifulSoup as bs
@@ -37,34 +38,30 @@ from WordProcessing import (fix_html_with_custom_example,
 from ProcessQuizData import (FocusEntry, QuizEntry,
                              ignore_headers, spaced_repetition)
 from utils import read_str_from_file, set_up_logger, write_str_to_file
+from settings import (dict_data_path,
+                      dict_src_path,
+                      maxrevpersession,
+                      normal_font,
+                      focus_font,
+                      quiz_priority_order
+                      )
 
 # user needs to generate API and put in in API path...
 # TODO (0) create a public API for testing the app
-# TODO (0) using boxLayout with percentages instead of hardcoded dimensions
-# TODO (2) List the different fonctionalities for the readme.md
+# TODO (1) using boxLayout with percentages instead of hardcoded dimensions
+# TODO (2) Write Readme file with examples (screenshots) and how to install
+# TODO (1) List the different fonctionalities for the readme.md
 # TODO (3) write test functions for the different functionalities,
-# TODO (2) create setup.py to take care of
+# CANCELED (2) create setup.py to take care of
 # - creating dirs and csv files
 # - install requirements.txt
-# etc
-
 # DONE (2) find os-agnostic alternative to notify-send for windows and macos
 # example: from plyer import notification
 
 logger = set_up_logger(__name__)
 
-dict_data_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'data'
-dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
-
-Main_word_font = '"Arial Black"'
-Conjugation_font = '"Lato"'
-Word_classe_font = '"Lato"'
-normal_font = QFont("Arial", 12)  # 3, QFont.Bold)
-focus_font = QFont("Arial", 20)
-quiz_priority_order: str = 'due_words'
-maxrevpersession = 10
-
 # .strftime("%d.%m.%y") is a bad idea! losing the time information
+# TODO (0) create now and now_(-3h) and move theme to settings.py
 now = datetime.now() - timedelta(hours=3)
 
 
@@ -132,8 +129,6 @@ class MainWindow(QMainWindow):
                 self.search_form.line.setText(self.def_obj.word)
             self.search_form.line.returnPressed.connect(
                 self.launch_definition_window)
-            #self.search_form.define_button.clicked.connect(
-            #    self.launch_definition_window)
             self.search_form.history_button.clicked.connect(
                 self.launch_history_window)
             self.search_form.quiz_button.clicked.connect(
@@ -439,8 +434,9 @@ class MainWindow(QMainWindow):
 
     def update_word_html(self):
         logger.info("update_word_html")
+        queued_word = self.quiz_obj.quiz_params["queued_word"]
         subprocess.Popen(['python3', str(dict_src_path / 'main.py'),
-                          self.quiz_obj.quiz_params['queued_word']])
+                          f'{queued_word} new_dict'])
 
     def launch_focus_window(self):
         logger.info("launch_focus_window")
@@ -553,7 +549,7 @@ def excepthook(exc_type, exc_value, exc_tb):
 
 
 def set_theme(app):
-    # TODO find os-compatible themes
+    # TODO (3) find os-compatible themes
     # I'm using (adwaita-qt in ubuntu or maybe qt5ct)
     # tried qdarkstyle (blueisch)
     # this one is close enough

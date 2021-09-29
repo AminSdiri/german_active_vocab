@@ -1,9 +1,6 @@
-from pathlib import Path
 from bs4 import BeautifulSoup as bs
 
 from utils import set_up_logger
-
-dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
 
 logger = set_up_logger(__name__)
 
@@ -274,7 +271,7 @@ def get_headword_from_soup(soup):
     if len(h1_titles) == 1:
         headword = h1_titles[0].span.text.replace('\xad', '')
     else:
-        raise RuntimeError('Found more than one h1 tag in duden HTML')
+        raise RuntimeError('Found none or more than one h1 tag in duden HTML')
     return headword
 
 

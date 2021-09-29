@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# TODO UPDATE and move to the right directory
+
+# Script to link to a shortcut
+
 vlc_request=$(curl -u :vlc http://localhost:8080/requests/status.xml)
 
 if [ 0 -eq $? ]; then

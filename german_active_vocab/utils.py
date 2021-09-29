@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from plyer import notification
 
-dict_data_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'data'
+from settings import dict_data_path
 
 
 def set_up_logger(logger_name, level=logging.INFO):
@@ -27,12 +27,11 @@ logger = set_up_logger(__name__)
 def get_cache(cache_path):
     try:
         cache_file_content = read_str_from_file(cache_path)
-
-        cache_found = 1
+        cache_found = True
         logger.info('Cached file found')
     except FileNotFoundError:
         logger.debug(f'No cached file found in {cache_path}')
-        cache_found = 0
+        cache_found = False
         cache_file_content = ''
     return cache_file_content, cache_found
 

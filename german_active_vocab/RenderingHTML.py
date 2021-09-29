@@ -1,14 +1,10 @@
-from jinja2.loaders import FileSystemLoader
 import pandas as pd
-from pathlib import Path
 from bs4 import BeautifulSoup as bs
-from jinja2 import Environment, PackageLoader, Template
 
-from utils import (read_str_from_file, set_up_logger,
+from utils import (set_up_logger,
                    write_str_to_file)
+from settings import dict_data_path, jinja_env
 
-dict_data_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'data'
-dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
 
 logger = set_up_logger(__name__)
 
@@ -16,48 +12,35 @@ logger = set_up_logger(__name__)
 def render_html(dict_dict, word_info, translate, _found_in_pons,
                 get_from_duden, _found_in_duden):
     # get from duden > found in pons > not translate > else
+    # TODO use one decision tree for all functions
     if translate:
         if _found_in_pons:
             defined_html = render_html_from_dict(
                 'translation', dict_dict)
         else:
-            tmpl_string = read_str_from_file(
-                dict_src_path / 'templates/not_found_pons_translation.html')
-            tmpl = Template(tmpl_string)
+            tmpl = jinja_env.get_template('not_found_pons_translation.html')
             defined_html = tmpl.render(word=word_info["word"])
     elif get_from_duden:
         if _found_in_duden:
             defined_html = render_html_from_dict(
                 'duden', dict_dict, word_info)
         else:
-            tmpl_string = read_str_from_file(
-                dict_src_path / 'templates/not_found_duden.html')
-            tmpl = Template(tmpl_string)
+            tmpl = jinja_env.get_template('not_found_duden.html')
             defined_html = tmpl.render(word=word_info["word"])
+    elif _found_in_pons:
+        defined_html = render_html_from_dict(
+            'definition', dict_dict, word_info)
+    elif _found_in_duden:
+        defined_html = render_html_from_dict(
+            'duden', dict_dict, word_info)
     else:
-        if _found_in_pons:
-            defined_html = render_html_from_dict(
-                'definition', dict_dict, word_info)
-        else:
-            if _found_in_duden:
-                defined_html = render_html_from_dict(
-                    'duden', dict_dict, word_info)
-            else:
-                tmpl_string = read_str_from_file(
-                    dict_src_path / 'templates/not_found_pons_duden.html')
-                tmpl = Template(tmpl_string)
-                defined_html = tmpl.render(word=word_info["word"])
+        tmpl = jinja_env.get_template('not_found_pons_duden.html')
+        defined_html = tmpl.render(word=word_info["word"])
 
     return defined_html
 
 
 def render_html_from_dict(html_type: str, dict_dict, word_info={}):
-    env = Environment(
-        loader=FileSystemLoader(dict_src_path / 'templates'),
-        trim_blocks=True,
-        lstrip_blocks=True
-        # autoescape=select_autoescape(["html", "xml"]),
-    )
 
     # background-color (from pyqt darktheme styling) = #2D2D2D
     color_palette_dict = {
@@ -82,25 +65,22 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
 
     }
 
-    env.filters["is_list"] = is_list
+    jinja_env.filters["is_list"] = is_list
     if html_type == 'definition':
-        env.filters["treat_class"] = treat_class_def
-        tmpl = env.get_template('definition.html')
-        defined_html = tmpl.render(
-            dict_dict=dict_dict,
-            word_info=word_info,
-            col_pal=color_palette_dict)
+        jinja_env.filters["treat_class"] = treat_class_def
+        tmpl = jinja_env.get_template('definition.html')
+        defined_html = tmpl.render(dict_dict=dict_dict,
+                                   word_info=word_info,
+                                   col_pal=color_palette_dict)
     elif html_type == 'translation':
-        env.filters["treat_class"] = treat_class_trans
-        tmpl = env.get_template('translation.html')
-        defined_html = tmpl.render(
-            lang_dict=dict_dict)
+        jinja_env.filters["treat_class"] = treat_class_trans
+        tmpl = jinja_env.get_template('translation.html')
+        defined_html = tmpl.render(lang_dict=dict_dict)
     elif html_type == 'duden':
-        env.filters["treat_class"] = treat_class_du
-        tmpl = env.get_template('definition_du.html')
-        defined_html = tmpl.render(
-            du_dict=dict_dict,
-            word_info=word_info)
+        jinja_env.filters["treat_class"] = treat_class_du
+        tmpl = jinja_env.get_template('definition_du.html')
+        defined_html = tmpl.render(du_dict=dict_dict,
+                                   word_info=word_info)
 
     # trim_vlocks and lstrip_blocks are not enoughs?
     defined_html = "".join(line.strip()
@@ -214,7 +194,8 @@ def treat_class_def(value, class_name, previous_class_name,
 
     if class_name == 'feminine':
         # Sünder -> Sünderin
-        return value
+        # doesn't get hidden without extra processing, don't need it
+        return ''
 
     if class_name == 'object-case':
         # zu -> +Dat

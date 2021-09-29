@@ -1,10 +1,7 @@
-from pathlib import Path
 from ParsingData.ParsingSoup import process_data_corpus
 
 from utils import (remove_from_str,
                    set_up_logger)
-
-dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
 
 logger = set_up_logger(__name__)
 
@@ -202,16 +199,15 @@ def process_def_block_separation(arab_level_dict, previous_class, key_class,
     '''sometimes multiple def_blocks in json are put in the same sub-entrie.
     this function decide whether to increment the def_idx and therefor
     separate them or not.'''
-    if ((previous_class == 'grammatical_construction' or
-            previous_class == 'idiom_proverb')
-        and not (key_class == 'grammatical_construction' or
-                 key_class == 'idiom_proverb')):
+
+    if ((previous_class in ['grammatical_construction', 'idiom_proverb'])
+            and not (key_class in ['grammatical_construction', 'idiom_proverb'])):
         gra_was_in_block = True
 
     if ((previous_class == 'example' and key_class != 'example')
-        or (gra_was_in_block
-            and (key_class == 'grammatical_construction' or
-                 key_class == 'idiom_proverb'))):
+            or (gra_was_in_block
+                and (key_class in ['grammatical_construction', 'idiom_proverb']))
+            or (previous_class == 'definition' and key_class != 'example')):
         # add a def block
         def_idx += 1
         arab_level_dict['def_blocks'].append(dict())
@@ -253,7 +249,8 @@ def update_dict_w_ignoring(rom_level_dict, key, value):
     return rom_level_dict
 
 
-def populate_rom_and_arab_level_dict(full_headword, rom_level_dict, arab_level_dict):
+def populate_rom_and_arab_level_dict(full_headword,
+                                     rom_level_dict, arab_level_dict):
     if full_headword != '':
         corpus_list_of_dicts = process_data_corpus(full_headword)
         for element in corpus_list_of_dicts:

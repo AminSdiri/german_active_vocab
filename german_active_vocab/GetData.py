@@ -12,9 +12,7 @@ from utils import (get_cache,
                    replace_umlauts_2,
                    set_up_logger,
                    write_str_to_file)
-
-dict_data_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'data'
-dict_src_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'src'
+from settings import dict_data_path
 
 logger = set_up_logger(__name__)
 
@@ -205,7 +203,10 @@ def get_json_from_pons_api(word, filename: str, translate2en,
         logger.debug(f'URL: {url}')
         try:
             # TODO (2) save API secret as envirement var
-            api_path = Path.home() / 'PONS_API'
+            # Please consider using your own API (it's free)
+            # this one is limited to 1000 request per month
+            # (https://en.pons.com/open_dict/public_api/secret)
+            api_path = dict_data_path / 'PONS_API'
             api_secret = read_str_from_file(api_path)
 
             api_secret = api_secret.replace('\n', '')

@@ -1,7 +1,6 @@
 import math
 import pandas as pd
 from datetime import datetime, timedelta
-from pathlib import Path
 from bs4 import BeautifulSoup as bs
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QPushButton, QWidget, QLabel,
@@ -11,10 +10,9 @@ from plyer import notification
 
 from ProcessQuizData import ignore_headers
 from utils import set_up_logger
+from settings import dict_data_path
 
 logger = set_up_logger(__name__)
-
-dict_data_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'data'
 
 
 class SearchWindow(QWidget):
@@ -42,7 +40,7 @@ class SearchWindow(QWidget):
         self.focus_button.resize(30, 30)
         self.focus_button.move(310, 10)
 
-        # TODO adaptable window layout
+        # TODO (0) adaptable window layout
         # self.focus_button.setSizePolicy(QSizePolicy.Expanding,
         #                                 QSizePolicy.Expanding)
 
