@@ -220,9 +220,9 @@ def update_words_to_hide(dict_dict):
                 #     if (conjugations[0] == 'der' or
                 #         conjugations[0] == 'die' or
                 #             conjugations[0] == 'das'):
-                #         wrdrr = conjugations[1].replace('·', '').replace('', '')
+                #         wrdrr = conjugations[1].replace('·', '')
                 #     else:
-                #         wrdrr = conjugations[0].replace('·', '').replace('', '')
+                #         wrdrr = conjugations[0].replace('·', '')
                 #     word_variants.append(wrdrr)
 
                 word_variants.append(headword+'e')
@@ -235,7 +235,9 @@ def update_words_to_hide(dict_dict):
                 word_variants.append(headword+'m')
                 word_variants.append(headword+'s')
                 # conjugations = base_word[0].split()
-                # if conjugations[0] == 'der' or conjugations[0] == 'die' or conjugations[0] == 'das':
+                # if (conjugations[0] == 'der'
+                #       or conjugations[0] == 'die'
+                #       or conjugations[0] == 'das'):
                 #     wrdrr = conjugations[1].replace('·', '').replace('', '')
                 # else:
                 #     wrdrr = conjugations[0].replace('·', '').replace('', '')
@@ -263,5 +265,7 @@ def update_words_to_hide(dict_dict):
         # words_to_hide = [elem for elem in words_to_hide if all(
         #     c.isalnum() for c in elem)]
         word_variants = list(set(word_variants))
+
+        logger.debug(f'Word variants:\n{word_variants}')
 
     return word_variants

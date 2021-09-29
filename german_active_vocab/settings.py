@@ -14,6 +14,7 @@ Conjugation_font = '"Lato"'
 Word_classe_font = '"Lato"'
 normal_font = QFont("Arial", 12)  # 3, QFont.Bold)
 focus_font = QFont("Arial", 20)
+
 quiz_priority_order: str = 'due_words'
 maxrevpersession = 10
 

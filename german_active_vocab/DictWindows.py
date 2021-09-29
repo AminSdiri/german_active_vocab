@@ -40,7 +40,7 @@ class SearchWindow(QWidget):
         self.focus_button.resize(30, 30)
         self.focus_button.move(310, 10)
 
-        # TODO adaptable window layout
+        # TODO (0) adaptable window layout
         # self.focus_button.setSizePolicy(QSizePolicy.Expanding,
         #                                 QSizePolicy.Expanding)
 

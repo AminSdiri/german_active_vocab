@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from bs4 import BeautifulSoup as bs
 from pathlib import Path
 from pandas.core.frame import DataFrame
+from plyer import notification
 
 from WordProcessing import fix_html_with_custom_example
 from utils import read_str_from_file, set_up_logger, write_str_to_file
@@ -58,7 +59,7 @@ class QuizEntry():
             raise RuntimeError('No queued words yet.\n'
                                'You should add words to the queue first:\n'
                                '  1. Search a word\n'
-                               '  2. Hit the save button if you want to learn it\n'
+                               '  2. Hit the save button to learn it\n'
                                '  3. enter the quiz mode again')
         now = datetime.now() - timedelta(hours=3)
         self.todayscharge = 0
@@ -68,8 +69,8 @@ class QuizEntry():
         if self.quiz_priority_order == 'due_words':
             logger.debug('Quiz Order set to planned Words')
             # Start by words due Today then yesteday
-            # then queue the oldest due word
-            # than oldest seen words
+            # TODO then queue the oldest due word with oldest seen date
+            # then oldest seen non due words
             df_dates = self.words_dataframe['Next_date'].apply(
                 lambda x: x.date())
             due_today_df = self.words_dataframe[(df_dates == now.date())]
@@ -97,6 +98,12 @@ class QuizEntry():
                     == oldest_next_dtm].index[0]
                 planned_str = (' versäumt '
                                f'{oldest_next_dtm.strftime("%d.%m.%y")}')
+            else:
+                self.quiz_priority_order = 'old_words'
+                notification.notify(title='No Due words left',
+                                    message='switching to oldest seen words',
+                                    timeout=5)
+                self.queue_quiz_word()
 
         elif self.quiz_priority_order == 'old_words':
             logger.debug('Quiz Order set to oldest seen Words')
@@ -114,6 +121,9 @@ class QuizEntry():
                            f'geplannt {planned_dtm.strftime("%d.%m.%y")}')
 
         logger.debug('todayscharge: '+str(self.todayscharge))
+        # BUG when priority set to old words
+        # Algorithm jump back to here after completing all commands
+        # and reset it's variable throwing an error
         if self.todayscharge > 0:
             logger.debug('queued_word: '+str(queued_word))
 

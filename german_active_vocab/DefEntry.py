@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass   # , field
 from bs4.builder import HTML
 from ParsingData.ParsingData import standart_dict
 from RenderingHTML import get_seen_word_info, render_html
@@ -10,9 +10,7 @@ logger = set_up_logger(__name__)
 
 # TODO (4) use a database instead of files to save
 # standarized dicts, raw Json, raw htmls
-
 # TODO (4) type-hinting in every function
-
 # TODO (4) positional args vs keyword args
 
 

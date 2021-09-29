@@ -48,21 +48,20 @@ from settings import (dict_data_path,
 
 # user needs to generate API and put in in API path...
 # TODO (0) create a public API for testing the app
-# TODO (0) using boxLayout with percentages instead of hardcoded dimensions
-# TODO (2) List the different fonctionalities for the readme.md
+# TODO (1) using boxLayout with percentages instead of hardcoded dimensions
+# TODO (2) Write Readme file with examples (screenshots) and how to install
+# TODO (1) List the different fonctionalities for the readme.md
 # TODO (3) write test functions for the different functionalities,
-# TODO (2) create setup.py to take care of
+# CANCELED (2) create setup.py to take care of
 # - creating dirs and csv files
 # - install requirements.txt
-# etc
-
 # DONE (2) find os-agnostic alternative to notify-send for windows and macos
 # example: from plyer import notification
 
 logger = set_up_logger(__name__)
 
 # .strftime("%d.%m.%y") is a bad idea! losing the time information
-# TODO create now and now_(-3h) and move theme to settings.py
+# TODO (0) create now and now_(-3h) and move theme to settings.py
 now = datetime.now() - timedelta(hours=3)
 
 
@@ -435,8 +434,9 @@ class MainWindow(QMainWindow):
 
     def update_word_html(self):
         logger.info("update_word_html")
+        queued_word = self.quiz_obj.quiz_params["queued_word"]
         subprocess.Popen(['python3', str(dict_src_path / 'main.py'),
-                          f'{self.quiz_obj.quiz_params["queued_word"]} new_dict'])
+                          f'{queued_word} new_dict'])
 
     def launch_focus_window(self):
         logger.info("launch_focus_window")
@@ -549,7 +549,7 @@ def excepthook(exc_type, exc_value, exc_tb):
 
 
 def set_theme(app):
-    # TODO find os-compatible themes
+    # TODO (3) find os-compatible themes
     # I'm using (adwaita-qt in ubuntu or maybe qt5ct)
     # tried qdarkstyle (blueisch)
     # this one is close enough

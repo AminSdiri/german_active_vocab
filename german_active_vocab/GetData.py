@@ -203,7 +203,10 @@ def get_json_from_pons_api(word, filename: str, translate2en,
         logger.debug(f'URL: {url}')
         try:
             # TODO (2) save API secret as envirement var
-            api_path = Path.home() / 'PONS_API'
+            # Please consider using your own API (it's free)
+            # this one is limited to 1000 request per month
+            # (https://en.pons.com/open_dict/public_api/secret)
+            api_path = dict_data_path / 'PONS_API'
             api_secret = read_str_from_file(api_path)
 
             api_secret = api_secret.replace('\n', '')
