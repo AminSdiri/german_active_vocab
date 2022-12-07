@@ -56,6 +56,7 @@ class QuizEntry():
                                '  3. enter the quiz mode again')
 
         self.todayscharge = 0
+        now = datetime.now() - timedelta(hours=3)
         yesterday = now + timedelta(days=-1)
         planned_str = 'error'
         logger.debug('quiz_priority_order: '+self.quiz_priority_order)
