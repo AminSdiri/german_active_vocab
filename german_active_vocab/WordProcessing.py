@@ -9,21 +9,6 @@ logger = set_up_logger(__name__, level=logging.WARNING)
 word_re = re.compile(r'\b[a-zA-Z]+\b')
 
 
-def fix_html_with_custom_example(html_text):
-    # TODO (4) Vorübergehend, delete after all htmls are updated
-    logger.info("fix_html_with_custom_example")
-
-    html_text = html_text.replace('</body></html><br><br>',
-                                  '<br><p style=" margin-top:12px; '
-                                  'margin-bottom:12px; margin-left:0px; '
-                                  'margin-right:0px; -qt-block-indent:0; '
-                                  'text-indent:0px;">')
-    if html_text[-4:] == '</i>':
-        html_text += '</p></body></html>'
-
-    return html_text
-
-
 def hide_text(text, word_to_hide):
     logger.info("hide_text")
 

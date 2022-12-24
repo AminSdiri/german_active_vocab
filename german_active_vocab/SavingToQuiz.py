@@ -76,7 +76,7 @@ def create_quiz_html(html_res, words_to_hide):
     return clean_html
 
 
-def save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
+def save_from_def_mode(dict_data_path, word, custom_qt_html, beispiel_de,
                       beispiel_en, tag, now, dict_dict,
                       dict_dict_path):
     '''
@@ -84,8 +84,8 @@ def save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
     we cant use dict_dict to generate quiz file without "übertragung"
     of changes from html to dict_dict so quiz file is generated from the html.
 
-    if a word is searchd and it's already saved, in quiz mode it's retrieved
-    from the saved html to show also the customisations made  by the user
+    if a word is searched and it's already saved, in quiz mode it's retrieved
+    from the saved html to show also the customisations made by the user
     before.
     here it's not even the case, only the information that the word is already
     saved is shown but the html is reconstructed again from dict_dict.
@@ -122,6 +122,7 @@ def save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
     df = pd.read_csv(dict_data_path / 'wordlist.csv')
     df.set_index('Word', inplace=True)
     word_is_already_saved = word in df.index
+    
     if word_is_already_saved:
         # destroy Custom_examples section
         ce_begin = custom_qt_soup.find("span", string="Eigenes Beispiel:")

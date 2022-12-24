@@ -5,25 +5,21 @@
 import sys
 import os
 import subprocess
-from PyQt5.QtCore import pyqtSlot, QUrl
+from PyQt5.QtCore import pyqtSlot, Qt, QRect, QPropertyAnimation, QPoint
 from PyQt5.QtWidgets import (QApplication,
                              QErrorMessage,
                              QMainWindow,
                              QListWidget,
-                             QMessageBox)
+                             QMessageBox,
+                             QShortcut)
 from PyQt5.QtGui import (QTextCharFormat,
                          QTextCursor,
                          QColor,
-                         QTextDocument)
+                         QKeySequence,
+                         QGuiApplication) # QShortcut PyQt6
 from datetime import datetime, timedelta
-import pandas as pd
-from bs4 import BeautifulSoup as bs
 import traceback
 from plyer import notification
-import platform
-import darkdetect
-import qdarkstyle
-from darktheme.widget_template import DarkPalette
 
 from DictWindows import (SearchWindow,
                          DefinitionWindow,
@@ -33,12 +29,10 @@ from DictWindows import (SearchWindow,
                          QuizRatingDiag,
                          HistoryWindow)
 from DefEntry import DefEntry
-from SavingToQuiz import save_from_defmode
-from WordProcessing import (fix_html_with_custom_example,
-                            hide_text)
-from ProcessQuizData import (FocusEntry, QuizEntry,
-                             ignore_headers, spaced_repetition)
-from utils import read_str_from_file, set_up_logger, write_str_to_file
+from SavingToQuiz import save_from_def_mode
+from WordProcessing import (hide_text)
+from ProcessQuizData import (FocusEntry, QuizEntry, spaced_repetition)
+from utils import read_str_from_file, read_text_from_files, set_up_logger, write_str_to_file, read_dataframe_from_file, update_dataframe_file
 from settings import (dict_data_path,
                       dict_src_path,
                       maxrevpersession,
@@ -46,6 +40,11 @@ from settings import (dict_data_path,
                       focus_font,
                       quiz_priority_order
                       )
+
+
+# https://www.youtube.com/watch?v=0kpm10AxiNE&list=PLQVvvaa0QuDdVpDFNq4FwY9APZPGSUyR4&index=11 choose theme
+# https://www.youtube.com/watch?v=ATZJSYEu8vQ  resizing animation
+
 
 # user needs to generate API and put in in API path...
 # TODO (0) create a public API for testing the app
@@ -73,43 +72,20 @@ class MainWindow(QMainWindow):
 
         super(MainWindow, self).__init__(parent)
         self.setGeometry(535, 150, 210, 50)
+        # logger.info(self.pos())
+        # self.move_to_center() 
 
-        # # uncomment when updating entries with generate dicts
-        # try:
-        #     print(sys.argv[1])
-        #     if 'html' in sys.argv[2]:
-        #         print('Opening HTML:')
-        #         self.show_html_from_history_list(sys.argv[1])
-        #     else:
-        #         self.launch_search_window()
-        # except IndexError:
-        #     self.launch_search_window()
 
         self.launch_search_window()
 
-        df = pd.read_csv(dict_data_path / 'wordlist.csv')
-        df.set_index('Word', inplace=True)
-        df['Next_date'] = pd.to_datetime(
-            df['Next_date'])  # , format='%d.%m.%y')
-        df['Created'] = pd.to_datetime(df['Created'])
-        df['Previous_date'] = pd.to_datetime(
-            df['Previous_date'])
-        self.wordlist_df = df
+        self.move_to_center() 
 
-        # DONE (1) check datetimeformat by writing df to csv
-        # (WARNING: inconsistant datetimes)
-        focus_df = pd.read_csv(dict_data_path / 'wordpart_list.csv')
-        focus_df['Next_date'] = pd.to_datetime(
-            focus_df['Next_date'])
-        focus_df['Created'] = pd.to_datetime(
-            focus_df['Created'])
-        focus_df['Previous_date'] = pd.to_datetime(
-            focus_df['Previous_date'])
-        focus_df.set_index('Wordpart', inplace=True)
-        self.focus_df = focus_df
+        self.shortcut_close = QShortcut(QKeySequence('Ctrl+Q'), self)
+        self.shortcut_close.activated.connect(lambda :sys.exit())
 
-        self.error_dialog = QErrorMessage()
+        self.error_dialog = QErrorMessage()    
         # self.error_dialog.showMessage('Oh no!')
+
 
     def launch_search_window(self):
 
@@ -117,35 +93,84 @@ class MainWindow(QMainWindow):
 
         nbargin = len(sys.argv) - 1
         if nbargin > 0:
-            logger.debug('shell commade with args')
+            logger.debug('shell command with args')
             self.launch_definition_window()
         else:
             logger.debug('0 Args')
             self.resize(345, 50)  # 45
-            self.move(535, 150)
+            # self.move(535, 150)
+            # self.resize(240, 40)
+
+            self.base_width = 233
+            self.extended_width = 400
+            self.rect = QRect(600, 300, self.base_width, 40)
+            self.setGeometry(self.rect)
+
             self.search_form = SearchWindow(self)
             self.setWindowTitle("Dictionnary")
             self.setCentralWidget(self.search_form)
             if hasattr(self, 'def_obj'):
                 self.search_form.line.setText(self.def_obj.word)
-            self.search_form.line.returnPressed.connect(
-                self.launch_definition_window)
-            self.search_form.history_button.clicked.connect(
-                self.launch_history_window)
-            self.search_form.quiz_button.clicked.connect(
-                self.launch_quiz_window)
-            self.search_form.focus_button.clicked.connect(
-                self.launch_focus_window)
+            self.search_form.line.returnPressed.connect(self.launch_definition_window)
+            self.search_form.history_button.clicked.connect(self.launch_history_window)
+            self.search_form.quiz_button.clicked.connect(self.launch_quiz_window)
+            self.search_form.focus_button.clicked.connect(self.launch_focus_window)
+            self.search_form.expand_btn.clicked.connect(self.expand_window)
+            # self.search_form.expand_btn.clicked.connect(self.move_to_center)
+
+
+            self.setWindowFlag(Qt.WindowType.FramelessWindowHint)
+            self.move_to_center() 
             self.show()
+
+    def expand_window(self):
+        logger.info("expand_window")
+        current_width = self.width()
+
+        if self.base_width == current_width:
+            start_width = self.base_width
+            end_width = self.extended_width
+            self.search_form.expand_btn.setText('<')
+        else:
+            start_width = self.extended_width
+            end_width = self.base_width
+            self.search_form.expand_btn.setText('>')
+
+        self.animation = QPropertyAnimation(self, b'geometry')
+        self.animation.setDuration(200)
+        self.animation.setStartValue(QRect(600, 300, start_width, 40))
+        self.animation.setEndValue(QRect(600, 300, end_width, 40))
+        self.animation.start()
+        self.move_to_center()
+
+
+    def move_to_center(self):
+        # TODO BUG move is not working at all!
+        logger.info("move_to_center")
+        logger.info(self.pos())
+        frameGm=self.frameGeometry()           
+        screen=QGuiApplication.primaryScreen().availableGeometry().center()
+        screen_width=int(QGuiApplication.primaryScreen().availableGeometry().width()/2)
+        screen_hight_eye_level=int(QGuiApplication.primaryScreen().availableGeometry().height()*1/4)
+        screen_pos=QPoint(screen_width,screen_hight_eye_level)
+        logger.info(QGuiApplication.primaryScreen().availableGeometry().width)
+        logger.info(screen)
+        frameGm.moveCenter(screen_pos)
+        logger.info(frameGm)
+        self.centered_pos = frameGm.topLeft()
+        self.move(self.centered_pos)
+        logger.info(self.pos())
 
     def launch_definition_window(self):
 
         logger.info("launch definition window")
 
         self.move(315, 50)
+        logger.info(self.pos())
         self.resize(700, 690)
         self.def_window = DefinitionWindow(self)
         self.setWindowTitle("Wörterbuch")
+        print(self.windowFlags())
         self.setCentralWidget(self.def_window)
 
         nbargin = len(sys.argv) - 1
@@ -159,12 +184,14 @@ class MainWindow(QMainWindow):
             self.def_obj = DefEntry(word=word,
                                     checkbox_en=checkbox_en,
                                     checkbox_fr=checkbox_fr)
+
         elif nbargin == 1:
             logger.debug('Opening from Magical 1 Arg')
 
             word = sys.argv[1]
 
             self.def_obj = DefEntry(word=word)
+
         elif nbargin == 2:
             logger.debug('Opening from Magical 2 Args')
 
@@ -197,18 +224,20 @@ class MainWindow(QMainWindow):
 
         self.def_window.txt_cont.setFont(normal_font)
         directory = os.getcwd()
-        self.def_window.txt_cont.document().setMetaInformation(
-            QTextDocument.DocumentUrl,
-            QUrl.fromLocalFile(directory).toString() + "/",
-        )
+        # TODO nsit chta3mel ama ta3ti fi erreur ki 3malte update PyQt5 -> PyQt5
+        # self.def_window.txt_cont.document().setMetaInformation(
+        #     QTextDocument.DocumentUrl,
+        #     QUrl.fromLocalFile(directory).toString() + "/",
+        # )
         self.def_window.txt_cont.insertHtml(self.def_obj.defined_html)
-        self.def_window.txt_cont.moveCursor(QTextCursor.Start)
+        self.def_window.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
 
-        self.def_window.return_button.clicked.connect(
-            self.launch_search_window)
+        self.def_window.return_button.clicked.connect(self.launch_search_window)
         self.def_window.save_button.clicked.connect(self.save_definition)
         self.def_window.close_button.clicked.connect(self.close)
         self.def_window.highlight_button.clicked.connect(self.highlight_text)
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, on=False)
+        self.move_to_center()
         self.show()
 
     def highlight_text(self):
@@ -235,11 +264,12 @@ class MainWindow(QMainWindow):
         files = [x.stem for x in files]
         self.allwords = QListWidget(self)
         self.allwords.addItems(files)
-        self.allwords.itemDoubleClicked.connect(
-            self.show_html_from_history_list)
+        self.allwords.itemDoubleClicked.connect(self.show_html_from_history_list)
         self.setCentralWidget(self.history_window)
         self.allwords.resize(390, 490)
         self.allwords.move(5, 5)
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, on=False)
+        self.move_to_center()
         self.allwords.show()
 
     def show_html_from_history_list(self, index):
@@ -256,79 +286,35 @@ class MainWindow(QMainWindow):
         else:
             self.history_entry = index.text()
 
-        history_entry_path = dict_data_path / \
-            'html' / f'{self.history_entry}.html'
+        history_entry_path = dict_data_path / 'html' / f'{self.history_entry}.html'
         text = read_str_from_file(history_entry_path)
 
         self.history_window.txt_cont.insertHtml(text)
         # move the view to the beginning
         self.history_window.txt_cont.moveCursor(QTextCursor.Start)
 
-        self.history_window.return_button.clicked.connect(
-            self.launch_history_window)
+        self.history_window.return_button.clicked.connect(self.launch_history_window)
         self.history_window.close_button.clicked.connect(self.close)
-        self.history_window.focus_button.clicked.connect(
-            self.add_to_focus_from_history)
+        self.history_window.focus_button.clicked.connect(self.add_to_focus_from_history)
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, on=False)
         self.show()
 
     def add_to_focus_from_history(self):
         logger.info("add_to_focus_from_history")
-        now = datetime.now() - timedelta(hours=3)
 
         word = self.history_entry.replace('.quiz', '')
+        full_text, quiz_text = read_text_from_files(word)
 
-        quiz_file_path = (dict_data_path / 'html' / (word+".quiz.html"))
-        quiz_text = read_str_from_file(quiz_file_path)
+        update_dataframe_file(word, full_text, quiz_text)
 
-        full_file_path = (dict_data_path / 'html' / (word+".html"))
-        full_text = read_str_from_file(full_file_path)
-
-        full_text = fix_html_with_custom_example(full_text)
-        write_str_to_file(full_file_path, full_text)
-
-        quiz_text = fix_html_with_custom_example(quiz_text)
-        write_str_to_file(quiz_file_path, quiz_text)
-
-        quiz_parts = bs(quiz_text, "lxml").find_all('p')
-        full_parts = bs(full_text, "lxml").find_all('p')
-        assert len(quiz_parts) == len(full_parts)
-
-        ignore_list, nb_parts = ignore_headers(quiz_text)
-        logger.debug(f'Ignore List: {ignore_list}')
-
-        general_EF = self.wordlist_df.loc[word, 'EF_score']
-        self.wordlist_df.loc[word, 'Focused'] = 1
-        self.wordlist_df.to_csv(dict_data_path / 'wordlist.csv')
-
-        # TODO (2) Read dfs only one time
-        # save it multiple times after modifying
-        df = pd.read_csv(dict_data_path / 'wordpart_list.csv')
-        df.set_index("Wordpart", inplace=True)
-        for k in range(0, nb_parts):
-            wordpart = word+' '+str(k)
-            df.loc[wordpart, "Word"] = word
-            df.loc[wordpart, "Repetitions"] = 0
-            df.loc[wordpart, "EF_score"] = general_EF
-            df.loc[wordpart, "Interval"] = 6
-            df.loc[wordpart, "Previous_date"] = now
-            df.loc[wordpart, "Created"] = now
-            insixdays = now + timedelta(days=6)
-            df.loc[wordpart, "Next_date"] = insixdays
-            df.loc[wordpart, "Part"] = k
-            df.loc[wordpart, "Ignore"] = ignore_list[k]
-        df.to_csv(dict_data_path / 'wordpart_list.csv')
-
-        notification.notify(title=f'"{word}"',
-                            message='Added to Focus Mode',
-                            timeout=2)
-        logger.info(f'{word} switched to Focus Mode')
 
     def launch_quiz_window(self):
-
         logger.info("launch_quiz_window")
+        
+        wordlist_df = read_dataframe_from_file(total=True)
 
         self.quiz_obj = QuizEntry(quiz_priority_order=quiz_priority_order,
-                                  words_dataframe=self.wordlist_df,
+                                  words_dataframe=wordlist_df,
                                   maxrevpersession=maxrevpersession)
 
         logger.debug(
@@ -340,7 +326,10 @@ class MainWindow(QMainWindow):
             self.reached_daily_limit_dialogue()
 
         if no_words_left4today:
-            self.no_words_left4today_dialogue()
+            if quiz_priority_order == 'old_words':
+                self.no_words_left_at_all_dialogue()
+            else:
+                self.no_planned_words_left_dialogue()
 
         self.resize(700, 700)
         self.move(315, 10)
@@ -356,10 +345,11 @@ class MainWindow(QMainWindow):
         self.quiz_window.next_btn.clicked.connect(self.launch_quiz_window)
         self.quiz_window.close_button.clicked.connect(self.close)
         self.quiz_window.populate.clicked.connect(self.reveal_full_html_quiz)
-        self.quiz_window.save_button.clicked.connect(
-            self.save_custom_quiztext_from_quizmode)
+        self.quiz_window.save_button.clicked.connect(self.save_custom_quiztext_from_quizmode)
         self.quiz_window.update_button.clicked.connect(self.update_word_html)
         self.quiz_window.hide_button.clicked.connect(self.hide_word_manually)
+        
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, on=False)
 
         self.show()
 
@@ -367,16 +357,16 @@ class MainWindow(QMainWindow):
         logger.info("quiz_score")
         self.rating_diag_quiz = QuizRatingDiag(self)
         self.rating_diag_quiz.word = self.quiz_obj.quiz_params["queued_word"]
-        df = self.wordlist_df
+        worldlist_df = read_dataframe_from_file(total=True)
         self.rating_diag_quiz.show()
         self.reveal_full_html_quiz()
 
-        if self.rating_diag_quiz.exec_():
+        if self.rating_diag_quiz.exec():
             saving_file = 'wordlist.csv'
             easiness = self.rating_diag_quiz.easiness
             spaced_repetition(easiness,
                               now,
-                              df,
+                              worldlist_df,
                               saving_file,
                               **self.quiz_obj.quiz_params)
 
@@ -395,15 +385,15 @@ class MainWindow(QMainWindow):
         else:
             sys.exit()
 
-    def no_words_left4today_dialogue(self):
+    def no_planned_words_left_dialogue(self):
         global quiz_priority_order
-        logger.info("no_words_left4today_dialogue")
-        choice = QMessageBox.question(self, 'Extract!',
+        logger.info("no_planned_words_left_dialogue")
+        choice = QMessageBox.question(self, "You've got it all!",
                                       "Well done, you have all planned words "
                                       "revisited. Want to switch priority to "
-                                      "old words?",
-                                      QMessageBox.Yes | QMessageBox.Close)
-        if choice == QMessageBox.Yes:
+                                      "oldest seen words?",
+                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Close)
+        if choice == QMessageBox.StandardButton.Yes:
             logger.info("Repeating list Naaaaaaoooww!!!!")
             quiz_priority_order = 'old_words'
             logger.debug('mod switch')
@@ -411,14 +401,23 @@ class MainWindow(QMainWindow):
         else:
             sys.exit()
 
+    def no_words_left_at_all_dialogue(self):
+        global quiz_priority_order
+        logger.info("no_words_left_at_all_dialogue")
+        choice = QMessageBox.question(self, "Easy! You've got it all!",
+                                      "Well done, you have all planned words and non planned"
+                                      "revisited. so actually all of them. Add more words to the dict so we can keep up with your big brain :)",
+                                      QMessageBox.StandardButton.Close)
+        if choice == QMessageBox.StandardButton.Close:
+            sys.exit()
+
     def hide_word_manually(self):
         logger.info("hide_word_manually")
-        selected_text2hide = self.quiz_window.txt_cont.textCursor()\
-            .selectedText()
+        # TODO add manually hidden words to dict_file
+        selected_text2hide = self.quiz_window.txt_cont.textCursor().selectedText()
         logger.debug('word2hide: '+selected_text2hide)
         self.quiz_window.txt_cont.clear()
-        self.quiz_obj.quiz_text = hide_text(self.quiz_obj.quiz_text,
-                                            selected_text2hide)
+        self.quiz_obj.quiz_text = hide_text(self.quiz_obj.quiz_text, selected_text2hide)
         self.quiz_window.txt_cont.insertHtml(self.quiz_obj.quiz_text)
         self.show()
 
@@ -445,8 +444,9 @@ class MainWindow(QMainWindow):
         self.move(315, 180)
         self.focus_window = FocusWindow(self)
         self.setCentralWidget(self.focus_window)
-
-        self.focus_obj = FocusEntry(focus_df=self.focus_df)
+        
+        focus_df = read_dataframe_from_file(total=False)
+        self.focus_obj = FocusEntry(focus_df=focus_df)
 
         self.setWindowTitle(self.focus_obj.window_titel)
         self.focus_window.txt_cont.setFont(focus_font)
@@ -456,6 +456,8 @@ class MainWindow(QMainWindow):
         self.focus_window.next_btn.clicked.connect(self.launch_focus_window)
         self.focus_window.ignore_button.clicked.connect(
             self.sure_method)   # sure_method
+
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, on=False)
         self.show()
 
     @pyqtSlot()     # just increases button reactivity
@@ -522,7 +524,7 @@ class MainWindow(QMainWindow):
         if studie_tag:
             tag = 'Studium'
 
-        save_from_defmode(dict_data_path, word, custom_qt_html, beispiel_de,
+        save_from_def_mode(dict_data_path, word, custom_qt_html, beispiel_de,
                           beispiel_en, tag, now,
                           dict_dict, self.def_obj.dict_dict_path)
 
@@ -532,8 +534,7 @@ class MainWindow(QMainWindow):
 
         quiz_file_path = self.quiz_obj.quiz_file_path
 
-        write_str_to_file(quiz_file_path, clean_html,
-                          notification_list=['gespeichert!'])
+        write_str_to_file(quiz_file_path, clean_html, notification_list=['gespeichert!'])
 
         logger.info('gespeichert!')
 
@@ -550,6 +551,10 @@ def excepthook(exc_type, exc_value, exc_tb):
 
 
 def set_theme(app):
+    # import platform
+    # import darkdetect
+    # import qdarkstyle
+    # from darktheme.widget_template import DarkPalette
     # TODO (3) find os-compatible themes
     # I'm using (adwaita-qt in ubuntu or maybe qt5ct)
     # tried qdarkstyle (blueisch)
@@ -558,7 +563,7 @@ def set_theme(app):
     #     if 'Linux' in platform.system():
     #         pass
     #     elif 'Darwin' in platform.system():
-    #         # QT supposedly adapts it's the automaticly in MacOs
+    #         # QT supposedly adapts it automaticly in MacOs
     #         # app.setPalette(DarkPalette())
     #         pass
     #     elif 'Windows' in platform.system():
@@ -569,14 +574,22 @@ def set_theme(app):
     #     # TODO generate a white theme color palette for template rendering
     #     app.setPalette(DarkPalette())
     #     pass
-    dark_stylesheet = qdarkstyle.load_stylesheet_pyqt5()
-    app.setStyleSheet(dark_stylesheet)
 
+    # dark_stylesheet = qdarkstyle.load_stylesheet_PyQt5()
+    # app.setStyleSheet(dark_stylesheet)
 
+    # from qt_material import apply_stylesheet
+    # apply_stylesheet(app, theme='dark_teal.xml')
+    
+    import qdarktheme
+    qdarktheme.setup_theme("dark")
+    
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     set_theme(app)
     sys.excepthook = excepthook
     w = MainWindow()
-    exit_code = app.exec_()
+    # print(w.pos())
+    exit_code = app.exec()
+    # print(w.pos())
     sys.exit(exit_code)

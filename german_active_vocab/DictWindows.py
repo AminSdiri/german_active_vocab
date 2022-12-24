@@ -6,11 +6,9 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (QPushButton, QWidget, QLabel,
                              QLineEdit, QTextEdit, QCheckBox,
                              QSlider, QDialog, QVBoxLayout)
-from plyer import notification
+from PyQt5.QtCore import QRect, QPropertyAnimation
 
-from ProcessQuizData import ignore_headers
-from utils import set_up_logger
-from settings import dict_data_path
+from utils import read_text_from_files, set_up_logger, update_dataframe_file
 
 logger = set_up_logger(__name__)
 
@@ -24,21 +22,24 @@ class SearchWindow(QWidget):
         # self.define_button.move(100, 350)
         self.line = QLineEdit(self)
         self.line.setFocus()
-        self.line.move(5, 5)
-        self.line.resize(200, 40)  # 30
+        self.line.move(2, 2)
+        self.line.resize(200, 36)  # 30
         self.translate_fr = QCheckBox('Fr', self)
-        self.translate_fr.move(205, 25)  # 20
+        self.translate_fr.move(235, 18)  # 20
         self.translate_en = QCheckBox('En', self)
-        self.translate_en.move(205, 5)
+        self.translate_en.move(235, 0)
         self.history_button = QPushButton('Hs', self)
-        self.history_button.resize(30, 30)
-        self.history_button.move(250, 10)  # 8
+        self.history_button.resize(self.history_button.sizeHint())
+        self.history_button.move(280, 5)  # 8
         self.quiz_button = QPushButton('Qz', self)
-        self.quiz_button.resize(30, 30)
-        self.quiz_button.move(280, 10)
+        self.quiz_button.resize(self.quiz_button.sizeHint())
+        self.quiz_button.move(320, 5)
         self.focus_button = QPushButton('Fc', self)
-        self.focus_button.resize(30, 30)
-        self.focus_button.move(310, 10)
+        self.focus_button.resize(self.focus_button.sizeHint())
+        self.focus_button.move(360, 5)
+        self.expand_btn = QPushButton('>', self)
+        self.expand_btn.move(205, 2)
+        self.expand_btn.resize(25, 36)
 
         # TODO (0) adaptable window layout
         # self.focus_button.setSizePolicy(QSizePolicy.Expanding,
@@ -59,6 +60,7 @@ class SearchWindow(QWidget):
         # layout.addLayout(buttons, 1, 7, 1, 3)
         # self.setLayout(layout)
 
+    
 
 class DefinitionWindow(QWidget):
     def __init__(self, parent=None):
@@ -66,12 +68,16 @@ class DefinitionWindow(QWidget):
         logger.info("init defWindow")
         self.return_button = QPushButton('Return', self)
         self.return_button.move(390, 645)
+        self.return_button.resize(80, 30)
         self.save_button = QPushButton('Save', self)
         self.save_button.move(490, 645)
+        self.save_button.resize(80, 30)
         self.close_button = QPushButton('Close', self)
         self.close_button.move(590, 645)
+        self.close_button.resize(80, 30)
         self.highlight_button = QPushButton('Highlight', self)
         self.highlight_button.move(190, 645)
+        self.highlight_button.resize(90, 30)
         self.txt_cont = QTextEdit(self)
         self.txt_cont.move(5, 5)
         self.txt_cont.resize(690, 545)
@@ -126,12 +132,12 @@ class QuizRatingDiag(QDialog):
         logger.info("init input_easiness")
         self.setGeometry(430, 550, 450, 150)
 
-        self.easiness_slider = QSlider(Qt.Horizontal)
+        self.easiness_slider = QSlider(Qt.Orientation.Horizontal)
         self.easiness_slider.move(100, 350)
         self.easiness_slider.setMinimum(0)
         self.easiness_slider.setMaximum(5)
         self.easiness_slider.valueChanged.connect(self.valuechange)
-        self.easiness_slider.setTickPosition(QSlider.TicksBelow)
+        self.easiness_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
         self.easiness = self.easiness_slider.value()
         self.done(self.easiness)
 
@@ -143,27 +149,29 @@ class QuizRatingDiag(QDialog):
         self.queued_word = parent.quiz_obj.quiz_params['queued_word']
         self.general_EF = parent.quiz_obj.quiz_params['EF_score']
         now = datetime.now() - timedelta(hours=3)
-        self.halfway_date = now + \
-            timedelta(days=math.ceil(
-                parent.quiz_obj.quiz_params['real_interval']/2))
+        # TODO still relevant?
+        # self.halfway_date = now + \
+        #     timedelta(days=math.ceil(
+        #         parent.quiz_obj.quiz_params['real_interval']/2))
 
         self.set_focus_button = QPushButton('add to Focus list', self)
         self.set_focus_button.clicked.connect(self.add_to_focus)
-
-        word_already_added_to_focus = any(
-            parent.focus_df.Word.str.contains(self.queued_word)
-        )
-        if word_already_added_to_focus:
-            self.set_focus_button.setEnabled(False)
+        
+        # TODO not needed?
+        # word_already_added_to_focus = any(
+        #     parent.focus_df.Word.str.contains(self.queued_word)
+        # )
+        # if word_already_added_to_focus:
+        #     self.set_focus_button.setEnabled(False)
 
         self.l1 = QLabel(
             "How easy was it to remember this word, use the Cursor")
         self.l1.move(205, 50)
-        self.l1.setAlignment(Qt.AlignCenter)
+        self.l1.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.l2 = QLabel("")
         self.l2.move(205, 50)
-        self.l2.setAlignment(Qt.AlignCenter)
+        self.l2.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         layout = QVBoxLayout(self)
         self.setLayout(layout)
@@ -209,44 +217,11 @@ class QuizRatingDiag(QDialog):
 
     def add_to_focus(self):
         logger.info("add_to_focus")
-        now = datetime.now() - timedelta(hours=3)
-
-        ignore_list, nb_parts = ignore_headers(self.quiz_text)
 
         word = self.queued_word
-        general_EF = self.general_EF
-        logger.debug(f'Ignore List: {ignore_list}')
-
-        quiz_parts = bs(self.quiz_text, "lxml").find_all('p')
-        full_parts = bs(self.full_text, "lxml").find_all('p')
-        assert len(quiz_parts) == len(full_parts)
-
-        df_quiz = pd.read_csv(dict_data_path / 'wordlist.csv')
-        df_quiz.set_index("Word", inplace=True)
-        df_quiz.loc[word, "Focused"] = 1
-        df_quiz.to_csv(dict_data_path / 'wordlist.csv')
-
-        df = pd.read_csv(dict_data_path / 'wordpart_list.csv')
-        df.set_index("Wordpart", inplace=True)
-        for k in range(0, nb_parts):
-            wordpart = word+' '+str(k)
-            df.loc[wordpart, "Word"] = word
-            df.loc[wordpart, "Repetitions"] = 0
-            df.loc[wordpart, "EF_score"] = general_EF
-            df.loc[wordpart, "Interval"] = 6
-            df.loc[wordpart, "Previous_date"] = now     # .strftime("%d.%m.%y")
-            df.loc[wordpart, "Created"] = now   # .strftime("%d.%m.%y")
-            insixdays = now + timedelta(days=6)
-            df.loc[wordpart, "Next_date"] = insixdays   # .strftime("%d.%m.%y")
-            df.loc[wordpart, "Part"] = k
-            df.loc[wordpart, "Halfway_date_from_quiz"] = self.halfway_date
-            df.loc[wordpart, "Ignore"] = ignore_list[k]
-        df.to_csv(dict_data_path / 'wordpart_list.csv')
-
-        notification.notify(title=f'"{word}"',
-                            message='Added to Focus Mode',
-                            timeout=2)
-        logger.info(f'{word} switched to Focus Mode')
+        full_text, quiz_text = read_text_from_files(word)
+        
+        update_dataframe_file(word, full_text, quiz_text)
 
 
 class FocusWindow(QWidget):

@@ -8,7 +8,7 @@ from ParsingData.ParsingJson import parse_json_data
 from ParsingData.ParsingSoup import (create_synonyms_list,
                                      get_word_freq_from_soup,
                                      parse_duden_html_to_dict)
-from WordProcessing import fix_html_with_custom_example
+from utils import fix_html_with_custom_example
 from utils import (get_cache,
                    read_str_from_file,
                    set_up_logger, write_str_to_file)

@@ -2,7 +2,6 @@ from plyer import notification
 import requests
 import json
 import time
-from pathlib import Path
 from urllib import request, error
 from bs4 import BeautifulSoup as bs
 
@@ -192,7 +191,6 @@ def get_json_from_pons_api(word, filename: str, translate2en,
     logger.info('Online searching for Word in Pons')
     status_code = 0
     while True:
-        logger.info('Online searching for Word in Pons')
         if translate2en:
             url = "https://api.pons.com/v1/dictionary?l=deen&q="
         elif translate2fr:
