@@ -138,36 +138,29 @@ class MainWindow(QMainWindow):
 
         self.animation = QPropertyAnimation(self, b'geometry')
         self.animation.setDuration(200)
-        self.animation.setStartValue(QRect(600, 300, start_width, 40))
-        self.animation.setEndValue(QRect(600, 300, end_width, 40))
+        self.animation.setStartValue(QRect(self.x(), self.y(), start_width, 40))
+        self.animation.setEndValue(QRect(self.x(), self.y(), end_width, 40))
         self.animation.start()
-        self.move_to_center()
 
 
     def move_to_center(self):
         # TODO BUG move is not working at all!
         logger.info("move_to_center")
-        logger.info(self.pos())
         frameGm=self.frameGeometry()           
-        screen=QGuiApplication.primaryScreen().availableGeometry().center()
         screen_width=int(QGuiApplication.primaryScreen().availableGeometry().width()/2)
         screen_hight_eye_level=int(QGuiApplication.primaryScreen().availableGeometry().height()*1/4)
         screen_pos=QPoint(screen_width,screen_hight_eye_level)
-        logger.info(QGuiApplication.primaryScreen().availableGeometry().width)
-        logger.info(screen)
         frameGm.moveCenter(screen_pos)
-        logger.info(frameGm)
         self.centered_pos = frameGm.topLeft()
         self.move(self.centered_pos)
-        logger.info(self.pos())
 
     def launch_definition_window(self):
 
         logger.info("launch definition window")
 
-        self.move(315, 50)
         logger.info(self.pos())
         self.resize(700, 690)
+        self.move_to_center()
         self.def_window = DefinitionWindow(self)
         self.setWindowTitle("Wörterbuch")
         print(self.windowFlags())
@@ -237,7 +230,6 @@ class MainWindow(QMainWindow):
         self.def_window.close_button.clicked.connect(self.close)
         self.def_window.highlight_button.clicked.connect(self.highlight_text)
         self.setWindowFlag(Qt.WindowType.FramelessWindowHint, on=False)
-        self.move_to_center()
         self.show()
 
     def highlight_text(self):
