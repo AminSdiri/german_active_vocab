@@ -18,7 +18,7 @@ def set_up_logger(logger_name, level=logging.INFO):
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(level)
     formatter = logging.Formatter(
-        '%(levelname)8s -- %(name)-15s line %(lineno)-4s: %(message)s')
+        '%(levelname)8s -- %(asctime)s -- %(name)-15s line %(lineno)-4s: %(message)s')
     logger.handlers[0].setFormatter(formatter)
     return logger
 
@@ -136,21 +136,21 @@ def update_dataframe_file(word, quiz_text, full_text):
 
     general_EF = wordlist_df.loc[word, 'EF_score']
 
-    df = read_dataframe_from_file(total=False)
+    focus_df = read_dataframe_from_file(total=False)
     now = datetime.now() - timedelta(hours=3)
     for k in range(0, nb_parts):
         wordpart = word+' '+str(k)
-        df.loc[wordpart, "Word"] = word
-        df.loc[wordpart, "Repetitions"] = 0
-        df.loc[wordpart, "EF_score"] = general_EF
-        df.loc[wordpart, "Interval"] = 6
-        df.loc[wordpart, "Previous_date"] = now
-        df.loc[wordpart, "Created"] = now
-        insixdays = now + timedelta(days=6)
-        df.loc[wordpart, "Next_date"] = insixdays
-        df.loc[wordpart, "Part"] = k
-        df.loc[wordpart, "Ignore"] = ignore_list[k]
-    df.to_csv(dict_data_path / 'wordpart_list.csv')
+        focus_df.loc[wordpart, "Word"] = word
+        focus_df.loc[wordpart, "Repetitions"] = 0
+        focus_df.loc[wordpart, "EF_score"] = general_EF
+        focus_df.loc[wordpart, "Interval"] = 6
+        focus_df.loc[wordpart, "Previous_date"] = now
+        focus_df.loc[wordpart, "Created"] = now
+        # insixdays = now + timedelta(days=6)
+        focus_df.loc[wordpart, "Next_date"] = now # insixdays
+        focus_df.loc[wordpart, "Part"] = k
+        focus_df.loc[wordpart, "Ignore"] = ignore_list[k]
+    focus_df.to_csv(dict_data_path / 'wordpart_list.csv')
 
     notification.notify(title=f'"{word}"',
                             message='Added to Focus Mode',

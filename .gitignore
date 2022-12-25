@@ -6,3 +6,4 @@ data/**
 data/Wordlist.txt
 data/wordlist.csv
 data/train_data.csv
+data/wordpart_list.csv

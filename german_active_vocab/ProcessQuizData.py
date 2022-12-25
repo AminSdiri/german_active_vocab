@@ -195,14 +195,18 @@ class FocusEntry():
         now = datetime.now() - timedelta(hours=3)
         logger.info("queue_focus_word")
         selected_ignored = 1
-        # TODO (2) Comparing dtm with str? check
-        before_today = self.focus_df["Next_date"] <= now.strftime("%Y-%m-%d")
-        due_words = self.focus_df[before_today]
+
+        df_dates = self.focus_df['Next_date'].apply(lambda x: x.date())
+        due_words = self.focus_df[(df_dates <= now.date())]
+
         due_words['weights'] = 1/due_words['EF_score']
         ignored_due_words = (due_words['Ignore'] == 1).sum()
         self.window_titel += f' ({len(due_words) - ignored_due_words})'
         while selected_ignored:
+            # TODO by empty dataframe show dialog to close or go to last seen
+
             logger.debug(due_words)
+
             # TODO (4) more sophisticated weighting
             random_focus_df = due_words.sample(n=1, weights='weights')
             selected_ignored = int(random_focus_df['Ignore'].values[0])
