@@ -54,7 +54,7 @@ class QuizEntry():
                                '  1. Search a word\n'
                                '  2. Hit the save button to learn it\n'
                                '  3. enter the quiz mode again')
-        now = datetime.now() - timedelta(hours=3)
+
         self.todayscharge = 0
         yesterday = now + timedelta(days=-1)
         planned_str = 'error'
