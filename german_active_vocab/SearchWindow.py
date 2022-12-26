@@ -11,36 +11,43 @@ class SearchWindow(QWidget):
 
 
         self.base_width = 233
-        self.extended_width = 400
+        self.extended_width = 405
         # self.rect = QRect(600, 300, self.base_width, 40)
         # parent.setGeometry(self.rect)
 
         # self.define_button = QPushButton("Define", self)
         # self.define_button.move(100, 350)
         self.line = QLineEdit(self)
+        self.line.setPlaceholderText("Search for a Word")
         self.line.setFocus()
         self.line.move(2, 2)
         self.line.resize(200, 36)  # 30
         if hasattr(self, 'def_obj'):
             self.line.setText(self.def_obj.word)
 
-        self.translate_fr = QCheckBox('Fr', self)
-        self.translate_fr.move(235, 18)  # 20
-        self.translate_en = QCheckBox('En', self)
-        self.translate_en.move(235, 0)
 
         self.expand_btn = QPushButton('>', self)
         self.expand_btn.move(205, 2)
         self.expand_btn.resize(25, 36)
+        self.expand_btn.setToolTip('reveal more tools')
+        self.translate_fr = QCheckBox('Fr', self)
+        self.translate_fr.move(235, 18)  # 20
+        self.translate_fr.setToolTip('traduire en français')
+        self.translate_en = QCheckBox('En', self)
+        self.translate_en.move(235, 0)
+        self.translate_en.setToolTip('translate to english')
         self.history_button = QPushButton('Hs', self)
         self.history_button.resize(self.history_button.sizeHint())
-        self.history_button.move(280, 5)  # 8
+        self.history_button.move(285, 7)  # 8
+        self.history_button.setToolTip('saved words list')
         self.quiz_button = QPushButton('Qz', self)
         self.quiz_button.resize(self.quiz_button.sizeHint())
-        self.quiz_button.move(320, 5)
+        self.quiz_button.move(325, 7)
+        self.quiz_button.setToolTip('Quiz mode')
         self.focus_button = QPushButton('Fc', self)
         self.focus_button.resize(self.focus_button.sizeHint())
-        self.focus_button.move(360, 5)
+        self.focus_button.move(365, 7)
+        self.focus_button.setToolTip('Focus mode')
 
         self.search_window_button_actions()
 

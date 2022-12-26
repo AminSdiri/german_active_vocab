@@ -40,9 +40,12 @@ class DefinitionWindow(QWidget):
         self.beispiel = QLineEdit(self)
         self.beispiel.move(5, 555)
         self.beispiel.resize(690, 40)
+        self.beispiel.setPlaceholderText("Sie können hier Ihr eigenes Beispiel mit dem neuen Wort eingeben, um es zu behalten.")
+        self.beispiel.setToolTip('We learn best by real world associations => Tip: The best example is the sentence that incited you to look up the word.')
         self.beispiel2 = QLineEdit(self)
         self.beispiel2.move(5, 600)
         self.beispiel2.resize(690, 40)
+        self.beispiel2.setPlaceholderText("And its translation to english..")
 
         self.get_def_object()
 
