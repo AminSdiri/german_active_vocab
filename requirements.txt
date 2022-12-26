@@ -27,3 +27,4 @@ toml==0.10.2
 urllib3==1.26.7
 pysrt==1.1.2
 qdarkstyle==3.0.2
+qt_material==2.12
