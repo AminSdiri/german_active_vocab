@@ -17,6 +17,7 @@ from PyQt5.QtWidgets import (QApplication,
 # TODO UPDATE and move to the right directory
 
 videos_path = Path('/media/mani/50 jdida') / 'Videos' / 'Shows'
+script_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'german_active_vocab' / 'main.py'
 
 
 def clean_subtitle(subs):
@@ -302,9 +303,10 @@ class MainWindow(QMainWindow):
             "'", "//QUOTE").replace('"', "//DOUBLEQUOTE") + " ("+self.file_name+")"
         Beispiel_en = Beispiel_en.replace(
             "'", "//QUOTE").replace('"', "//DOUBLEQUOTE") + " ("+self.file_name+")"
+        
         print('Executing Command')
-        command_str = ('python3 /home/mani/Dokumente/active_vocabulary/german_activ_vocabulary/'
-                       f'main.py "{word}" "{Beispiel_de}" "{Beispiel_en}"')
+        command_str = (f'python3 {script_path}'
+                       f' "{word}" "{Beispiel_de}" "{Beispiel_en}"')
         print(command_str)
         os.popen(command_str)  # stream = os...
         # output = stream.read()

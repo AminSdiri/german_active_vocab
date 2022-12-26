@@ -55,13 +55,54 @@ class QuizEntry():
     def queue_quiz_word(self):
 
         logger.info("queue_quiz_word")
+        now = datetime.now() - timedelta(hours=3)
+        # TODO Fix priority switching
+        planned_str, queued_word = self.queue_word(now)
+        self.extract_word_infos(now, planned_str, queued_word)
+
+    def extract_word_infos(self, now, planned_str, queued_word):
+        logger.debug('todayscharge: '+str(self.todayscharge))
+        # BUG when priority set to old words
+        # Algorithm jump back to here after completing all commands
+        # and reset it's variable throwing an error
+        if self.todayscharge > 0:
+            logger.debug('queued_word: '+str(queued_word))
+
+            last_seen = self.words_dataframe.loc[queued_word, "Previous_date"]\
+                .strftime('%d.%m.%y')
+            self.quiz_window_titel = ('Wörterbuch: Quiz '
+                                      f'({str(self.todayscharge)}) '
+                                      f'{planned_str},'
+                                      f' Last seen  {last_seen}')
+
+            repetitions = float(
+                self.words_dataframe.loc[queued_word, "Repetitions"])
+            EF_score = float(self.words_dataframe.loc[queued_word, "EF_score"])
+            # interval = float(df.loc[queued_word, "Interval"])
+            real_interval = (now
+                             - self.words_dataframe.loc[queued_word,
+                                                        "Previous_date"]).days
+        else:
+            queued_word = ''
+            self.quiz_window_titel = 'No Words Left'
+            EF_score = 0
+            real_interval = 0
+            repetitions = 0
+            self._countdown = 0
+
+        self.quiz_params = {'queued_word': queued_word,
+                            'EF_score': EF_score,
+                            'real_interval': real_interval,
+                            'repetitions': repetitions}
+
+    def queue_word(self, now):
         if len(self.words_dataframe) == 0:
             raise RuntimeError('No queued words yet.\n'
                                'You should add words to the queue first:\n'
                                '  1. Search a word\n'
                                '  2. Hit the save button to learn it\n'
                                '  3. enter the quiz mode again')
-        now = datetime.now() - timedelta(hours=3)
+
         self.todayscharge = 0
         yesterday = now + timedelta(days=-1)
         planned_str = 'error'
@@ -103,9 +144,9 @@ class QuizEntry():
                 notification.notify(title='No Due words left',
                                     message='switching to oldest seen words',
                                     timeout=5)
-                self.queue_quiz_word()
+                self.queue_word(now)
 
-        elif self.quiz_priority_order == 'old_words':
+        if self.quiz_priority_order == 'old_words':
             logger.debug('Quiz Order set to oldest seen Words')
 
             self._countdown = 1
@@ -118,41 +159,9 @@ class QuizEntry():
             planned_str = (' Von '
                            f'{oldest_seen_dtm.strftime("%d.%m.%y")}'
                            ', '
-                           f'geplannt {planned_dtm.strftime("%d.%m.%y")}')
-
-        logger.debug('todayscharge: '+str(self.todayscharge))
-        # BUG when priority set to old words
-        # Algorithm jump back to here after completing all commands
-        # and reset it's variable throwing an error
-        if self.todayscharge > 0:
-            logger.debug('queued_word: '+str(queued_word))
-
-            last_seen = self.words_dataframe.loc[queued_word, "Previous_date"]\
-                .strftime('%d.%m.%y')
-            self.quiz_window_titel = ('Wörterbuch: Quiz '
-                                      f'({str(self.todayscharge)}) '
-                                      f'{planned_str},'
-                                      f' Last seen  {last_seen}')
-
-            repetitions = float(
-                self.words_dataframe.loc[queued_word, "Repetitions"])
-            EF_score = float(self.words_dataframe.loc[queued_word, "EF_score"])
-            # interval = float(df.loc[queued_word, "Interval"])
-            real_interval = (now
-                             - self.words_dataframe.loc[queued_word,
-                                                        "Previous_date"]).days
-        else:
-            queued_word = ''
-            self.quiz_window_titel = 'No Words Left'
-            EF_score = 0
-            real_interval = 0
-            repetitions = 0
-            self._countdown = 0
-
-        self.quiz_params = {'queued_word': queued_word,
-                            'EF_score': EF_score,
-                            'real_interval': real_interval,
-                            'repetitions': repetitions}
+                           f'geplannt {planned_dtm.strftime("%d.%m.%y")}'
+                           )
+        return planned_str, queued_word
 
     def quiz_counter(self):
 

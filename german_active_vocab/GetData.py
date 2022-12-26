@@ -2,9 +2,9 @@ from plyer import notification
 import requests
 import json
 import time
-from pathlib import Path
 from urllib import request, error
 from bs4 import BeautifulSoup as bs
+from http.client import InvalidURL
 
 from utils import (get_cache,
                    read_str_from_file,
@@ -100,15 +100,18 @@ def get_duden_soup(word, filename, ignore_cache, duden_source):
                            f'Instead {duden_source} is passed')
 
     try_upper = 0
-
+    found_in_duden = False
     try:
         with request.urlopen(url_lowercase) as response:
             # use whatever encoding as per the webpage
             duden_html = response.read().decode('utf-8')
         logger.debug('got Duden Html (lower)')
-        found_in_duden = 1
+        found_in_duden = True
+
+    except InvalidURL:
+        logger.error(f'{url_lowercase} '
+                        'words containing spaces in german to german are not allowed')
     except request.HTTPError as e:
-        found_in_duden = 0
         if e.code == 404:
             logger.warning(f"{url_lowercase} is not found")
             duden_html = '404 Wort nicht gefunden'
@@ -124,7 +127,6 @@ def get_duden_soup(word, filename, ignore_cache, duden_source):
         logger.error('certificate verify failed: '
                      'unable to get local issuer certificate')
         duden_html = 'No certificate installed'
-        found_in_duden = 0
 
     if try_upper:
         try:
@@ -133,6 +135,10 @@ def get_duden_soup(word, filename, ignore_cache, duden_source):
                 duden_html = response.read().decode('utf-8')
             logger.debug('got Duden Html (Upper)')
             found_in_duden = 1
+        except InvalidURL:
+            logger.error(f'{url_lowercase} '
+                        'words containing spaces in german to german ',
+                        'are not allowed, did you wanted a translation?')
         except request.HTTPError as e:
             found_in_duden = 0
             if e.code == 404:
