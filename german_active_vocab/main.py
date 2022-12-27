@@ -17,10 +17,14 @@ from FocusWindow import FocusWindow
 from HistoryWindow import HistoryWindow, WordlistWindow
 from QuizWindow import QuizWindow
 from SearchWindow import SearchWindow
+from PushToAnki import Anki
+from settings import anki_cfg
 
 from utils import set_up_logger
+from autologging import traced
 
 
+# git update-index --skip-worktree <file> to skip tracking files
 # https://www.youtube.com/watch?v=0kpm10AxiNE&list=PLQVvvaa0QuDdVpDFNq4FwY9APZPGSUyR4&index=11 choose theme
 
 
@@ -41,6 +45,33 @@ logger = set_up_logger(__name__)
 
 # .strftime("%d.%m.%y") is a bad idea! losing the time information
 # TODO (0) create now and now_(-3h) and move theme to settings.py
+
+def wrap(pre, post):
+	""" Wrapper """
+	def decorate(func):
+		""" Decorator """
+		def call(*args, **kwargs):
+			""" Actual wrapping """
+			pre(func)
+			result = func(*args, **kwargs)
+			post(func)
+			return result
+		return call
+	return decorate
+
+def entering(func):
+	""" Pre function logging """
+	logger.debug("Entered %s", func.__name__)
+
+def exiting(func):
+	""" Post function logging """
+	logger.debug("Exited  %s", func.__name__)
+
+
+
+# @wrap(entering, exiting)
+
+# @traced(logger)
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -237,6 +268,8 @@ def set_theme(app):
     
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    with Anki(**anki_cfg) as a:
+        a.add_notes_single(['a9', 'b9'], tags='', model=None, deck=None)
     set_theme(app)
     sys.excepthook = excepthook
     w = MainWindow()

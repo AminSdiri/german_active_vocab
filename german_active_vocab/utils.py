@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 from plyer import notification
+from autologging import TRACE
 
 from settings import dict_data_path
 
@@ -12,13 +13,14 @@ def set_up_logger(logger_name, level=logging.INFO):
 
     # TODO (4) remove to reset level to INFO
     # Levels: debug, info, warning, error, critical
-    level = logging.DEBUG
+    #level = logging.DEBUG
+    level = TRACE
 
     logger = logging.getLogger(logger_name)
     logger.addHandler(logging.StreamHandler())
     logger.setLevel(level)
     formatter = logging.Formatter(
-        '%(levelname)8s -- %(asctime)s -- %(name)-15s line %(lineno)-4s: %(message)s')
+        '%(levelname)8s -- %(asctime)s -- %(name)-15s.%(funcName)-40s line %(lineno)-4s: %(message)s')
     logger.handlers[0].setFormatter(formatter)
     return logger
 

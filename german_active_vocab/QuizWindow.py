@@ -53,9 +53,23 @@ class QuizWindow(QWidget):
 
         self.get_quiz_obj()
 
+
         # self.quiz_window.txt_cont.clear()
         self.txt_cont.insertHtml(self.quiz_obj.quiz_text)
         self.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
+
+    def get_quiz_obj(self):
+        wordlist_df = read_dataframe_from_file(total=True)
+
+        self.quiz_obj = QuizEntry(quiz_priority_order=quiz_priority_order,
+                                  words_dataframe=wordlist_df,
+                                  maxrevpersession=maxrevpersession)
+
+        logger.debug(
+            f'queued_word output: {self.quiz_obj.quiz_params["queued_word"]}')
+
+        if not self.quiz_obj.quiz_params["queued_word"]:
+            self.no_words_left_at_all_dialogue()
 
         no_words_left4today, reached_daily_limit = self.quiz_obj.quiz_counter()
 
@@ -67,16 +81,6 @@ class QuizWindow(QWidget):
                 self.no_words_left_at_all_dialogue()
             else:
                 self.no_planned_words_left_dialogue()
-
-    def get_quiz_obj(self):
-        wordlist_df = read_dataframe_from_file(total=True)
-
-        self.quiz_obj = QuizEntry(quiz_priority_order=quiz_priority_order,
-                                  words_dataframe=wordlist_df,
-                                  maxrevpersession=maxrevpersession)
-
-        logger.debug(
-            f'queued_word output: {self.quiz_obj.quiz_params["queued_word"]}')
 
     def quiz_window_connect_buttons(self):
         self.next_btn.clicked.connect(self.quiz_score)

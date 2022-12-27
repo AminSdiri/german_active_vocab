@@ -4,6 +4,8 @@ from utils import set_up_logger
 
 logger = set_up_logger(__name__)
 
+# TODO use Qthread to prevent gui from freezing when waiting for the word data to be fetched 
+
 class SearchWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
