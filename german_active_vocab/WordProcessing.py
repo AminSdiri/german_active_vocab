@@ -24,6 +24,23 @@ def hide_text(text, word_to_hide):
 
     return quiz_text
 
+def wrap_in_clozes(text, word_to_wrap):
+    ' wrap word_to_wrap between {{c1:: and }} '
+    logger.info("wrap_in_clozes")
+
+    word_pattern = f'(?<=[^a-zA-Z]){word_to_wrap}(?=[^a-zA-Z])'
+    try:
+        quiz_text = re.sub(word_pattern, f'{{{{c1::{word_to_wrap}}}}}', text)
+    except re.error:
+        quiz_text = text
+        logger.error(f'error by hiding {word_to_wrap}. '
+                     'Word may contains reserved Regex charactar')
+
+    # aaa11 {{c1::bbbb}} ccccc
+
+    return quiz_text
+
+
 
 def find_all(a_str, sub):
     logger.info("find_all")
@@ -42,24 +59,10 @@ def update_words_to_hide(dict_dict):
     word_variants = []
 
     for rom_idx in range(len(dict_dict['content'])):
-        if 'headword' in dict_dict['content'][rom_idx]:
-            headword = dict_dict['content'][rom_idx]['headword']
-        else:
-            headword = ''
-        if 'wordclass' in dict_dict['content'][rom_idx]:
-            wordclass = dict_dict['content'][rom_idx]['wordclass']
-        else:
-            wordclass = ''
-        if 'flexion' in dict_dict['content'][rom_idx]:
-            flexion = dict_dict['content'][rom_idx]['flexion']
-            flexion = flexion.replace('<', '').replace('>', '')
-            flexion_list = flexion.split(', ')
-        else:
-            flexion_list = []
-        if 'genus' in dict_dict['content'][rom_idx]:
-            genus = dict_dict['content'][rom_idx]['genus']
-        else:
-            genus = ''
+        headword = get_headword(dict_dict, rom_idx)
+        wordclass = get_wordclass(dict_dict, rom_idx)
+        flexion_list = get_flexions(dict_dict, rom_idx)
+        get_genus(dict_dict, rom_idx)
 
         if headword == '':
             return word_variants
@@ -254,3 +257,32 @@ def update_words_to_hide(dict_dict):
         logger.debug(f'Word variants:\n{word_variants}')
 
     return word_variants
+
+def get_genus(dict_dict, rom_idx):
+    if 'genus' in dict_dict['content'][rom_idx]:
+        genus = dict_dict['content'][rom_idx]['genus']
+    else:
+        genus = ''
+
+def get_flexions(dict_dict, rom_idx):
+    if 'flexion' in dict_dict['content'][rom_idx]:
+        flexion = dict_dict['content'][rom_idx]['flexion']
+        flexion = flexion.replace('<', '').replace('>', '')
+        flexion_list = flexion.split(', ')
+    else:
+        flexion_list = []
+    return flexion_list
+
+def get_wordclass(dict_dict, rom_idx):
+    if 'wordclass' in dict_dict['content'][rom_idx]:
+        wordclass = dict_dict['content'][rom_idx]['wordclass']
+    else:
+        wordclass = ''
+    return wordclass
+
+def get_headword(dict_dict, rom_idx):
+    if 'headword' in dict_dict['content'][rom_idx]:
+        headword = dict_dict['content'][rom_idx]['headword']
+    else:
+        headword = ''
+    return headword

@@ -24,15 +24,7 @@ jinja_env = Environment(loader=FileSystemLoader(dict_src_path / 'templates'),
 
 anki_cfg = {
         "base": "/home/parkdepot/.local/share/Anki2/",
-        "profile": "User 1",
-        "pngCommands": [
-            ["latex", "-interaction=nonstopmode", "tmp.tex"],
-            ["dvipng", "-D", "150", "-T", "tight", "-bg", "Transparent",
-            "tmp.dvi", "-o", "tmp.png"]
-        ],
-        "svgCommands": [
-            ["lualatex", "-interaction=nonstopmode", "tmp.tex"],
-            ["pdfcrop", "tmp.pdf", "tmp.pdf"],
-            ["pdf2svg", "tmp.pdf", "tmp.svg"]
-        ]
+        "profile": "nachi",
+        "deck": 'Active German',
+        "model": 'GermanCloze with_Hint'
         }

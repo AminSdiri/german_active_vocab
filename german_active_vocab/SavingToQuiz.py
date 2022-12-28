@@ -2,7 +2,7 @@ import json
 import re
 import pandas as pd
 from bs4 import BeautifulSoup as bs
-from WordProcessing import (hide_text,
+from WordProcessing import (hide_text, wrap_in_clozes,
                             update_words_to_hide)
 
 from utils import set_up_logger, write_str_to_file
@@ -76,8 +76,21 @@ def create_quiz_html(html_res, words_to_hide):
     return clean_html
 
 
+def wrap_words_to_learn_in_clozes(german_phrase, words_to_hide):
+    logger.info("wrap_words_to_learn_in_clozes")
+
+    capitalized_words_to_hide = [x.capitalize() for x in words_to_hide]
+    words_to_hide += capitalized_words_to_hide
+
+    front_with_cloze_wrapping = german_phrase
+
+    for w in words_to_hide:
+        front_with_cloze_wrapping = wrap_in_clozes(front_with_cloze_wrapping, w)
+
+    return front_with_cloze_wrapping
+
 def save_from_def_mode(dict_data_path, word, custom_qt_html, beispiel_de,
-                      beispiel_en, tag, now, dict_dict,
+                      beispiel_en, tag, dict_dict,
                       dict_dict_path):
     '''
     Dielemma: if customising html in QtTextEdit Window is allowed,
@@ -142,6 +155,7 @@ def save_from_def_mode(dict_data_path, word, custom_qt_html, beispiel_de,
         df.loc[word, "Repetitions"] = 0
         df.loc[word, "EF_score"] = 2.5
         df.loc[word, "Interval"] = 1
+        now = datetime.now() - timedelta(hours=3)
         df.loc[word, "Previous_date"] = now
         df.loc[word, "Created"] = now
         df.loc[word, "Next_date"] = now

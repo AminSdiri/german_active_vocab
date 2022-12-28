@@ -17,8 +17,6 @@ from FocusWindow import FocusWindow
 from HistoryWindow import HistoryWindow, WordlistWindow
 from QuizWindow import QuizWindow
 from SearchWindow import SearchWindow
-from PushToAnki import Anki
-from settings import anki_cfg
 
 from utils import set_up_logger
 from autologging import traced
@@ -268,8 +266,6 @@ def set_theme(app):
     
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    with Anki(**anki_cfg) as a:
-        a.add_notes_single(['a9', 'b9'], tags='', model=None, deck=None)
     set_theme(app)
     sys.excepthook = excepthook
     w = MainWindow()

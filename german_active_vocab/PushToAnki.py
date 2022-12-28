@@ -2,23 +2,22 @@ import os
 import re
 
 from pathlib import Path
+from plyer import notification
 
 import anki
 import click
 from aqt.profiles import ProfileManager
 
-from autologging import traced
 
-
-@traced
 class Anki:
     """My Anki collection wrapper class."""
 
-    def __init__(self, base=None, path=None, profile=None, **_kwargs):
+    def __init__(self, base=None, profile=None):
         self.modified = False
 
-        self._init_load_collection(base, path, profile)
+        self._init_load_collection(base, profile)
 
+        # TODO badel el model fih titre w Filled w quiz w wel les notes yet9asmou cards bel les parties mta3 focus
         self.model_name_to_id = {m['name']: m['id']
                                  for m in self.col.models.all()}
         self.model_names = self.model_name_to_id.keys()
@@ -28,35 +27,32 @@ class Anki:
         self.deck_names = self.deck_name_to_id.keys()
         self.n_decks = len(self.deck_names)
 
-    def _init_load_collection(self, base, path, profile):
+    def _init_load_collection(self, base, profile):
         """Load the Anki collection"""
         # Save CWD (because Anki changes it)
         save_cwd = os.getcwd()
 
-        if path is None:
-            if base is None:
-                click.echo('Base path is not properly set!')
-                raise click.Abort()
+        if base is None:
+            click.echo('Base path is not properly set!')
+            raise click.Abort()
 
-            basepath = Path(base)
-            if not (basepath / 'prefs21.db').exists():
-                click.echo('Invalid base path!')
-                click.echo(f'path = {basepath.absolute()}')
-                raise click.Abort()
+        basepath = Path(base)
+        if not (basepath / 'prefs21.db').exists():
+            click.echo('Invalid base path!')
+            click.echo(f'path = {basepath.absolute()}')
+            raise click.Abort()
 
-            # Initialize a profile manager to get an interface to the profile
-            # settings and main database path; also required for syncing
-            self.pm = ProfileManager(base)
-            self.pm.setupMeta()
+        # Initialize a profile manager to get an interface to the profile
+        # settings and main database path; also required for syncing
+        self.pm = ProfileManager(base)
+        self.pm.setupMeta()
 
-            if profile is None:
-                profile = self.pm.profiles()[0]
+        if profile is None:
+            profile = self.pm.profiles()[0]
 
-            # Load the main Anki database/collection
-            self.pm.load(profile)
-            path = self.pm.collectionPath()
-        else:
-            self.pm = None
+        # Load the main Anki database/collection
+        self.pm.load(profile)
+        path = self.pm.collectionPath()
 
         try:
             self.col = anki.Collection(path)
@@ -70,16 +66,6 @@ class Anki:
 
         # Restore CWD (because Anki changes it)
         os.chdir(save_cwd)
-
-    # @staticmethod
-    # def _init_load_config():
-    #     """Load custom configuration"""
-    #     # Update LaTeX commands
-    #     # * Idea based on Anki addon #1546037973 ("Edit LaTeX build process")
-    #     if 'pngCommands' in cfg:
-    #         anki.latex.pngCommands = cfg['pngCommands']
-    #     if 'svgCommands' in cfg:
-    #         anki.latex.svgCommands = cfg['svgCommands']
 
     def __enter__(self):
         return self
@@ -131,10 +117,28 @@ class Anki:
         if not note.dupeOrEmpty():
             self.col.addNote(note)
             self.modified = True
-        else:
+        elif note.dupeOrEmpty() ==1:
+            click.secho('Empty, note was not added!', fg='red')
+            click.echo('Question:')
+            click.echo(list(fields)[0])
+            notification.notify(title='Anki: Empty Note.',
+                        message=f'Front "{list(fields)[0]}" is empty. note was not added!',
+                        timeout=10)
+        elif note.dupeOrEmpty() ==2:
             click.secho('Dupe detected, note was not added!', fg='red')
             click.echo('Question:')
             click.echo(list(fields)[0])
+            notification.notify(title='Anki Dupe detected.',
+                        message=f'Front {list(fields)[0]} already exist. note was not added!',
+                        timeout=10)
+        else:
+            click.secho('Invalid Note, note was not added!', fg='red')
+            click.echo('Question:')
+            click.echo(list(fields)[0])
+            notification.notify(title='Anki: Invalid Note.',
+                        message=f'Front {list(fields)[0]} is invalid. note was not added!',
+                        timeout=10)
+
 
     def sync(self):
         """Sync collection to AnkiWeb"""
