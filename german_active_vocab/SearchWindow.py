@@ -4,7 +4,7 @@ from utils import set_up_logger
 
 logger = set_up_logger(__name__)
 
-# TODO use Qthread to prevent gui from freezing when waiting for the word data to be fetched 
+# TODO (0) use Qthread to prevent gui from freezing when waiting for the word data to be fetched 
 
 class SearchWindow(QWidget):
     def __init__(self, parent=None):
@@ -53,7 +53,7 @@ class SearchWindow(QWidget):
 
         self.search_window_button_actions()
 
-        # TODO (0) adaptable window layout
+        # TODO (1) adaptable window layout
         # self.focus_button.setSizePolicy(QSizePolicy.Expanding,
         #                                 QSizePolicy.Expanding)
 

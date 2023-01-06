@@ -8,8 +8,6 @@ from utils import (log_word_in_wordlist_history, set_up_logger,
 
 logger = set_up_logger(__name__)
 
-# TODO (4) use a database instead of files to save
-# standarized dicts, raw Json, raw htmls
 # TODO (4) type-hinting in every function
 # TODO (4) positional args vs keyword args
 
@@ -26,7 +24,7 @@ class DefEntry():
     get_from_duden: bool = False
     defined_html: HTML = ''
     # duden_synonyms: list = field(default_factory=list)
-    # words_to_hide: list = field(default_factory=list)
+    # hidden_words_list: list = field(default_factory=list)
 
     def __post_init__(self):
 

@@ -12,7 +12,7 @@ logger = set_up_logger(__name__)
 def render_html(dict_dict, word_info, translate, _found_in_pons,
                 get_from_duden, _found_in_duden):
     # get from duden > found in pons > not translate > else
-    # TODO use one decision tree for all functions
+    # TODO STRUCT (1) use one unified decision tree for all functions
     if translate:
         if _found_in_pons:
             defined_html = render_html_from_dict(
@@ -20,14 +20,18 @@ def render_html(dict_dict, word_info, translate, _found_in_pons,
         else:
             tmpl = jinja_env.get_template('not_found_pons_translation.html')
             defined_html = tmpl.render(word=word_info["word"])
-    elif get_from_duden:
+        return defined_html
+
+    if get_from_duden:
         if _found_in_duden:
             defined_html = render_html_from_dict(
                 'duden', dict_dict, word_info)
         else:
             tmpl = jinja_env.get_template('not_found_duden.html')
             defined_html = tmpl.render(word=word_info["word"])
-    elif _found_in_pons:
+        return defined_html
+    
+    if _found_in_pons:
         defined_html = render_html_from_dict(
             'definition', dict_dict, word_info)
     elif _found_in_duden:
@@ -269,7 +273,7 @@ def treat_class_def(value, class_name, previous_class_name,
 
     if class_name == 'topic':
         # PHYS...
-        # TODO (3) text is in Tag <acronym> so capitalize will not reach content
+        # TODO (4) text is in Tag <acronym> so capitalize will not reach content
         # value = value.lower().capitalize()
         return value
 
@@ -295,14 +299,14 @@ def treat_class_def(value, class_name, previous_class_name,
 def treat_class_trans(value, class_name, previous_class_name,
                       previous_class_value):
     '''workaround because of css21'''
-    # TODO (2) wrap target in the same class as source
+    # TODO (3) wrap target in the same class as source
 
     logger.info(f"treating class: {class_name}")
 
     # base color: #4ae08c
 
     if class_name == 'source':
-        # TODO (2) this treatement should be done before standerised json
+        # TODO  STRUCT (2) this treatement should be done before standerised json
         soup = bs(value, 'lxml')
         headword = soup.find_all(**{"class": "headword"})
         if headword:
@@ -487,8 +491,10 @@ def treat_class_du(value, class_name, previous_class_name,
 
     logger.warning(f"Class: {class_name} not treated!")
     # unknown classes will be colored
-    value = f'<acronym title="{class_name}">' + value + '</acronym>'
-    value = '<font color="#ffff00">' + value + '</font>'
+    if isinstance(value, list):
+        print(value)
+    value = f'<acronym title="{class_name}">{value}</acronym>'
+    value = f'<font color="#ffff00">{value}</font>'
     return value
 
 

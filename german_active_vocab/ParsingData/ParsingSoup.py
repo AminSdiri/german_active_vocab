@@ -77,7 +77,7 @@ def populate_content_entry(bedeutung_soup):
         parse_child(bedeutung_soup, snd_lvl_dict)
         return dict_content
 
-    # TODO (3) use recursive function like recursivly_extract?
+    # TODO (4) use recursive function like recursivly_extract?
     # only if you notice if sometimes there is more than 2 levels
     if not fst_lvl_li_children:
         dict_content = [None]

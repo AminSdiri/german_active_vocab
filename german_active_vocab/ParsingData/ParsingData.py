@@ -19,89 +19,118 @@ logger = set_up_logger(__name__)
 
 def standart_dict(saving_word, translate, translate2fr, translate2en,
                   get_from_duden, word, ignore_cache, ignore_dict):
+    
+    if not (ignore_cache or ignore_dict):
+        dict_dict_path, dict_cache_found, error_reading_json, _found_in_pons, _found_in_duden, dict_dict = read_dict_from_file(saving_word, get_from_duden)
+        if dict_cache_found and not error_reading_json:
+            return dict_dict, dict_dict_path, _found_in_pons, _found_in_duden 
 
-    # pons or duden depending on the saving word
-    logger.debug('Looking in dict cache')
-    dict_dict_path = dict_data_path / 'dict_dicts' / \
-        f'{saving_word}_standerised.json'
-    dict_string, dict_cache_found = get_cache(dict_dict_path)
+    (_pons_json,
+        _found_in_pons,
+        _duden_soup,
+        _found_in_duden,
+        _duden_syn_soup,
+        _syns_found_in_duden) = get_word_from_source(translate2fr,
+                                                     translate2en,
+                                                     get_from_duden,
+                                                     word,
+                                                     saving_word,
+                                                     ignore_cache)
 
-    logger.debug('Looking in duden dict cache')
-    if not dict_cache_found:
-        saving_word_du = saving_word + '_du'
-        dict_dict_path = dict_data_path / 'dict_dicts' / \
-            f'{saving_word_du}_standerised.json'
-        dict_string, dict_cache_found = get_cache(dict_dict_path)
-        if not dict_cache_found:
-            dict_dict_path = dict_data_path / 'dict_dicts' / \
-                f'{saving_word}_standerised.json'
+    if get_from_duden:
+        dict_dict = standart_duden_dict(_found_in_duden,
+                                        _duden_soup,
+                                        _duden_syn_soup,
+                                        _syns_found_in_duden,
+                                        word,
+                                        dict_dict_path)
 
-    error_reading_json = False
-    if dict_cache_found and not ignore_cache and not ignore_dict:
-        try:
-            dict_dict = ast.literal_eval(dict_string)
-        except SyntaxError:
-            error_reading_json = True
-        if get_from_duden:
-            _found_in_pons = None
-            _found_in_duden = True
-        else:
-            if '_du' in saving_word:
-                _found_in_pons = None
-                _found_in_duden = True
-            else:
-                _found_in_pons = True
-                _found_in_duden = None
+    elif _found_in_pons:
+        dict_dict = standart_pons_dict(_pons_json,
+                                        dict_dict_path,
+                                        _duden_syn_soup,
+                                        _syns_found_in_duden,
+                                        word,
+                                        translate,
+                                        _duden_soup,
+                                        _found_in_duden)
 
-    if (not dict_cache_found
-            or error_reading_json
-            or ignore_cache
-            or ignore_dict):
-        (_pons_json,
-         _found_in_pons,
-         _duden_soup,
-         _found_in_duden,
-         _duden_syn_soup,
-         _syns_found_in_duden) = get_word_from_source(
-            translate2fr,
-            translate2en,
-            get_from_duden,
+    elif not translate:
+        dict_dict = standart_duden_dict(
+            _found_in_duden,
+            _duden_soup,
+            _duden_syn_soup,
+            _syns_found_in_duden,
             word,
-            saving_word,
-            ignore_cache)
+            dict_dict_path)
 
-        if get_from_duden:
-            dict_dict = standart_duden_dict(
-                _found_in_duden,
-                _duden_soup,
-                _duden_syn_soup,
-                _syns_found_in_duden,
-                word,
-                dict_dict_path)
-
-        elif _found_in_pons:
-            dict_dict = standart_pons_dict(_pons_json,
-                                           dict_dict_path,
-                                           _duden_syn_soup,
-                                           _syns_found_in_duden,
-                                           word,
-                                           translate,
-                                           _duden_soup,
-                                           _found_in_duden)
-
-        elif not translate:
-            dict_dict = standart_duden_dict(
-                _found_in_duden,
-                _duden_soup,
-                _duden_syn_soup,
-                _syns_found_in_duden,
-                word,
-                dict_dict_path)
-
-        else:
-            dict_dict = {}
+    else:
+        dict_dict = {}
 
     return dict_dict, dict_dict_path, _found_in_pons, _found_in_duden
+
+def read_dict_from_file(saving_word, get_from_duden):
+    # pons or duden depending on the saving word (vorübergehend)
+
+    # TODO STRUCT (1) baddalha el fonction tbadel struct dict twalli standarisee w source pons wala duden mawjoud fel key
+
+    logger.debug('Looking for pons dict cache')
+    if not get_from_duden:
+        dict_dict_path = dict_data_path / 'dict_dicts' / f'{saving_word}_standerised.json'
+        dict_string, pons_dict_cache_found = get_cache(dict_dict_path)
+        if pons_dict_cache_found:
+            dict_cache_found = True
+            # FIXED
+            # if dict_string == 'null':
+            #     _found_in_pons = None
+            #     _found_in_duden = None
+            #     error_reading_json = True
+            #     dict_dict = {}
+            #     # fixedBUG (1) find out when and where it happens
+            #     logger.warning('dict string is null! (dict damaged somewhere')
+            #     return dict_dict_path, dict_cache_found, error_reading_json, _found_in_pons, _found_in_duden, dict_dict
+            _found_in_pons = True
+            _found_in_duden = None
+            try:
+                dict_dict = ast.literal_eval(dict_string)
+                error_reading_json = False
+            except SyntaxError:
+                logger.warning('dict file is not readable!')
+                dict_dict = {}
+                error_reading_json = True
+            # vorübergehend ekteb source fel dict w 3al fichier
+            if 'wortart' in dict_dict:
+                _found_in_pons = None
+                _found_in_duden = True
+                dict_dict['source'] = 'duden'
+                write_str_to_file(dict_dict_path, json.dumps(dict_dict))
+            return dict_dict_path, dict_cache_found, error_reading_json, _found_in_pons, _found_in_duden, dict_dict
+
+    if get_from_duden or not pons_dict_cache_found:
+        saving_word_du = saving_word + '_du'
+        dict_dict_path = dict_data_path / 'dict_dicts' / f'{saving_word_du}_standerised.json'
+        dict_string, duden_dict_cache_found = get_cache(dict_dict_path)
+        if duden_dict_cache_found:
+            dict_cache_found = True
+            _found_in_pons = None if get_from_duden else False
+            _found_in_duden = True
+            try:
+                dict_dict = ast.literal_eval(dict_string)
+                error_reading_json = False
+            except SyntaxError:
+                logger.warning('dict file is not readable!')
+                dict_dict = {}
+                error_reading_json = True    
+            return dict_dict_path, dict_cache_found, error_reading_json, _found_in_pons, _found_in_duden, dict_dict
+
+        else:
+            dict_dict_path = dict_data_path / 'dict_dicts' / f'{saving_word}_standerised.json'
+            dict_cache_found = False
+            _found_in_pons = False
+            _found_in_duden = False
+            error_reading_json = None
+            dict_dict = {}
+            return dict_dict_path, dict_cache_found, error_reading_json, _found_in_pons, _found_in_duden, dict_dict
 
 
 def standart_pons_dict(_pons_json, dict_dict_path,
@@ -109,9 +138,7 @@ def standart_pons_dict(_pons_json, dict_dict_path,
                        _duden_soup,
                        _found_in_duden):
     '''
-    standarize json file ans save it before rendering
-
-    to allow filtering of words, blocks, properties
+    standarize json file and save it before rendering to allow filtering of words, blocks, properties
     in power mode (new mode)
 
     parseable properties are

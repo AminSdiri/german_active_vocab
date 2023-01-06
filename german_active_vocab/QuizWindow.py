@@ -1,4 +1,5 @@
 
+import json
 import subprocess
 import sys
 from datetime import datetime, timedelta
@@ -8,7 +9,8 @@ from PyQt5.QtWidgets import (QPushButton, QWidget, QLabel, QTextEdit,
 from PyQt5.QtGui import QTextCursor
 
 from ProcessQuizData import QuizEntry, spaced_repetition
-from WordProcessing import hide_text # QShortcut PyQt6
+from WordProcessing import generate_hidden_words_list, hide_text
+from ParsingData.ParsingData import read_dict_from_file # QShortcut PyQt6
 
 from settings import (dict_src_path,
                       maxrevpersession,
@@ -16,7 +18,7 @@ from settings import (dict_src_path,
                       )
 
 
-from utils import read_dataframe_from_file, read_text_from_files, set_up_logger, update_dataframe_file, write_str_to_file
+from utils import read_dataframe_from_file, read_text_from_files, replace_umlauts, set_up_logger, update_dataframe_file, write_str_to_file
 
 logger = set_up_logger(__name__)
 
@@ -170,20 +172,36 @@ class QuizWindow(QWidget):
 
     def save_custom_quiztext_from_quizmode(self):
         logger.info("save_custom_quiztext_from_quizmode")
-        clean_html = self.quiz_window.txt_cont.toHtml()
+        qt_html_content = self.txt_cont.toHtml()
 
         quiz_file_path = self.quiz_obj.quiz_file_path
 
-        write_str_to_file(quiz_file_path, clean_html, notification_list=['gespeichert!'])
+        write_str_to_file(quiz_file_path, qt_html_content, notification_list=['gespeichert!'])
 
         logger.info('gespeichert!')
 
 
     def hide_word_manually(self):
         logger.info("hide_word_manually")
-        # TODO add manually hidden words to dict_file
+        # DONE (1) add manually hidden words to dict_file
         selected_text2hide = self.txt_cont.textCursor().selectedText()
-        logger.debug('word2hide: '+selected_text2hide)
+
+        word = self.quiz_obj.quiz_params["queued_word"]
+        saving_word = replace_umlauts(word)
+        dict_dict_path, dict_cache_found, _, _, _, dict_dict = read_dict_from_file(saving_word, get_from_duden=False)
+        if dict_cache_found:
+            if 'hidden_words_list' in dict_dict:
+                if selected_text2hide in dict_dict['hidden_words_list']:
+                    raise RuntimeError('selected word is already in hidden words list')
+                dict_dict['hidden_words_list'].append(selected_text2hide)
+            else:
+                dict_dict['hidden_words_list'] = generate_hidden_words_list(dict_dict)
+                dict_dict['hidden_words_list'].append(selected_text2hide)
+            write_str_to_file(dict_dict_path, json.dumps(dict_dict))
+        else:
+            raise RuntimeError('dict for quized word not found')
+
+        logger.debug(f'word2hide: {selected_text2hide}')
         self.txt_cont.clear()
         self.quiz_obj.quiz_text = hide_text(self.quiz_obj.quiz_text, selected_text2hide)
         self.txt_cont.insertHtml(self.quiz_obj.quiz_text)
@@ -213,7 +231,7 @@ class QuizRatingDiag(QDialog):
         self.full_text = parent.quiz_obj.full_text
         self.queued_word = parent.quiz_obj.quiz_params['queued_word']
         self.general_EF = parent.quiz_obj.quiz_params['EF_score']
-        # TODO still relevant?
+        # TODO (4) still relevant?
         # now = datetime.now() - timedelta(hours=3)
         # self.halfway_date = now + \
         #     timedelta(days=math.ceil(
@@ -222,7 +240,7 @@ class QuizRatingDiag(QDialog):
         self.set_focus_button = QPushButton('add to Focus list', self)
         self.set_focus_button.clicked.connect(self.add_to_focus)
 
-        # TODO not needed?
+        # TODO (2) not needed?
         # word_already_added_to_focus = any(
         #     parent.focus_df.Word.str.contains(self.queued_word)
         # )

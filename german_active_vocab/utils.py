@@ -4,17 +4,18 @@ from pathlib import Path
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 from plyer import notification
-from autologging import TRACE
+# from autologging import TRACE
 
 from settings import dict_data_path
 
 
 def set_up_logger(logger_name, level=logging.INFO):
 
-    # TODO (4) remove to reset level to INFO
+    # TODO (5) remove to reset level to INFO
     # Levels: debug, info, warning, error, critical
-    #level = logging.DEBUG
-    level = TRACE
+    # level = TRACE
+    # level = logging.DEBUG
+    level = logging.WARNING
 
     logger = logging.getLogger(logger_name)
     logger.addHandler(logging.StreamHandler())
@@ -41,7 +42,7 @@ def get_cache(cache_path):
 
 
 def replace_umlauts(word: str):
-    """[summary]
+    """for filenames that don't support umlauts
 
     Args:
         word (str): [description]
@@ -131,7 +132,7 @@ def update_dataframe_file(word, quiz_text, full_text):
     ignore_list, nb_parts = ignore_headers(quiz_text)
     logger.debug(f'Ignore List: {ignore_list}')
 
-    # TODO (2) minimize reading and writing to disk?
+    # TODO STRUCT (2) minimize reading and writing to disk?
     wordlist_df = read_dataframe_from_file(total=True)
     wordlist_df.loc[word, 'Focused'] = 1
     wordlist_df.to_csv(dict_data_path / 'wordlist.csv')
@@ -160,7 +161,7 @@ def update_dataframe_file(word, quiz_text, full_text):
     logger.info(f'{word} switched to Focus Mode')
 
 def fix_html_with_custom_example(html_text):
-    # TODO (4) Vorübergehend, delete after all htmls are updated
+    # TODO (5) Vorübergehend, delete after all htmls are updated
     logger.info("fix_html_with_custom_example")
 
     html_text = html_text.replace('</body></html><br><br>',

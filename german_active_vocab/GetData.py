@@ -39,25 +39,21 @@ def get_word_from_source(translate2fr, translate2en, get_from_duden,
         # getting root headword
         if _found_in_pons:
             try:
-                duden_search_word = _pons_json[0]['hits'][0][
-                    'roms'][0]['headword']
-                duden_search_word = remove_from_str(
-                    duden_search_word, [b'\xcc\xa3', b'\xcc\xb1', b'\xc2\xb7'])
+                duden_search_word = _pons_json[0]['hits'][0]['roms'][0]['headword']
+                duden_search_word = remove_from_str(duden_search_word, [b'\xcc\xa3', b'\xcc\xb1', b'\xc2\xb7'])
             except KeyError:
                 duden_search_word = word
         else:
             duden_search_word = word
 
-        (_duden_soup,
-            _found_in_duden) = get_duden_soup(duden_search_word,
-                                              saving_word,
-                                              ignore_cache,
-                                              'dictionnary')
-        (_duden_syn_soup,
-            _syns_found_in_duden) = get_duden_soup(duden_search_word,
-                                                   saving_word,
-                                                   ignore_cache,
-                                                   'synonymes')
+        (_duden_soup, _found_in_duden) = get_duden_soup(duden_search_word,
+                                                        saving_word,
+                                                        ignore_cache,
+                                                        'dictionnary')
+        (_duden_syn_soup, _syns_found_in_duden) = get_duden_soup(duden_search_word,
+                                                                 saving_word,
+                                                                 ignore_cache,
+                                                                 'synonymes')
     else:
         _duden_soup = ''
         _found_in_duden = None
@@ -69,6 +65,7 @@ def get_word_from_source(translate2fr, translate2en, get_from_duden,
 
 
 def get_duden_soup(word, filename, ignore_cache, duden_source):
+    
     logger.debug('Looking in Duden cache')
     filename = filename if '_du' in filename else f'{filename}_du'
     if duden_source == 'synonymes':
@@ -84,39 +81,60 @@ def get_duden_soup(word, filename, ignore_cache, duden_source):
 
     logger.info('Online searching for Word in Duden')
 
-    if duden_source == 'dictionnary':
-        url_uppercase = ('https://www.duden.de/rechtschreibung/' +
-                         replace_umlauts_2(word).capitalize())
-        url_lowercase = ('https://www.duden.de/rechtschreibung/' +
-                         replace_umlauts_2(word).lower())
-    elif duden_source == 'synonymes':
-        url_uppercase = ('https://www.duden.de/synonyme/' +
-                         replace_umlauts_2(word).capitalize())
-        url_lowercase = ('https://www.duden.de/synonyme/' +
-                         replace_umlauts_2(word).lower())
-    else:
-        raise RuntimeError('Duden source is either "Dictionnary" or '
-                           '"Synonymes". '
-                           f'Instead {duden_source} is passed')
+    url_uppercase, url_lowercase = make_duden_url(word, duden_source)
+    found_in_duden, duden_html, http_code = get_html_from_duden(url_lowercase)
+    if http_code == 404:
+        found_in_duden, duden_html, http_code = get_html_from_duden(url_uppercase)
 
-    try_upper = 0
+    if found_in_duden:
+        duden_soup = duden_html_to_soup(duden_source, duden_html)
+        write_str_to_file(dict_data_path / 'cache' / filename, str(duden_soup))
+    else:
+        duden_soup = None
+
+    return duden_soup, found_in_duden
+
+def duden_html_to_soup(duden_source, duden_html):
+    if duden_source == 'dictionnary':
+        duden_soup = bs(duden_html, 'html.parser')
+        duden_soup = duden_soup.find_all('article', role='article')
+        if len(duden_soup) != 1:
+            raise RuntimeError(
+                    'duden_soup result have a length different than 1')
+        else:
+            duden_soup = duden_soup[0]
+
+    elif duden_source == 'synonymes':
+        duden_soup = bs(duden_html, 'html.parser')
+        duden_soup = duden_soup.find_all('div', id="andere-woerter")
+        if len(duden_soup) != 1:
+            raise RuntimeError(
+                    'duden_soup result have a length different than 1')
+        else:
+            duden_soup = duden_soup[0]
+    return duden_soup
+
+def get_html_from_duden(url_lowercase):
     found_in_duden = False
+    http_code = 0
     try:
         with request.urlopen(url_lowercase) as response:
             # use whatever encoding as per the webpage
             duden_html = response.read().decode('utf-8')
         logger.debug('got Duden Html (lower)')
         found_in_duden = True
+        http_code =200
 
     except InvalidURL:
         logger.error(f'{url_lowercase} '
-                        'words containing spaces in german to german are not allowed')
+                        'words containing spaces in german to german ',
+                        'are not allowed, did you wanted a translation?')
     except request.HTTPError as e:
-        if e.code == 404:
+        http_code = e.code
+        if http_code == 404:
             logger.warning(f"{url_lowercase} is not found")
             duden_html = '404 Wort nicht gefunden'
-            try_upper = 1
-        elif e.code == 503:
+        elif http_code == 503:
             logger.warning(f'{url_lowercase} '
                            'base webservices are not available')
             pass
@@ -127,60 +145,21 @@ def get_duden_soup(word, filename, ignore_cache, duden_source):
         logger.error('certificate verify failed: '
                      'unable to get local issuer certificate')
         duden_html = 'No certificate installed'
+    return found_in_duden, duden_html, http_code
 
-    if try_upper:
-        try:
-            with request.urlopen(url_uppercase) as response:
-                # use whatever encoding as per the webpage
-                duden_html = response.read().decode('utf-8')
-            logger.debug('got Duden Html (Upper)')
-            found_in_duden = 1
-        except InvalidURL:
-            logger.error(f'{url_lowercase} '
-                        'words containing spaces in german to german ',
-                        'are not allowed, did you wanted a translation?')
-        except request.HTTPError as e:
-            found_in_duden = 0
-            if e.code == 404:
-                logger.warning(f"{url_uppercase} is not found")
-                duden_html = '404 Wort nicht gefunden'
-            elif e.code == 503:
-                logger.warning(f'{url_uppercase} '
-                               'base webservices are not available')
-                pass
-            else:
-                logger.warning('http error', e)
-                duden_html = 'Error 500'
-        except error.URLError:
-            found_in_duden = 0
-            logger.error('certificate verify failed: '
-                         'unable to get local issuer certificate')
-            duden_html = 'No certificate installed'
-
-    if found_in_duden:
-        if duden_source == 'dictionnary':
-            duden_soup = bs(duden_html, 'html.parser')
-            duden_soup = duden_soup.find_all('article', role='article')
-            if len(duden_soup) != 1:
-                raise RuntimeError(
-                    'duden_soup result have a length different than 1')
-            else:
-                duden_soup = duden_soup[0]
-
-        elif duden_source == 'synonymes':
-            duden_soup = bs(duden_html, 'html.parser')
-            duden_soup = duden_soup.find_all('div', id="andere-woerter")
-            if len(duden_soup) != 1:
-                raise RuntimeError(
-                    'duden_soup result have a length different than 1')
-            else:
-                duden_soup = duden_soup[0]
-
-        write_str_to_file(dict_data_path / 'cache' / filename, str(duden_soup))
+def make_duden_url(word, duden_source):
+    if duden_source == 'dictionnary':
+        url_uppercase = (f'https://www.duden.de/rechtschreibung/{replace_umlauts_2(word).capitalize()}')
+        url_lowercase = (f'https://www.duden.de/rechtschreibung/{replace_umlauts_2(word).lower()}')
+    elif duden_source == 'synonymes':
+        url_uppercase = (f'https://www.duden.de/synonyme/{replace_umlauts_2(word).capitalize()}')
+        url_lowercase = (f'https://www.duden.de/synonyme/{replace_umlauts_2(word).lower()}')
     else:
-        duden_soup = None
-
-    return duden_soup, found_in_duden
+        raise RuntimeError('Duden source should be either "dictionnary" or '
+                           '"synonymes". '
+                           f'Instead {duden_source} is passed')
+                           
+    return url_uppercase, url_lowercase
 
 
 def get_json_from_pons_api(word, filename: str, translate2en,
@@ -207,7 +186,7 @@ def get_json_from_pons_api(word, filename: str, translate2en,
         url += word
         logger.debug(f'URL: {url}')
         try:
-            # TODO (2) save API secret as envirement var
+            # TODO (1) save API secret as envirement var
             # Please consider using your own API (it's free)
             # this one is limited to 1000 request per month
             # (https://en.pons.com/open_dict/public_api/secret)

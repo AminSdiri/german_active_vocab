@@ -6,6 +6,9 @@ from plyer import notification
 
 import anki
 import click
+
+import sys
+sys.modules['PyQt6'] = None # prevent names conflict if anki-qt6 app is installed
 from aqt.profiles import ProfileManager
 
 
@@ -17,7 +20,7 @@ class Anki:
 
         self._init_load_collection(base, profile)
 
-        # TODO badel el model fih titre w Filled w quiz w wel les notes yet9asmou cards bel les parties mta3 focus
+        # DONE badel el model fih word w cloze w hint
         self.model_name_to_id = {m['name']: m['id']
                                  for m in self.col.models.all()}
         self.model_names = self.model_name_to_id.keys()
@@ -97,7 +100,7 @@ class Anki:
         self.col.models.set_current(model)
         return model
 
-    def add_notes_single(self, fields, tags='', model=None, deck=None):
+    def add_notes_single(self, cloze, hint1='', hint2='', hint3='', answer_extra='', tags='', model=None, deck=None, overwrite_notes=False):
         """Add new note to collection"""
         if model is not None:
             self.set_model(model)
@@ -108,6 +111,7 @@ class Anki:
         if deck is not None:
             note.note_type()['did'] = self.deck_name_to_id[deck]
 
+        fields = [cloze, hint1, hint2, hint3, answer_extra]
         note.fields = [plain_to_html(x) for x in fields]
 
         tags = tags.strip().split()
@@ -125,12 +129,17 @@ class Anki:
                         message=f'Front "{list(fields)[0]}" is empty. note was not added!',
                         timeout=10)
         elif note.dupeOrEmpty() ==2:
-            click.secho('Dupe detected, note was not added!', fg='red')
-            click.echo('Question:')
-            click.echo(list(fields)[0])
-            notification.notify(title='Anki Dupe detected.',
-                        message=f'Front {list(fields)[0]} already exist. note was not added!',
-                        timeout=10)
+            if overwrite_notes:
+                # TODO (1) only change note contents without changing review time and meta-informations
+                self.col.addNote(note)
+                self.modified = True
+            else:
+                click.secho('Dupe detected, note was not added!', fg='red')
+                click.echo('Question:')
+                click.echo(list(fields)[0])
+                notification.notify(title='Anki Dupe detected.',
+                            message=f'Front {list(fields)[0]} already exist. note was not added!',
+                            timeout=10)
         else:
             click.secho('Invalid Note, note was not added!', fg='red')
             click.echo('Question:')
@@ -138,6 +147,8 @@ class Anki:
             notification.notify(title='Anki: Invalid Note.',
                         message=f'Front {list(fields)[0]} is invalid. note was not added!',
                         timeout=10)
+
+        return note.dupeOrEmpty()
 
 
     def sync(self):
@@ -222,6 +233,8 @@ def plain_to_html(plain):
     return plain.strip()
 
 if __name__ == "__main__":
+    # for testing
+    from settings import anki_cfg
     with Anki(**anki_cfg) as a:
         a.add_notes_single(['a8', 'b8'], tags='', model=None, deck=None)
     print('done')

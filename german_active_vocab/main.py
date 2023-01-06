@@ -19,22 +19,19 @@ from QuizWindow import QuizWindow
 from SearchWindow import SearchWindow
 
 from utils import set_up_logger
-from autologging import traced
+# from autologging import traced
 
+# TODO STRUCT (0) Baddel structure mta3 Model, Viewer, controller walla Presenter
 
 # git update-index --skip-worktree <file> to skip tracking files
 # https://www.youtube.com/watch?v=0kpm10AxiNE&list=PLQVvvaa0QuDdVpDFNq4FwY9APZPGSUyR4&index=11 choose theme
 
 
 # user needs to generate API and put in in API path...
-# TODO (0) create a public API for testing the app
 # TODO (1) using boxLayout with percentages instead of hardcoded dimensions
-# TODO (2) Write Readme file with examples (screenshots) and how to install
-# TODO (1) List the different fonctionalities for the readme.md
-# TODO (3) write test functions for the different functionalities,
-# CANCELED (2) create setup.py to take care of
-# - creating dirs and csv files
-# - install requirements.txt
+# TODO (0) Write Readme file with examples (screenshots) and how to install
+# TODO (0) List the different fonctionalities for the readme.md
+# TODO BIG (2) write test functions for the different functionalities,
 # DONE (2) find os-agnostic alternative to notify-send for windows and macos
 # example: from plyer import notification
 
@@ -42,7 +39,8 @@ logger = set_up_logger(__name__)
 
 
 # .strftime("%d.%m.%y") is a bad idea! losing the time information
-# TODO (0) create now and now_(-3h) and move theme to settings.py
+# TODO STRUCT (1) organize now and now_(-3h) 
+# TODO (2) move theme to settings.py
 
 def wrap(pre, post):
 	""" Wrapper """
@@ -80,9 +78,6 @@ class MainWindow(QMainWindow):
         self.move_to_center() 
         self.set_shortcuts()
 
-    def set_shortcuts(self):
-        self.shortcut_close = QShortcut(QKeySequence('Ctrl+Q'), self)
-        self.shortcut_close.activated.connect(lambda :sys.exit())
 
     def launch_first_window(self):
         logger.info("launch_first_window")
@@ -136,17 +131,6 @@ class MainWindow(QMainWindow):
         self.animation.setEndValue(QRect(window_x, window_y, end_width, 40))
         self.animation.start()
 
-    def move_to_center(self):
-        # TODO BUG move is not working at all!
-        logger.info("move_to_center")
-        frameGm=self.frameGeometry()           
-        screen_width=int(QGuiApplication.primaryScreen().availableGeometry().width()/2)
-        screen_hight_eye_level=int(QGuiApplication.primaryScreen().availableGeometry().height()*1/4)
-        screen_pos=QPoint(screen_width,screen_hight_eye_level)
-        frameGm.moveCenter(screen_pos)
-        self.centered_pos = frameGm.topLeft()
-        self.move(self.centered_pos)
-
     def launch_definition_window(self):
         logger.info("launch definition window")
 
@@ -158,13 +142,6 @@ class MainWindow(QMainWindow):
                                    size=QSize(700, 690))
 
         self.show()
-
-    def set_window_properties(self, title, central_widget, Frameless, size):
-        self.setWindowTitle(title)
-        self.setCentralWidget(central_widget)
-        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, on=Frameless)
-        self.resize(size)
-        self.move_to_center()
 
     def launch_history_list_window(self):
         logger.info("launch history list window")
@@ -217,6 +194,27 @@ class MainWindow(QMainWindow):
 
         self.show()
 
+    def set_window_properties(self, title, central_widget, Frameless, size):
+        self.setWindowTitle(title)
+        self.setCentralWidget(central_widget)
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, on=Frameless)
+        self.resize(size)
+        self.move_to_center()
+
+    def move_to_center(self):
+        # TODO (5) BUG move is not working at all in pyqt6!
+        logger.info("move_to_center")
+        frameGm=self.frameGeometry()           
+        screen_width=int(QGuiApplication.primaryScreen().availableGeometry().width()/2)
+        screen_hight_eye_level=int(QGuiApplication.primaryScreen().availableGeometry().height()*1/4)
+        screen_pos=QPoint(screen_width,screen_hight_eye_level)
+        frameGm.moveCenter(screen_pos)
+        self.centered_pos = frameGm.topLeft()
+        self.move(self.centered_pos)
+
+    def set_shortcuts(self):
+        self.shortcut_close = QShortcut(QKeySequence('Ctrl+Q'), self)
+        self.shortcut_close.activated.connect(lambda :sys.exit())
 
 def excepthook(exc_type, exc_value, exc_tb):
     tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
@@ -227,7 +225,6 @@ def excepthook(exc_type, exc_value, exc_tb):
                         timeout=10)
     QApplication.quit()
     sys.exit(1)
-
 
 def set_theme(app):
     # import platform
@@ -251,7 +248,7 @@ def set_theme(app):
     #     app.setPalette(DarkPalette())
     # else:
     #     # sadely, using a light theme is not thought about yet! :D
-    #     # TODO generate a white theme color palette for template rendering
+    #     # TODO (3) generate a white theme color palette for template rendering
     #     app.setPalette(DarkPalette())
     #     pass
 

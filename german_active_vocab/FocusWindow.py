@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from PyQt5.QtCore import Qt, pyqtSlot
+from PyQt5.QtCore import Qt #, pyqtSlot
 from PyQt5.QtWidgets import (QPushButton, QWidget, QLabel, QTextEdit,
                              QSlider, QDialog, QVBoxLayout)
 from PyQt5.QtGui import (QTextCursor)
@@ -43,7 +43,7 @@ class FocusWindow(QWidget):
         self.next_btn.clicked.connect(self.focus_score)
         self.ignore_button.clicked.connect(self.sure_method)  # sure_method
 
-    @pyqtSlot()     # just increases button reactivity
+    # @pyqtSlot()     # just increases button reactivity
     def sure_method(self):
         logger.info("sure_method")
         self.txt_cont.clear()

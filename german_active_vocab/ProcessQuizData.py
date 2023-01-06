@@ -31,10 +31,10 @@ class QuizEntry():
     def __post_init__(self):
         self.queue_quiz_word()
 
-        self.get_quiz_files()
+        self.get_quiz_and_full_htmls()
 
 
-    def get_quiz_files(self):
+    def get_quiz_and_full_htmls(self):
         logger.info("get quiz files")
 
         word = self.quiz_params["queued_word"]
@@ -61,12 +61,14 @@ class QuizEntry():
         planned_str = 'error'
         logger.debug('quiz_priority_order: '+self.quiz_priority_order)
         logger.debug('10')
+        # Start by words due Today then yesteday
+        # Then queue the oldest due word with oldest seen date
+        # then oldest seen non due words
+        # TODO STRUCT (1) repair code runflow
         if self.quiz_priority_order == 'due_words':
             logger.debug('11')
             logger.debug('Quiz Order set to planned Words')
-            # Start by words due Today then yesteday
-            # TODO then queue the oldest due word with oldest seen date
-            # then oldest seen non due words
+            
             df_dates = self.words_dataframe['Next_date'].apply(
                 lambda x: x.date())
             due_today_df = self.words_dataframe[(df_dates == now.date())]
@@ -130,7 +132,7 @@ class QuizEntry():
         logger.debug("get_quiz_params")
         logger.debug('todayscharge: '+str(self.todayscharge))
         logger.debug('1')
-        # BUG when priority set to old words
+        # IFON BUG when priority set to old words
         # Algorithm jump back to here after completing all commands
         # and reset it's variable throwing an error
         if self.todayscharge > 0:
@@ -204,11 +206,11 @@ class FocusEntry():
         ignored_due_words = (due_words['Ignore'] == 1).sum()
         self.window_titel += f' ({len(due_words) - ignored_due_words})'
         while selected_ignored:
-            # TODO by empty dataframe show dialog to close or go to last seen
+            # TODO (1) by empty dataframe show dialog to close or go to last seen
 
             logger.debug(due_words)
 
-            # TODO (4) more sophisticated weighting
+            # TODO (5) more sophisticated weighting
             random_focus_df = due_words.sample(n=1, weights='weights')
             selected_ignored = int(random_focus_df['Ignore'].values[0])
             word = random_focus_df['Word'].values[0]
