@@ -1,4 +1,4 @@
-from ParsingData.ParsingSoup import process_data_corpus
+from GetDict.ParsingSoup import process_data_corpus
 
 from utils import (remove_from_str,
                    set_up_logger)
@@ -6,7 +6,7 @@ from utils import (remove_from_str,
 logger = set_up_logger(__name__)
 
 
-def parse_json_data(json_data, translate, word):
+def construct_dict_from_json(json_data, translate, word):
     '''
     convert json_data to standerized dict
 
@@ -70,7 +70,7 @@ def parse_json_data(json_data, translate, word):
                 headword = arab_level_json["headword"]
                 headword = remove_from_str(
                     headword, [b'\xcc\xa3', b'\xcc\xb1', b'\xc2\xb7'])
-                rom_level_dict = update_dict_w_ignoring(
+                rom_level_dict = _update_dict_w_ignoring(
                     rom_level_dict, 'headword', headword)
 
                 # wordclass
@@ -78,13 +78,13 @@ def parse_json_data(json_data, translate, word):
                     wordclass = arab_level_json["wordclass"]
                 else:
                     wordclass = ''
-                rom_level_dict = update_dict_w_ignoring(
+                rom_level_dict = _update_dict_w_ignoring(
                     rom_level_dict, 'wordclass', wordclass)
 
                 # extract everything from full_headword into dict items
                 full_headword = arab_level_json["headword_full"]
                 (rom_level_dict,
-                 arab_level_dict) = populate_rom_and_arab_level_dict(
+                 arab_level_dict) = _populate_rom_and_arab_level_dict(
                     full_headword, rom_level_dict, arab_level_dict)
 
                 arab_level_dict['def_blocks'] = []
@@ -112,7 +112,7 @@ def parse_json_data(json_data, translate, word):
                         else:
                             key_class = element["class_name"]
                             source_content = element["class_content"]
-                            def_block_dict = update_dict_w_appending(
+                            def_block_dict = _update_dict_w_appending(
                                 def_block_dict, key_class, source_content)
 
                     gra_was_in_block = False
@@ -122,9 +122,9 @@ def parse_json_data(json_data, translate, word):
                         for definition_part in source_and_target_dicts:
                             datasource = definition_part["source"]
                             datatarget = definition_part["target"]
-                            def_block_dict = update_dict_w_appending(
+                            def_block_dict = _update_dict_w_appending(
                                 def_block_dict, 'source', datasource)
-                            def_block_dict = update_dict_w_appending(
+                            def_block_dict = _update_dict_w_appending(
                                 def_block_dict, 'target', datatarget)
                     else:
                         for definition_part in source_and_target_dicts:
@@ -144,14 +144,14 @@ def parse_json_data(json_data, translate, word):
                                 (def_block_dict,
                                     previous_class,
                                     gra_was_in_block,
-                                    def_idx) = process_def_block_separation(
+                                    def_idx) = _process_def_block_separation(
                                     arab_level_dict,
                                     previous_class,
                                     key_class,
                                     def_idx,
                                     gra_was_in_block)
 
-                                def_block_dict = update_dict_w_appending(
+                                def_block_dict = _update_dict_w_appending(
                                     def_block_dict, key_class, source_content)
                     def_idx += 1
 
@@ -179,13 +179,13 @@ def parse_json_data(json_data, translate, word):
                 (def_block_dict,
                     previous_class,
                     gra_was_in_block,
-                    def_idx) = process_def_block_separation(
+                    def_idx) = _process_def_block_separation(
                     arab_level_dict,
                     previous_class,
                     key_class,
                     def_idx,
                     gra_was_in_block)
-                def_block_dict = update_dict_w_appending(
+                def_block_dict = _update_dict_w_appending(
                     def_block_dict, key_class, source_content)
         else:
             raise KeyError(
@@ -193,8 +193,7 @@ def parse_json_data(json_data, translate, word):
 
     return dict_dict
 
-
-def process_def_block_separation(arab_level_dict, previous_class, key_class,
+def _process_def_block_separation(arab_level_dict, previous_class, key_class,
                                  def_idx, gra_was_in_block):
     '''sometimes multiple def_blocks in json are put in the same sub-entrie.
     this function decide whether to increment the def_idx and therefor
@@ -221,8 +220,7 @@ def process_def_block_separation(arab_level_dict, previous_class, key_class,
 
     return def_block_dict, previous_class, gra_was_in_block, def_idx
 
-
-def update_dict_w_appending(def_block_dict, key_class, source_content):
+def _update_dict_w_appending(def_block_dict, key_class, source_content):
     # if entry already exist, make it a list and append
     if key_class in def_block_dict:
         # raise Exception(f'{key_class} element cannot be overwritten')
@@ -234,8 +232,7 @@ def update_dict_w_appending(def_block_dict, key_class, source_content):
 
     return def_block_dict
 
-
-def update_dict_w_ignoring(rom_level_dict, key, value):
+def _update_dict_w_ignoring(rom_level_dict, key, value):
     # only replace entry if content is ''
     if key in rom_level_dict:
         logger.debug(f'Key: {key}\n'
@@ -248,8 +245,7 @@ def update_dict_w_ignoring(rom_level_dict, key, value):
 
     return rom_level_dict
 
-
-def populate_rom_and_arab_level_dict(full_headword,
+def _populate_rom_and_arab_level_dict(full_headword,
                                      rom_level_dict, arab_level_dict):
     if full_headword != '':
         corpus_list_of_dicts = process_data_corpus(full_headword)
@@ -269,7 +265,7 @@ def populate_rom_and_arab_level_dict(full_headword,
                 continue
 
             if key_class in ['headword', 'wordclass', 'flexion', 'genus']:
-                rom_level_dict = update_dict_w_ignoring(
+                rom_level_dict = _update_dict_w_ignoring(
                     rom_level_dict, key_class, source_content)
             elif key_class in arab_level_dict:
                 continue

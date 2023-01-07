@@ -1,6 +1,6 @@
 from dataclasses import dataclass   # , field
 from bs4.builder import HTML
-from ParsingData.ParsingData import standart_dict
+from GetDict.GenerateDict import standart_dict
 from RenderingHTML import get_seen_word_info, render_html
 
 from utils import (log_word_in_wordlist_history, set_up_logger,
@@ -35,25 +35,21 @@ class DefEntry():
         translate = self.translate2fr or self.translate2en
 
         (self.dict_dict,
-         self.dict_dict_path,
-         _found_in_pons,
-         _found_in_duden) = standart_dict(self.saving_word,
-                                          translate,
-                                          self.translate2fr,
-                                          self.translate2en,
-                                          self.get_from_duden,
-                                          self.word,
-                                          self._ignore_cache,
-                                          self._ignore_dict)
+         self.dict_dict_path) = standart_dict(self.saving_word,
+                                translate,
+                                self.translate2fr,
+                                self.translate2en,
+                                self.get_from_duden,
+                                self.word,
+                                self._ignore_cache,
+                                self._ignore_dict)
 
         word_info = get_seen_word_info(self.word)
 
         self.defined_html = render_html(self.dict_dict,
                                         word_info,
                                         translate,
-                                        _found_in_pons,
-                                        self.get_from_duden,
-                                        _found_in_duden)
+                                        self.get_from_duden)
 
     def process_input(self):
         logger.info("process_input")

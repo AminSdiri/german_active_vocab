@@ -1,12 +1,9 @@
 from datetime import datetime, timedelta
-import json
 import re
 import pandas as pd
 from bs4 import BeautifulSoup as bs
-from collections import Counter
 
-from WordProcessing import (hide_text, wrap_in_clozes,
-                            generate_hidden_words_list)
+from GetDict.GenerateDict import get_hidden_words_list, update_dict_dict_before_saving_to_quiz
 from utils import set_up_logger, write_str_to_file
 from settings import jinja_env
 
@@ -14,21 +11,25 @@ logger = set_up_logger(__name__)
 
 # TODO (1) hide der, die, das, den, dem .. before nouns
 
-def create_quiz_html(html_res, hidden_words_list):
+def _create_quiz_html(html_res, hidden_words_list):
     logger.info("create_quiz_html")
     clean_html = html_res
 
     clean_html_soup = bs(clean_html, 'lxml')
 
-    # remove headwords
-    clean_html_soup= remove_headwords(clean_html_soup)
+    clean_html_soup= _remove_headwords(clean_html_soup)
 
-    clean_html_soup= lock_definitions(clean_html_soup)
+    clean_html_soup= _remove_triangles(clean_html_soup)
 
+    clean_html_soup= _definitions_lock(clean_html_soup, action='lock')
+    
+    # TODO (4) unnacessary conversions?
     clean_html = str(clean_html_soup)
 
     for w in hidden_words_list:
         clean_html = hide_text(clean_html, w)
+
+    # word_re = re.compile(r'\b[a-zA-Z]+\b')
 
     # repl_dict = {}
     # for w in hidden_words_list:
@@ -40,15 +41,13 @@ def create_quiz_html(html_res, hidden_words_list):
     # clean_html = word_re.sub(partial(helper, repl_dict), clean_html)
 
     clean_html_soup = bs(clean_html, 'lxml')
-    clean_html_soup= unlock_definitions(clean_html_soup)
-
-    clean_html_soup= remove_triangles(clean_html_soup)
+    clean_html_soup= _definitions_lock(clean_html_soup, action='unlock')
 
     clean_html = str(clean_html_soup)
 
     return clean_html
 
-def remove_triangles(clean_html_soup):
+def _remove_triangles(clean_html_soup):
     for elem in clean_html_soup.find_all():
         if elem.string:
             if '▶' in elem.string:
@@ -57,37 +56,36 @@ def remove_triangles(clean_html_soup):
     
     return clean_html_soup
 
-def unlock_definitions(clean_html_soup):
-    '''remove dummy encoding in bold elements'''
+def _definitions_lock(clean_html_soup, action):
+    '''
+    dummy encoding to prevent words in bold (defenition section)
+    from being replaced
+    lock:
+    unlock: remove dummy encoding in bold elements'''
+
+    if action not in ['lock', 'unlock']:
+        raise RuntimeError(f'Action {action} is neither "lock" nor "unlock"')
+
     bold_elements = clean_html_soup.body.find_all(
         'span', style=re.compile('font-weight:600'))
     for elem in bold_elements:
         if elem.string:
-            elem.string.replace_with(elem.string.replace('.:.', ''))
+            if action == 'lock':
+                elem.string.replace_with('.:.'.join([c for c in elem.string]))
+            elif action == 'unlock':
+                elem.string.replace_with(elem.string.replace('.:.', ''))
         else:
             for e in elem:
                 if e.string:
-                    e.string.replace_with(e.string.replace('.:.', ''))
+                    if action == 'lock':
+                        e.string.replace_with('.:.'.join([c for c in e.string]))
+                    elif action == 'unlock':
+                        e.string.replace_with(e.string.replace('.:.', ''))
 
     return clean_html_soup
 
-def lock_definitions(clean_html_soup):
-    '''do not hide words in the definitions (in bold)'''
-    bold_elements = clean_html_soup.body.find_all(
-        'span', style=re.compile('font-weight:600'))
-    # dummy encoding to prevent words from being replaced
-    for elem in bold_elements:
-        if elem.string:
-            elem.string.replace_with('.:.'.join([c for c in elem.string]))
-        else:
-            for e in elem:
-                if e.string:
-                    e.string.replace_with('.:.'.join([c for c in e.string]))
-        
-    return clean_html_soup
 
-
-def remove_headwords(clean_html_soup):
+def _remove_headwords(clean_html_soup):
     headwords = clean_html_soup.find_all("h1")
     if headwords:
         for headword in headwords:
@@ -96,24 +94,18 @@ def remove_headwords(clean_html_soup):
     return clean_html_soup
 
 
-def wrap_words_to_learn_in_clozes(german_phrase, dict_dict):
+def wrap_words_to_learn_in_clozes(german_phrase, dict_dict, dict_path):
     logger.info("wrap_words_to_learn_in_clozes")
 
-    # TODO STRUCT (3) check your logic, only one case is always true?
-    if 'hidden_words_list' not in dict_dict:
-        hidden_words_list = generate_hidden_words_list(dict_dict)
-    else:
-        hidden_words_list = dict_dict['hidden_words_list']
-
-    # Dupes make function wrap word twice
-    hidden_words_list = list(set(hidden_words_list))
+    hidden_words_list = get_hidden_words_list(dict_dict, dict_path)
 
     front_with_cloze_wrapping = german_phrase
 
     for w in hidden_words_list:
-        front_with_cloze_wrapping = wrap_in_clozes(front_with_cloze_wrapping, w)
+        front_with_cloze_wrapping = _wrap_in_clozes(front_with_cloze_wrapping, w)
 
     return front_with_cloze_wrapping
+    
 
 def save_from_def_mode(dict_data_path, word, custom_html_from_qt, beispiel_de,
                       beispiel_en, tag, dict_dict,
@@ -190,36 +182,7 @@ def save_from_def_mode(dict_data_path, word, custom_html_from_qt, beispiel_de,
     if not beispiel_de and beispiel_en:
         raise RuntimeError('no no no no no, NO Beispiel_en without Beispiel_de, no.')
 
-    if dict_dict:
-        if not 'source' in dict_dict:
-            # TODO STRUCT (2) zid'ha meli yetsna3 dict moch lenna
-            if '_du' in dict_dict_path.stem:
-                dict_dict['source'] = 'duden'
-            else:
-                dict_dict['source'] = 'pons'
-        if not 'hidden_words_list' in dict_dict:
-            hidden_words_list = generate_hidden_words_list(dict_dict)
-            dict_dict['hidden_words_list'] = hidden_words_list
-        else:
-            hidden_words_list = dict_dict['hidden_words_list']
-    else:
-        # dict is not built -> word not found anywhere but html "written" manually
-        # BUG (2) this allows only one example to persist for manually written defs 
-        # -> TODO if manually added dict already exist append new examples to that dict else create new one like here
-        dict_dict = dict()
-        dict_dict['source'] = 'manual'
-        dict_dict['custom_examples'] = dict()
-        dict_dict['custom_examples']['german'] = []
-        dict_dict['custom_examples']['english'] = []
-        hidden_words_list = []
-        dict_dict['hidden_words_list'] = hidden_words_list
-
-    # word found in pons or duden
-    dict_dict = append_new_examples_in_dict_dict(beispiel_de, beispiel_en, dict_dict)
-
-    dict_dict = prevent_duplicating_examples(dict_dict)
-
-    write_str_to_file(dict_dict_path, json.dumps(dict_dict))
+    dict_dict, hidden_words_list = update_dict_dict_before_saving_to_quiz(beispiel_de, beispiel_en, dict_dict, dict_dict_path)
 
     # generate new custom_examples html section (if examples exist)
     if dict_dict['custom_examples']['german']:
@@ -241,11 +204,11 @@ def save_from_def_mode(dict_data_path, word, custom_html_from_qt, beispiel_de,
     # create_quiz_html will create a quiz_dict instead from dict_dict and
     # render the html from it
 
-    clean_html = create_quiz_html(custom_html_from_qt, hidden_words_list)
+    clean_html = _create_quiz_html(custom_html_from_qt, hidden_words_list)
 
     # check if one of the words will get hidden in the custom german examples -> otherwise ask the user manually to select it
     # DONE (-1) kamel 3al old custom examples
-    no_hidden_words_in_example = check_for_hidden_words_presence_in_custom_examples(dict_dict, hidden_words_list)
+    no_hidden_words_in_example = _check_for_hidden_words_presence_in_custom_examples(dict_dict, hidden_words_list)
 
     # custom_qt_html = custom_qt_html.replace('.:.', '')
     # clean_html = clean_html.replace('.:.', '')
@@ -263,42 +226,8 @@ def save_from_def_mode(dict_data_path, word, custom_html_from_qt, beispiel_de,
 
     return no_hidden_words_in_example
 
-def prevent_duplicating_examples(dict_dict):
-    '''get duplicated elements indexes in german examples.
-    delete the elements having this index in both german and english examples
-    (supposing they are parallels)'''
-    # TODO (4) change custom example entery to be dict of translations (key=german_example, value = english_translation) to avoid this non-sense
 
-
-    # only values that appears more than once
-    german_examples = dict_dict['custom_examples']['german']
-    duplicates_list = Counter(german_examples) - Counter(set(german_examples))
-
-    res = {}
-    for index, elem in enumerate(german_examples):
-        if elem in duplicates_list:
-            item = res.get(elem)
-            if item:
-                item.append(index)
-            else:
-                res[elem] = [index]
-
-    print(res)
-
-    # keep first occurence
-    indexes_to_delete = []
-    for _, values in res.items():
-        indexes_to_delete += values[1:]
-
-    indexes_to_delete.sort(reverse=True)
-
-    for index in indexes_to_delete:
-        del dict_dict['custom_examples']['german'][index]
-        del dict_dict['custom_examples']['english'][index]
-
-    return dict_dict
-
-def check_for_hidden_words_presence_in_custom_examples(dict_dict, hidden_words_list):
+def _check_for_hidden_words_presence_in_custom_examples(dict_dict, hidden_words_list):
     no_hidden_words_in_example = []
     for example_index, example_phrase in enumerate(dict_dict['custom_examples']['german']):
         if not any(x in example_phrase for x in hidden_words_list):
@@ -307,12 +236,32 @@ def check_for_hidden_words_presence_in_custom_examples(dict_dict, hidden_words_l
             no_hidden_words_in_example.append(example_index)
     return no_hidden_words_in_example
 
-def append_new_examples_in_dict_dict(beispiel_de, beispiel_en, dict_dict):
-    if beispiel_de:
-        # update custom examples list in dict_dict
-        dict_dict['custom_examples']['german'].append(beispiel_de)
-        if not beispiel_en:
-            beispiel_en = '#'*len(beispiel_de)
-        dict_dict['custom_examples']['english'].append(beispiel_en)
-    
-    return dict_dict
+def _wrap_in_clozes(text, word_to_wrap):
+    ' wrap word_to_wrap between {{c1:: and }} '
+    logger.info("wrap_in_clozes")
+
+    # TODO salla7ha zeda fel blassa lokhra
+    word_pattern = f'((^)|(?<=[^a-zA-Z])){word_to_wrap}((?=[^a-zA-Z])|($))'
+    try:
+        quiz_text = re.sub(word_pattern, f'{{{{c1::{word_to_wrap}}}}}', text)
+    except re.error:
+        quiz_text = text
+        logger.error(f'error by hiding {word_to_wrap}. '
+                     'Word may contains reserved Regex charactar')
+
+    return quiz_text
+
+def hide_text(text, word_to_hide):
+    logger.info("hide_text")
+
+    word_length = len(word_to_hide)
+
+    hide_pattern = f'(?<=[^a-zA-Z]){word_to_hide}(?=[^a-zA-Z])'
+    try:
+        quiz_text = re.sub(hide_pattern, word_length*'_', text)
+    except re.error:
+        quiz_text = text
+        logger.error(f'error by hiding {word_to_hide}. '
+                     'Word maybe contains reserved Regex charactar')
+
+    return quiz_text

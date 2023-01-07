@@ -5,38 +5,35 @@ from utils import (set_up_logger,
                    write_str_to_file)
 from settings import dict_data_path, jinja_env
 
-
 logger = set_up_logger(__name__)
 
 
-def render_html(dict_dict, word_info, translate, _found_in_pons,
-                get_from_duden, _found_in_duden):
+def render_html(dict_dict, word_info, translate,
+                get_from_duden):
     # get from duden > found in pons > not translate > else
     # TODO STRUCT (1) use one unified decision tree for all functions
+
+    source = dict_dict['source']
     if translate:
-        if _found_in_pons:
-            defined_html = render_html_from_dict(
-                'translation', dict_dict)
+        if source == 'pons':
+            defined_html = render_html_from_dict('translation', dict_dict)
         else:
             tmpl = jinja_env.get_template('not_found_pons_translation.html')
             defined_html = tmpl.render(word=word_info["word"])
         return defined_html
 
     if get_from_duden:
-        if _found_in_duden:
-            defined_html = render_html_from_dict(
-                'duden', dict_dict, word_info)
+        if source == 'duden':
+            defined_html = render_html_from_dict('duden', dict_dict, word_info)
         else:
             tmpl = jinja_env.get_template('not_found_duden.html')
             defined_html = tmpl.render(word=word_info["word"])
         return defined_html
     
-    if _found_in_pons:
-        defined_html = render_html_from_dict(
-            'definition', dict_dict, word_info)
-    elif _found_in_duden:
-        defined_html = render_html_from_dict(
-            'duden', dict_dict, word_info)
+    if source == 'pons':
+        defined_html = render_html_from_dict('definition', dict_dict, word_info)
+    elif source == 'duden':
+        defined_html = render_html_from_dict('duden', dict_dict, word_info)
     else:
         tmpl = jinja_env.get_template('not_found_pons_duden.html')
         defined_html = tmpl.render(word=word_info["word"])

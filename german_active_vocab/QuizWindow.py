@@ -1,5 +1,3 @@
-
-import json
 import subprocess
 import sys
 from datetime import datetime, timedelta
@@ -9,13 +7,12 @@ from PyQt5.QtWidgets import (QPushButton, QWidget, QLabel, QTextEdit,
 from PyQt5.QtGui import QTextCursor
 
 from ProcessQuizData import QuizEntry, spaced_repetition
-from WordProcessing import generate_hidden_words_list, hide_text
-from ParsingData.ParsingData import read_dict_from_file # QShortcut PyQt6
+from SavingToQuiz import hide_text
+from GetDict.GenerateDict import update_hidden_words_in_dict
 
 from settings import (dict_src_path,
                       maxrevpersession,
-                      quiz_priority_order
-                      )
+                      quiz_priority_order)
 
 
 from utils import read_dataframe_from_file, read_text_from_files, replace_umlauts, set_up_logger, update_dataframe_file, write_str_to_file
@@ -188,18 +185,7 @@ class QuizWindow(QWidget):
 
         word = self.quiz_obj.quiz_params["queued_word"]
         saving_word = replace_umlauts(word)
-        dict_dict_path, dict_cache_found, _, _, _, dict_dict = read_dict_from_file(saving_word, get_from_duden=False)
-        if dict_cache_found:
-            if 'hidden_words_list' in dict_dict:
-                if selected_text2hide in dict_dict['hidden_words_list']:
-                    raise RuntimeError('selected word is already in hidden words list')
-                dict_dict['hidden_words_list'].append(selected_text2hide)
-            else:
-                dict_dict['hidden_words_list'] = generate_hidden_words_list(dict_dict)
-                dict_dict['hidden_words_list'].append(selected_text2hide)
-            write_str_to_file(dict_dict_path, json.dumps(dict_dict))
-        else:
-            raise RuntimeError('dict for quized word not found')
+        update_hidden_words_in_dict(selected_text2hide, saving_word)
 
         logger.debug(f'word2hide: {selected_text2hide}')
         self.txt_cont.clear()
@@ -207,6 +193,7 @@ class QuizWindow(QWidget):
         self.txt_cont.insertHtml(self.quiz_obj.quiz_text)
         self.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
         self.show()
+
 
 class QuizRatingDiag(QDialog):
     def __init__(self, parent=None):

@@ -19,52 +19,61 @@ logger = set_up_logger(__name__)
 
 def get_word_from_source(translate2fr, translate2en, get_from_duden,
                          word, saving_word, ignore_cache):
+
     logger.info("get_word_from_source")
     translate = translate2fr or translate2en
+    found_in_pons_duden = [None, None]
 
     # Pons data
-    if not get_from_duden:
-        _pons_json, _found_in_pons = get_json_from_pons_api(
-            word,
-            saving_word,
-            translate2en,
-            translate2fr,
-            ignore_cache)
-    else:
+    if get_from_duden:
         _pons_json = ''
         _found_in_pons = None
-
-    # Duden data
-    if not translate:
-        # getting root headword
-        if _found_in_pons:
-            try:
-                duden_search_word = _pons_json[0]['hits'][0]['roms'][0]['headword']
-                duden_search_word = remove_from_str(duden_search_word, [b'\xcc\xa3', b'\xcc\xb1', b'\xc2\xb7'])
-            except KeyError:
-                duden_search_word = word
-        else:
-            duden_search_word = word
-
-        (_duden_soup, _found_in_duden) = get_duden_soup(duden_search_word,
-                                                        saving_word,
-                                                        ignore_cache,
-                                                        'dictionnary')
-        (_duden_syn_soup, _syns_found_in_duden) = get_duden_soup(duden_search_word,
-                                                                 saving_word,
-                                                                 ignore_cache,
-                                                                 'synonymes')
     else:
+        _pons_json, _found_in_pons = _get_json_from_pons_api(word,
+                                                            saving_word,
+                                                            translate2en,
+                                                            translate2fr,
+                                                            ignore_cache)
+        if _found_in_pons:  found_in_pons_duden[0] = True
+
+
+    if translate:
         _duden_soup = ''
-        _found_in_duden = None
         _duden_syn_soup = ''
         _syns_found_in_duden = None
+        return (found_in_pons_duden, _pons_json, _duden_soup,
+            _duden_syn_soup, _syns_found_in_duden)
 
-    return (_pons_json, _found_in_pons, _duden_soup, _found_in_duden,
+    # getting root headword
+    if _found_in_pons:
+        try:
+            duden_search_word = _pons_json[0]['hits'][0]['roms'][0]['headword']
+            duden_search_word = remove_from_str(duden_search_word, [b'\xcc\xa3', b'\xcc\xb1', b'\xc2\xb7'])
+        except KeyError:
+            duden_search_word = word
+    else:
+        duden_search_word = word
+
+    (_duden_soup, _found_in_duden) = _get_duden_soup(duden_search_word,
+                                                    saving_word,
+                                                    ignore_cache,
+                                                    'dictionnary')
+    if _found_in_duden:
+        found_in_pons_duden[1] = True
+
+    (_duden_syn_soup, _syns_found_in_duden) = _get_duden_soup(duden_search_word,
+                                                                saving_word,
+                                                                ignore_cache,
+                                                                'synonymes')
+
+    return (found_in_pons_duden, _pons_json, _duden_soup,
             _duden_syn_soup, _syns_found_in_duden)
 
 
-def get_duden_soup(word, filename, ignore_cache, duden_source):
+def _get_duden_soup(word, filename, ignore_cache, duden_source):
+    # TODO find better way to request word from duden
+    # example schleife is not found in duden but it's there under
+    # https://www.duden.de/rechtschreibung/Schleife_Schlinge_Kurve_Schlaufe 
     
     logger.debug('Looking in Duden cache')
     filename = filename if '_du' in filename else f'{filename}_du'
@@ -81,20 +90,20 @@ def get_duden_soup(word, filename, ignore_cache, duden_source):
 
     logger.info('Online searching for Word in Duden')
 
-    url_uppercase, url_lowercase = make_duden_url(word, duden_source)
-    found_in_duden, duden_html, http_code = get_html_from_duden(url_lowercase)
+    url_uppercase, url_lowercase = _make_duden_url(word, duden_source)
+    found_in_duden, duden_html, http_code = _get_html_from_duden(url_lowercase)
     if http_code == 404:
-        found_in_duden, duden_html, http_code = get_html_from_duden(url_uppercase)
+        found_in_duden, duden_html, http_code = _get_html_from_duden(url_uppercase)
 
     if found_in_duden:
-        duden_soup = duden_html_to_soup(duden_source, duden_html)
+        duden_soup = _duden_html_to_soup(duden_source, duden_html)
         write_str_to_file(dict_data_path / 'cache' / filename, str(duden_soup))
     else:
-        duden_soup = None
+        duden_soup = ''
 
     return duden_soup, found_in_duden
 
-def duden_html_to_soup(duden_source, duden_html):
+def _duden_html_to_soup(duden_source, duden_html):
     if duden_source == 'dictionnary':
         duden_soup = bs(duden_html, 'html.parser')
         duden_soup = duden_soup.find_all('article', role='article')
@@ -114,7 +123,7 @@ def duden_html_to_soup(duden_source, duden_html):
             duden_soup = duden_soup[0]
     return duden_soup
 
-def get_html_from_duden(url_lowercase):
+def _get_html_from_duden(url_lowercase):
     found_in_duden = False
     http_code = 0
     try:
@@ -147,7 +156,7 @@ def get_html_from_duden(url_lowercase):
         duden_html = 'No certificate installed'
     return found_in_duden, duden_html, http_code
 
-def make_duden_url(word, duden_source):
+def _make_duden_url(word, duden_source):
     if duden_source == 'dictionnary':
         url_uppercase = (f'https://www.duden.de/rechtschreibung/{replace_umlauts_2(word).capitalize()}')
         url_lowercase = (f'https://www.duden.de/rechtschreibung/{replace_umlauts_2(word).lower()}')
@@ -162,7 +171,7 @@ def make_duden_url(word, duden_source):
     return url_uppercase, url_lowercase
 
 
-def get_json_from_pons_api(word, filename: str, translate2en,
+def _get_json_from_pons_api(word, filename: str, translate2en,
                            translate2fr, ignore_cache):
     logger.debug('Looking in Pons cache')
     cache_path = dict_data_path / 'cache' / filename.replace('_du', '')

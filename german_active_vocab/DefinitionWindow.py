@@ -8,9 +8,8 @@ from PyQt5.QtGui import (QTextCharFormat,
 from SavingToQuiz import save_from_def_mode
 from DefEntry import DefEntry
 from PushToAnki import Anki
-from WordProcessing import generate_hidden_words_list
 from SavingToQuiz import wrap_words_to_learn_in_clozes
-from german_active_vocab.send_all_examples_to_anki import extract_synonymes_in_html, get_definitions_from_dict_dict
+from GetDict.GenerateDict import extract_synonymes_in_html, get_definitions_from_dict_dict
 from utils import set_up_logger
 from settings import (dict_data_path,
                       normal_font,
@@ -144,7 +143,7 @@ class DefinitionWindow(QWidget):
 
         german_phrase, english_translation = self.get_example_fileds_content()
 
-        front_with_cloze_wrapping = wrap_words_to_learn_in_clozes(german_phrase, self.def_obj.dict_dict)
+        front_with_cloze_wrapping = wrap_words_to_learn_in_clozes(german_phrase, self.def_obj.dict_dict, self.def_obj.dict_dict_path)
 
         definitions_list = get_definitions_from_dict_dict(self.def_obj.dict_dict, info='definition')
         definitions_html = '<ul>' + ''.join([f'<li>{elem}</li>' for elem in definitions_list]) + '</ul>'

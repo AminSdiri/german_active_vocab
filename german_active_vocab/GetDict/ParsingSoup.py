@@ -283,6 +283,11 @@ def get_word_freq_from_soup(soup):
             0 - least frequent
             5 - most frequent
             """
+    
+    if not soup:
+        word_freq = -1
+        return word_freq
+        
     h1_titles = soup.find_all('h1')
 
     headword_sieblings_iterator = h1_titles[0].parent.next_siblings

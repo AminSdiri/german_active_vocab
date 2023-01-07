@@ -11,6 +11,7 @@ import sys
 sys.modules['PyQt6'] = None # prevent names conflict if anki-qt6 app is installed
 from aqt.profiles import ProfileManager
 
+# TODO (1) baddel el echos lkol lenna des notifications w logger
 
 class Anki:
     """My Anki collection wrapper class."""

@@ -1,54 +1,6 @@
-import logging
-import re
-# from functools import partial
-
 from utils import set_up_logger
 
-logger = set_up_logger(__name__, level=logging.WARNING)
-
-word_re = re.compile(r'\b[a-zA-Z]+\b')
-
-
-def hide_text(text, word_to_hide):
-    logger.info("hide_text")
-
-    word_length = len(word_to_hide)
-
-    hide_pattern = f'(?<=[^a-zA-Z]){word_to_hide}(?=[^a-zA-Z])'
-    try:
-        quiz_text = re.sub(hide_pattern, word_length*'_', text)
-    except re.error:
-        quiz_text = text
-        logger.error(f'error by hiding {word_to_hide}. '
-                     'Word maybe contains reserved Regex charactar')
-
-    return quiz_text
-
-def wrap_in_clozes(text, word_to_wrap):
-    ' wrap word_to_wrap between {{c1:: and }} '
-    logger.info("wrap_in_clozes")
-
-    word_pattern = f'(?<=[^a-zA-Z]){word_to_wrap}(?=[^a-zA-Z])'
-    try:
-        quiz_text = re.sub(word_pattern, f'{{{{c1::{word_to_wrap}}}}}', text)
-    except re.error:
-        quiz_text = text
-        logger.error(f'error by hiding {word_to_wrap}. '
-                     'Word may contains reserved Regex charactar')
-
-    return quiz_text
-
-
-def find_all(a_str, sub):
-    logger.info("find_all")
-    start = 0
-    while True:
-        start = a_str.find(sub, start)
-        if start == -1:
-            return
-        yield start
-        start += len(sub)  # use start += 1 to find overlapping matches
-
+logger = set_up_logger(__name__)
 
 def generate_hidden_words_list(dict_dict):
     # TODO (3) clean up
@@ -56,10 +8,10 @@ def generate_hidden_words_list(dict_dict):
     word_variants = []
 
     for rom_idx in range(len(dict_dict['content'])):
-        headword = get_prop_from_dict(dict_dict, rom_idx,looking_for='headword')
-        wordclass = get_prop_from_dict(dict_dict, rom_idx,looking_for='wordclass')
-        genus = get_prop_from_dict(dict_dict, rom_idx,looking_for='genus')
-        flexions = get_prop_from_dict(dict_dict, rom_idx,looking_for='flexion')
+        headword = _get_prop_from_dict(dict_dict, rom_idx,looking_for='headword')
+        wordclass = _get_prop_from_dict(dict_dict, rom_idx,looking_for='wordclass')
+        genus = _get_prop_from_dict(dict_dict, rom_idx,looking_for='genus')
+        flexions = _get_prop_from_dict(dict_dict, rom_idx,looking_for='flexion')
         flexions = flexions.replace('<', '').replace('>', '')
         if flexions:
             flexion_list = flexions.split(', ')
@@ -72,9 +24,9 @@ def generate_hidden_words_list(dict_dict):
         word_variants.append(headword)
 
         if wordclass == 'verb':
-            word_variants = get_verb_flexions(word_variants, headword, flexion_list)
+            word_variants = _get_verb_flexions(word_variants, headword, flexion_list)
         else:
-            word_variants = other_than_verb_flexions(word_variants, headword, flexion_list)
+            word_variants = _other_than_verb_flexions(word_variants, headword, flexion_list)
 
         # workaround to ignore words containing special chars
         # hidden_words_list = [elem for elem in hidden_words_list if all(
@@ -90,7 +42,15 @@ def generate_hidden_words_list(dict_dict):
 
     return word_variants
 
-def other_than_verb_flexions(word_variants, headword, flexion_list):
+def _get_prop_from_dict(dict_dict, rom_idx, looking_for):
+    dict_level = dict_dict['content'][rom_idx]
+    if looking_for in dict_level:
+        prop = dict_level[looking_for]
+    else:
+        prop = ''
+    return prop
+
+def _other_than_verb_flexions(word_variants, headword, flexion_list):
     if flexion_list:
                 # base_word = cleaner_raw_titel.split(":")
                 # logger.debug(base_word)
@@ -146,7 +106,7 @@ def other_than_verb_flexions(word_variants, headword, flexion_list):
 
     return word_variants
 
-def get_verb_flexions(word_variants, headword, conjugations):
+def _get_verb_flexions(word_variants, headword, conjugations):
     if conjugations:
         logger.debug('Verb')
         base_word = headword
@@ -274,11 +234,3 @@ def get_verb_flexions(word_variants, headword, conjugations):
         word_variants.append('ge'+base_word[:-1]+'t')
     
     return word_variants
-
-def get_prop_from_dict(dict_dict, rom_idx, looking_for):
-    dict_level = dict_dict['content'][rom_idx]
-    if looking_for in dict_level:
-        prop = dict_level[looking_for]
-    else:
-        prop = ''
-    return prop

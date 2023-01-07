@@ -1,9 +1,8 @@
-import json
 import os
 from PyQt5.QtWidgets import (QPushButton, QWidget, QTextEdit, QListWidget)
 from PyQt5.QtGui import QTextCursor
-from ParsingData.ParsingData import read_dict_from_file
-from WordProcessing import generate_hidden_words_list, hide_text
+from GetDict.GenerateDict import update_hidden_words_in_dict
+from SavingToQuiz import hide_text
 
 from settings import dict_data_path
 
@@ -86,18 +85,7 @@ class HistoryWindow(QWidget):
 
         word = self.history_entry.replace('.quiz', '')
         saving_word = replace_umlauts(word)
-        dict_dict_path, dict_cache_found, _, _, _, dict_dict = read_dict_from_file(saving_word, get_from_duden=False)
-        if dict_cache_found:
-            if 'hidden_words_list' in dict_dict:
-                if selected_text2hide in dict_dict['hidden_words_list']:
-                    raise RuntimeError('selected word is already in hidden words list')
-                dict_dict['hidden_words_list'].append(selected_text2hide)
-            else:
-                dict_dict['hidden_words_list'] = generate_hidden_words_list(dict_dict)
-                dict_dict['hidden_words_list'].append(selected_text2hide)
-            write_str_to_file(dict_dict_path, json.dumps(dict_dict))
-        else:
-            raise RuntimeError('dict for quized word not found')
+        update_hidden_words_in_dict(selected_text2hide, saving_word)
 
         logger.debug(f'word2hide: {selected_text2hide}')
         self.txt_cont.clear()
