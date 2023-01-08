@@ -26,7 +26,6 @@ if __name__ == '__main__':
         dict_str = read_str_from_file(file_path)
         dict_dict = ast.literal_eval(dict_str)
 
-        # TODO STRUCT (1) BUG dicts saved from duden are not the same as those saved from Pons!! (different outer structure)
         try:
             german_phrases = dict_dict['custom_examples']['german']
         except TypeError:
@@ -60,9 +59,6 @@ if __name__ == '__main__':
                                     overwrite_notes=anki_cfg['overwrite'])
                 # fixing issues                   
                 if note_dupeOrEmpty == 3:
-                    # hidden_words_list = generate_hidden_words_list(dict_dict)
-                    # dict_dict['hidden_words_list'] = hidden_words_list
-                    # write_str_to_file(file_path, json.dumps(dict_dict))
                     command = ['python3', str(dict_src_path / 'main.py'), word]
                     print(f'reached {k} from {amount}')
                     if '{{c1::' not in front_with_cloze_wrapping:

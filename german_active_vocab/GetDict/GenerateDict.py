@@ -18,65 +18,60 @@ from settings import dict_data_path
 
 logger = set_up_logger(__name__)
 
+# TODO STRUCT (1) BUG dicts saved from duden are not the same as those saved from Pons!! (different outer structure)
+
 
 def standart_dict(saving_word, translate, translate2fr, translate2en,
                   get_from_duden, word, ignore_cache, ignore_dict):
     
+    dict_dict_path = dict_data_path / 'dict_dicts' / f'{saving_word}_standerised.json'
+
     if not (ignore_cache or ignore_dict):
-        dict_dict_path, dict_cache_found, _error_reading_json, dict_dict = _read_dict_from_file(saving_word)
+        dict_cache_found, _error_reading_json, dict_dict = _read_dict_from_file(dict_dict_path)
         if dict_cache_found and not _error_reading_json:
             return dict_dict, dict_dict_path 
 
     (found_in_pons_duden,
     _pons_json,
     _duden_soup,
-    _duden_syn_soup,
-    _syns_found_in_duden) = get_word_from_source(translate2fr,
+    _duden_syn_soup) = get_word_from_source(translate2fr,
                                                 translate2en,
                                                 get_from_duden,
                                                 word,
                                                 saving_word,
                                                 ignore_cache)
 
+    # TODO STRUCT (1) baddalha el fonction tbadel struct dict twalli standarisee
+
     if get_from_duden:
         dict_dict = _standart_duden_dict(found_in_pons_duden,
                                         _duden_soup,
                                         _duden_syn_soup,
-                                        _syns_found_in_duden,
                                         word,
                                         dict_dict_path)
 
-    elif source == 'pons':
+    elif found_in_pons_duden[0]:
         dict_dict = _standart_pons_dict(_pons_json,
                                         dict_dict_path,
                                         _duden_syn_soup,
-                                        _syns_found_in_duden,
                                         word,
                                         translate,
                                         _duden_soup)
 
     elif not translate:
-        dict_dict = _standart_duden_dict(source,
+        dict_dict = _standart_duden_dict(found_in_pons_duden,
                                         _duden_soup,
                                         _duden_syn_soup,
-                                        _syns_found_in_duden,
                                         word,
                                         dict_dict_path)
 
     else:
         dict_dict = {}
 
-    dict_dict['source'] = source
-
     return dict_dict, dict_dict_path
 
-def _read_dict_from_file(saving_word):
-    # pons or duden depending on the saving word (vorübergehend)
-
-    # TODO STRUCT (1) baddalha el fonction tbadel struct dict twalli standarisee w source pons wala duden mawjoud fel key
-
-    logger.debug('Looking for pons dict cache')
-    dict_dict_path = dict_data_path / 'dict_dicts' / f'{saving_word}_standerised.json'
+def _read_dict_from_file(dict_dict_path):
+    logger.debug('Looking for dict cache')
     dict_string, pons_dict_cache_found = get_cache(dict_dict_path)
     if pons_dict_cache_found:
         dict_cache_found = True
@@ -87,10 +82,10 @@ def _read_dict_from_file(saving_word):
             logger.warning('dict file is not readable!')
             dict_dict = {}
             error_reading_json = True
-        return dict_dict_path, dict_cache_found, error_reading_json, dict_dict
+        return dict_cache_found, error_reading_json, dict_dict
 
 def _standart_pons_dict(_pons_json, dict_dict_path,
-                       _duden_syn_soup, _syns_found_in_duden, word, translate,
+                       _duden_syn_soup, word, translate,
                        _duden_soup):
     '''
     standarize json file and save it before rendering to allow filtering of words, blocks, properties
@@ -151,42 +146,35 @@ def _standart_pons_dict(_pons_json, dict_dict_path,
             'or only for translations 2')
 
     if not translate:
-        dict_dict = _add_synonymes_from_duden(
-            dict_dict, _duden_syn_soup, _syns_found_in_duden)
-        dict_dict = _extract_custom_examples_from_html_to_dict(
-            dict_dict, word)
+        dict_dict = _add_synonymes_from_duden(dict_dict, _duden_syn_soup)
+        (dict_dict['custom_examples']['german'], 
+         dict_dict['custom_examples']['english']) = _extract_custom_examples_from_html_to_dict(dict_dict, word)
+        dict_dict['hidden_words_list'] = generate_hidden_words_list(dict_dict['content'])
 
     dict_dict['source'] = 'pons'
-
-    # save dict_dict
-    write_str_to_file(dict_dict_path, json.dumps(dict_dict))
 
     return dict_dict
 
 def _standart_duden_dict(found_in_pons_duden, _duden_soup, _duden_syn_soup,
-                        _syns_found_in_duden, word, dict_dict_path):
+                         word, dict_dict_path):
 
     if found_in_pons_duden[1]:
 
         duden_dict = parse_duden_html_to_dict(_duden_soup)
 
-        duden_dict = _add_synonymes_from_duden(
-            duden_dict, _duden_syn_soup, _syns_found_in_duden)
+        duden_dict = _add_synonymes_from_duden(duden_dict, _duden_syn_soup)
 
-        duden_dict = _extract_custom_examples_from_html_to_dict(
-            duden_dict, word)
+        (duden_dict['custom_examples']['german'], 
+         duden_dict['custom_examples']['english']) = _extract_custom_examples_from_html_to_dict(duden_dict, word)
+
+        duden_dict['hidden_words_list'] = generate_hidden_words_list(duden_dict)
 
         duden_dict['source'] = 'duden'
-
-        # save dict_dict
-        write_str_to_file(dict_dict_path, json.dumps(duden_dict))
 
     else:
         duden_dict = {}
 
     return duden_dict
-
-
 
 
 def _get_custom_example_from_html(old_html_str):
@@ -195,23 +183,25 @@ def _get_custom_example_from_html(old_html_str):
 
     ce_begin = old_html_soup.find("b", string="Eigenes Beispiel:")
     if ce_begin:
-        custum_exemple_de_soup = ce_begin.findNext('i')
-        alt_beispiele_de = custum_exemple_de_soup.string.replace('&nbsp;', '')
+        custom_example_de_soup = ce_begin.findNext('i')
+        alt_beispiele_de = custom_example_de_soup.string.replace('&nbsp;', '')
     else:
-        alt_beispiele_de = ''
-        alt_beispiele_en = ''
+        alt_beispiele_de = []
+        alt_beispiele_en = []
         return alt_beispiele_de, alt_beispiele_en
 
     ce_englisch_begin = ce_begin.findNext('b', string="Auf Englisch:")
     if ce_englisch_begin:
-        custum_exemple_en_soup = ce_englisch_begin.findNext('i')
-        alt_beispiele_en = custum_exemple_en_soup.string.replace('&nbsp;', '')
+        custom_example_en_soup = ce_englisch_begin.findNext('i')
+        alt_beispiele_en = custom_example_en_soup.string.replace('&nbsp;', '')
     else:
-        alt_beispiele_en = ''
+        alt_beispiele_en = []
 
     alt_beispiele_de = alt_beispiele_de.replace('\xa0', '')
     alt_beispiele_en = alt_beispiele_en.replace('\xa0', '')
-
+    
+    # TODO (1) BUG should return list
+    assert isinstance(alt_beispiele_de, list)
     return alt_beispiele_de, alt_beispiele_en
 
 def _extract_custom_examples_from_html_to_dict(dict_dict, word):
@@ -219,28 +209,25 @@ def _extract_custom_examples_from_html_to_dict(dict_dict, word):
     Temporary function:
     save custom examples list from the old version html in dict_dict
     '''
-
-    beispiel_list_de = dict_dict['custom_examples']['german']
-    beispiel_list_en = dict_dict['custom_examples']['english']
+    # TODO (2) run in loop and then delete here
     df = pd.read_csv(dict_data_path / 'wordlist.csv')
     df.set_index('Word', inplace=True)
     word_is_already_saved = word in df.index
-    if word_is_already_saved:
-        old_html_path = dict_data_path / 'html' / f'{word}.html'
-        old_html_str = read_str_from_file(old_html_path)
+    if not word_is_already_saved:
+        alt_beispiel_de = []
+        alt_beispiel_en = []
+        return alt_beispiel_de, alt_beispiel_en
 
-        alt_beispiel_de, alt_beispiel_en = _get_custom_example_from_html(
-            old_html_str)
-        if alt_beispiel_de:
-            beispiel_list_de.append(alt_beispiel_de)
-        if alt_beispiel_en:
-            beispiel_list_en.append(alt_beispiel_en)
+    old_html_path = dict_data_path / 'html' / f'{word}.html'
+    old_html_str = read_str_from_file(old_html_path)
 
-    return dict_dict
+    alt_beispiel_de, alt_beispiel_en = _get_custom_example_from_html(old_html_str)
+
+    return alt_beispiel_de, alt_beispiel_en
 
 
-def _add_synonymes_from_duden(dict_dict, _duden_syn_soup, _syns_found_in_duden):
-    if not _syns_found_in_duden:
+def _add_synonymes_from_duden(dict_dict, _duden_syn_soup):
+    if not _duden_syn_soup:
         return dict_dict
 
     try:
@@ -286,23 +273,6 @@ def extract_synonymes_in_html(dict_dict):
     else:
         synonymes = ''
     return synonymes
-
-def get_hidden_words_list(dict_dict, dict_path):
-    # this is temporary to add hidden_words_list to all enteries, otherwise always read from dict
-    # TODO STRUCT (3) check your logic, only one case is always true?
-    if 'hidden_words_list' not in dict_dict:
-        hidden_words_list = generate_hidden_words_list(dict_dict)
-        dict_dict['hidden_words_list'] = hidden_words_list
-        write_str_to_file(dict_path, json.dumps(dict_dict))
-    else:
-        hidden_words_list = dict_dict['hidden_words_list']
-
-    # Dupes make function wrap word twice
-    hidden_words_list = list(set(hidden_words_list))
-    
-    return hidden_words_list
-
-
 
 
 def _prevent_duplicating_examples(dict_dict):
@@ -352,11 +322,7 @@ def _append_new_examples_in_dict_dict(beispiel_de, beispiel_en, dict_dict):
 
 def update_dict_dict_before_saving_to_quiz(beispiel_de, beispiel_en, dict_dict, dict_dict_path):
     if dict_dict:
-        if not 'hidden_words_list' in dict_dict:
-            hidden_words_list = generate_hidden_words_list(dict_dict)
-            dict_dict['hidden_words_list'] = hidden_words_list
-        else:
-            hidden_words_list = dict_dict['hidden_words_list']
+        hidden_words_list = dict_dict['hidden_words_list']
     else:
         # dict is not built -> word not found anywhere but html "written" manually
         # BUG (2) this allows only one example to persist for manually written defs 
@@ -369,25 +335,21 @@ def update_dict_dict_before_saving_to_quiz(beispiel_de, beispiel_en, dict_dict, 
         hidden_words_list = []
         dict_dict['hidden_words_list'] = hidden_words_list
 
-    # word found in pons or duden
     dict_dict = _append_new_examples_in_dict_dict(beispiel_de, beispiel_en, dict_dict)
-
     dict_dict = _prevent_duplicating_examples(dict_dict)
 
-    write_str_to_file(dict_dict_path, json.dumps(dict_dict))
+    # TODO (2) when it's not ok to overwrite?
+    write_str_to_file(dict_dict_path, json.dumps(dict_dict), overwrite=True)
 
     return dict_dict, hidden_words_list
 
 def update_hidden_words_in_dict(selected_text2hide, saving_word):
-    dict_dict_path, dict_cache_found, _, _, dict_dict = _read_dict_from_file(saving_word)
+    dict_dict_path = dict_data_path / 'dict_dicts' / f'{saving_word}_standerised.json'
+    dict_cache_found, _, _, dict_dict = _read_dict_from_file(dict_dict_path)
     if dict_cache_found:
-        if 'hidden_words_list' in dict_dict:
-            if selected_text2hide in dict_dict['hidden_words_list']:
-                raise RuntimeError('selected word is already in hidden words list')
-            dict_dict['hidden_words_list'].append(selected_text2hide)
-        else:
-            dict_dict['hidden_words_list'] = generate_hidden_words_list(dict_dict)
-            dict_dict['hidden_words_list'].append(selected_text2hide)
-        write_str_to_file(dict_dict_path, json.dumps(dict_dict))
+        if selected_text2hide in dict_dict['hidden_words_list']:
+            raise RuntimeError('selected word is already in hidden words list')
+        dict_dict['hidden_words_list'].append(selected_text2hide)
+        write_str_to_file(dict_dict_path, json.dumps(dict_dict), overwrite=True)
     else:
         raise RuntimeError('dict for quized word not found')

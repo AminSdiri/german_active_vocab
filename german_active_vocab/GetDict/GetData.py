@@ -40,9 +40,7 @@ def get_word_from_source(translate2fr, translate2en, get_from_duden,
     if translate:
         _duden_soup = ''
         _duden_syn_soup = ''
-        _syns_found_in_duden = None
-        return (found_in_pons_duden, _pons_json, _duden_soup,
-            _duden_syn_soup, _syns_found_in_duden)
+        return (found_in_pons_duden, _pons_json, _duden_soup, _duden_syn_soup)
 
     # getting root headword
     if _found_in_pons:
@@ -61,13 +59,12 @@ def get_word_from_source(translate2fr, translate2en, get_from_duden,
     if _found_in_duden:
         found_in_pons_duden[1] = True
 
-    (_duden_syn_soup, _syns_found_in_duden) = _get_duden_soup(duden_search_word,
-                                                                saving_word,
-                                                                ignore_cache,
-                                                                'synonymes')
+    _duden_syn_soup, _ = _get_duden_soup(duden_search_word,
+                                        saving_word,
+                                        ignore_cache,
+                                        'synonymes')
 
-    return (found_in_pons_duden, _pons_json, _duden_soup,
-            _duden_syn_soup, _syns_found_in_duden)
+    return (found_in_pons_duden, _pons_json, _duden_soup, _duden_syn_soup)
 
 
 def _get_duden_soup(word, filename, ignore_cache, duden_source):

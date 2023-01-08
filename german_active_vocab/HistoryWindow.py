@@ -95,7 +95,7 @@ class HistoryWindow(QWidget):
         self.txt_cont.insertHtml(text)
         self.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
         logger.info("save_custom_quiztext_from_historymode")
-        write_str_to_file(history_entry_path, text, notification_list=['gespeichert!'])
+        write_str_to_file(history_entry_path, text, notification_list=['gespeichert!'], overwrite=True)
         logger.info('gespeichert!')
 
         self.show()

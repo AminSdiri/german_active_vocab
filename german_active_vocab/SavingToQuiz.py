@@ -3,7 +3,7 @@ import re
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 
-from GetDict.GenerateDict import get_hidden_words_list, update_dict_dict_before_saving_to_quiz
+from GetDict.GenerateDict import update_dict_dict_before_saving_to_quiz
 from utils import set_up_logger, write_str_to_file
 from settings import jinja_env
 
@@ -96,8 +96,10 @@ def _remove_headwords(clean_html_soup):
 
 def wrap_words_to_learn_in_clozes(german_phrase, dict_dict, dict_path):
     logger.info("wrap_words_to_learn_in_clozes")
-
-    hidden_words_list = get_hidden_words_list(dict_dict, dict_path)
+    
+    hidden_words_list = dict_dict['hidden_words_list']
+    # TODO STRUCT before saving dict and maybe after adding hidden words manually
+    hidden_words_list = list(set(hidden_words_list))
 
     front_with_cloze_wrapping = german_phrase
 

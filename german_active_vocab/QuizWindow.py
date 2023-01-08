@@ -173,7 +173,7 @@ class QuizWindow(QWidget):
 
         quiz_file_path = self.quiz_obj.quiz_file_path
 
-        write_str_to_file(quiz_file_path, qt_html_content, notification_list=['gespeichert!'])
+        write_str_to_file(quiz_file_path, qt_html_content, notification_list=['gespeichert!'], overwrite=True)
 
         logger.info('gespeichert!')
 

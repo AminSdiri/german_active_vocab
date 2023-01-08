@@ -2,16 +2,16 @@ from utils import set_up_logger
 
 logger = set_up_logger(__name__)
 
-def generate_hidden_words_list(dict_dict):
+def generate_hidden_words_list(dict_dict_content):
     # TODO (3) clean up
     logger.info("extract_hidden_words_list")
     word_variants = []
 
-    for rom_idx in range(len(dict_dict['content'])):
-        headword = _get_prop_from_dict(dict_dict, rom_idx,looking_for='headword')
-        wordclass = _get_prop_from_dict(dict_dict, rom_idx,looking_for='wordclass')
-        genus = _get_prop_from_dict(dict_dict, rom_idx,looking_for='genus')
-        flexions = _get_prop_from_dict(dict_dict, rom_idx,looking_for='flexion')
+    for rom_idx in range(len(dict_dict_content)):
+        headword = _get_prop_from_dict(dict_dict_content, rom_idx,looking_for='headword')
+        wordclass = _get_prop_from_dict(dict_dict_content, rom_idx,looking_for='wordclass')
+        genus = _get_prop_from_dict(dict_dict_content, rom_idx,looking_for='genus')
+        flexions = _get_prop_from_dict(dict_dict_content, rom_idx,looking_for='flexion')
         flexions = flexions.replace('<', '').replace('>', '')
         if flexions:
             flexion_list = flexions.split(', ')
@@ -42,8 +42,8 @@ def generate_hidden_words_list(dict_dict):
 
     return word_variants
 
-def _get_prop_from_dict(dict_dict, rom_idx, looking_for):
-    dict_level = dict_dict['content'][rom_idx]
+def _get_prop_from_dict(dict_dict_content, rom_idx, looking_for):
+    dict_level = dict_dict_content[rom_idx]
     if looking_for in dict_level:
         prop = dict_level[looking_for]
     else:

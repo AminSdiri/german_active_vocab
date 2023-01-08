@@ -88,7 +88,7 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
                            for line in defined_html.split("\n"))
 
     write_str_to_file(
-        dict_data_path / 'rendered_html_b4_qt.html', defined_html)
+        dict_data_path / 'rendered_html_b4_qt.html', defined_html, overwrite=True)
 
     # classes = [value for element in
     #            bs(defined_html, "html.parser").find_all(class_=True)

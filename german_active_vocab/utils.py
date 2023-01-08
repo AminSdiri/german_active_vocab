@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import logging
+import os
 from pathlib import Path
 import pandas as pd
 from bs4 import BeautifulSoup as bs
@@ -162,6 +163,7 @@ def update_dataframe_file(word, quiz_text, full_text):
 
 def fix_html_with_custom_example(html_text):
     # TODO (5) Vorübergehend, delete after all htmls are updated
+    # TODO (2) run in loop and then delete here
     logger.info("fix_html_with_custom_example")
 
     html_text = html_text.replace('</body></html><br><br>',
@@ -182,10 +184,10 @@ def read_text_from_files(word):
     full_text = read_str_from_file(full_file_path)
 
     full_text = fix_html_with_custom_example(full_text)
-    write_str_to_file(full_file_path, full_text)
+    write_str_to_file(full_file_path, full_text, overwrite=True)
 
     quiz_text = fix_html_with_custom_example(quiz_text)
-    write_str_to_file(quiz_file_path, quiz_text)
+    write_str_to_file(quiz_file_path, quiz_text, overwrite=True)
 
     return full_text, quiz_text
 
@@ -198,11 +200,19 @@ def read_str_from_file(path: Path):
     return file_string
 
 
-def write_str_to_file(path: Path, string: str, notification_list=[]):
+def write_str_to_file(path: Path, string: str, overwrite=False, notification_list=[]):
     # TODO (3) Overwrite files?, in which case I want to do that
     # in which case I want to reset DF entries
     path_str = replace_umlauts(str(path))
     path = Path(path_str)
+
+    # Prevent unintentional overwriting
+    if os.path.exists(path) and not overwrite:
+        notification.notify(title='Overwriting is not allowed',
+                            message=f'Path: {path_str} exists',
+                            timeout=20)
+        raise RuntimeError(f'Path "{path_str}" exists and overwriting is not allowed')
+
     with open(path, 'w', encoding='utf-8') as f:
         f.write(string)
     if notification_list:
