@@ -52,21 +52,21 @@ def _get_prop_from_dict(dict_dict_content, rom_idx, looking_for):
 
 def _other_than_verb_flexions(word_variants, headword, flexion_list):
     if flexion_list:
-                # base_word = cleaner_raw_titel.split(":")
-                # logger.debug(base_word)
-                # try:
-                #     plural = flexion_list[1]
-                #     wrdrr = plural
-                #     word_variants += flexion_list
-                # except IndexError:
-                #     conjugations = base_word[0].split()
-                #     if (conjugations[0] == 'der' or
-                #         conjugations[0] == 'die' or
-                #             conjugations[0] == 'das'):
-                #         wrdrr = conjugations[1].replace('·', '')
-                #     else:
-                #         wrdrr = conjugations[0].replace('·', '')
-                #     word_variants.append(wrdrr)
+        # base_word = cleaner_raw_titel.split(":")
+        # logger.debug(base_word)
+        # try:
+        #     plural = flexion_list[1]
+        #     wrdrr = plural
+        #     word_variants += flexion_list
+        # except IndexError:
+        #     conjugations = base_word[0].split()
+        #     if (conjugations[0] == 'der' or
+        #         conjugations[0] == 'die' or
+        #             conjugations[0] == 'das'):
+        #         wrdrr = conjugations[1].replace('·', '')
+        #     else:
+        #         wrdrr = conjugations[0].replace('·', '')
+        #     word_variants.append(wrdrr)
         word_variants.append(headword+'e')
         word_variants.append(headword+'en')
         word_variants.append(headword+'er')
@@ -76,22 +76,22 @@ def _other_than_verb_flexions(word_variants, headword, flexion_list):
         word_variants.append(headword+'r')
         word_variants.append(headword+'m')
         word_variants.append(headword+'s')
-                # conjugations = base_word[0].split()
-                # if (conjugations[0] == 'der'
-                #       or conjugations[0] == 'die'
-                #       or conjugations[0] == 'das'):
-                #     wrdrr = conjugations[1].replace('·', '').replace('', '')
-                # else:
-                #     wrdrr = conjugations[0].replace('·', '').replace('', '')
-            # else:
-                # word_variants += cleaner_raw_titel.split()
-                # logger.debug(word_variants)
-                # if (word_variants[0] == 'der' or
-                #     word_variants[0] == 'die' or
-                #         word_variants[0] == 'das'):
-                #     wrdrr = word_variants[1].replace('·', '').replace('', '')
-                # else:
-                #     wrdrr = word_variants[0].replace('·', '').replace('', '')
+        # conjugations = base_word[0].split()
+        # if (conjugations[0] == 'der'
+        #       or conjugations[0] == 'die'
+        #       or conjugations[0] == 'das'):
+        #     wrdrr = conjugations[1].replace('·', '').replace('', '')
+        # else:
+        #     wrdrr = conjugations[0].replace('·', '').replace('', '')
+    # else:
+        # word_variants += cleaner_raw_titel.split()
+        # logger.debug(word_variants)
+        # if (word_variants[0] == 'der' or
+        #     word_variants[0] == 'die' or
+        #         word_variants[0] == 'das'):
+        #     wrdrr = word_variants[1].replace('·', '').replace('', '')
+        # else:
+        #     wrdrr = word_variants[0].replace('·', '').replace('', '')
 
     # TODO (1) feminine cases 
     word_variants.append(headword+'e')

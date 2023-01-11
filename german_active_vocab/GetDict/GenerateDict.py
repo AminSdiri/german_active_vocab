@@ -20,8 +20,7 @@ logger = set_up_logger(__name__)
 
 # TODO STRUCT (1) BUG dicts saved from duden are not the same as those saved from Pons!! (different outer structure)
 
-
-def standart_dict(saving_word, translate, translate2fr, translate2en,
+def standart_dict(saving_word, translate2fr, translate2en,
                   get_from_duden, word, ignore_cache, ignore_dict):
     
     dict_dict_path = dict_data_path / 'dict_dicts' / f'{saving_word}_standerised.json'
@@ -42,6 +41,8 @@ def standart_dict(saving_word, translate, translate2fr, translate2en,
                                                 ignore_cache)
 
     # TODO STRUCT (1) baddalha el fonction tbadel struct dict twalli standarisee
+    
+    translate = translate2fr or translate2en
 
     if get_from_duden:
         dict_dict = _standart_duden_dict(found_in_pons_duden,
@@ -82,7 +83,11 @@ def _read_dict_from_file(dict_dict_path):
             logger.warning('dict file is not readable!')
             dict_dict = {}
             error_reading_json = True
-        return dict_cache_found, error_reading_json, dict_dict
+    else:
+        dict_cache_found = False
+        error_reading_json = None
+        dict_dict = {}
+    return dict_cache_found, error_reading_json, dict_dict
 
 def _standart_pons_dict(_pons_json, dict_dict_path,
                        _duden_syn_soup, word, translate,
@@ -150,8 +155,7 @@ def _standart_pons_dict(_pons_json, dict_dict_path,
         (dict_dict['custom_examples']['german'], 
          dict_dict['custom_examples']['english']) = _extract_custom_examples_from_html_to_dict(dict_dict, word)
         dict_dict['hidden_words_list'] = generate_hidden_words_list(dict_dict['content'])
-
-    dict_dict['source'] = 'pons'
+        dict_dict['source'] = 'pons'
 
     return dict_dict
 
@@ -181,25 +185,31 @@ def _get_custom_example_from_html(old_html_str):
     old_html_str = fix_html_with_custom_example(old_html_str)
     old_html_soup = bs(old_html_str, 'lxml')
 
+    # lkolou deja fi class=custom_examples
+    alt_beispiele_de = []
     ce_begin = old_html_soup.find("b", string="Eigenes Beispiel:")
     if ce_begin:
         custom_example_de_soup = ce_begin.findNext('i')
-        alt_beispiele_de = custom_example_de_soup.string.replace('&nbsp;', '')
+        while custom_example_de_soup:
+            alt_beispiele_de.append(custom_example_de_soup.string.replace('&nbsp;', '').replace('\xa0', ''))
+            custom_example_de_soup = custom_example_de_soup.findNext('i')
     else:
         alt_beispiele_de = []
         alt_beispiele_en = []
         return alt_beispiele_de, alt_beispiele_en
 
+    alt_beispiele_en = []
     ce_englisch_begin = ce_begin.findNext('b', string="Auf Englisch:")
     if ce_englisch_begin:
         custom_example_en_soup = ce_englisch_begin.findNext('i')
-        alt_beispiele_en = custom_example_en_soup.string.replace('&nbsp;', '')
+        while custom_example_en_soup:
+            alt_beispiele_en.append(custom_example_en_soup.string.replace('&nbsp;', '').replace('\xa0', ''))
+            custom_example_en_soup = custom_example_en_soup.findNext('i')
     else:
         alt_beispiele_en = []
-
-    alt_beispiele_de = alt_beispiele_de.replace('\xa0', '')
-    alt_beispiele_en = alt_beispiele_en.replace('\xa0', '')
     
+    alt_beispiele_de = alt_beispiele_de[:-len(alt_beispiele_en)]
+
     # TODO (1) BUG should return list
     assert isinstance(alt_beispiele_de, list)
     return alt_beispiele_de, alt_beispiele_en
@@ -266,9 +276,7 @@ def get_definitions_from_dict_dict(dict_dict, info='definition'):
 def extract_synonymes_in_html(dict_dict):
     if 'synonymes' in dict_dict:
         synonymes = dict_dict['synonymes']
-        syns_list_of_strings = []
-        for syns in synonymes:
-            syns_list_of_strings.append(', '.join(syns))
+        syns_list_of_strings = [', '.join(syns) for syns in synonymes]
         synonymes = '<ul>' + ''.join([f'<li>{elem}</li>' for elem in syns_list_of_strings]) + '</ul>'
     else:
         synonymes = ''
@@ -294,8 +302,6 @@ def _prevent_duplicating_examples(dict_dict):
                 item.append(index)
             else:
                 res[elem] = [index]
-
-    print(res)
 
     # keep first occurence
     indexes_to_delete = []

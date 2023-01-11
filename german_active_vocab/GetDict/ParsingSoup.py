@@ -299,12 +299,14 @@ def get_word_freq_from_soup(soup):
         if tag_name == 'dl':
             if 'Häufigkeit' in sib.dt.contents[0].string:
                 word_freq = len(sib.dd.div.span.string)
-                break
-        elif tag_name == 'div':
-            logger.warning(
-                "reached the end of header section without finding wortart")
-            word_freq = -1
-            break
+                return word_freq
+        # elif tag_name == 'div':
+        #     logger.warning(
+        #         "reached the end of header section without finding wortart")
+        #     word_freq = -1
+        #     break
+
+    word_freq = -1
     return word_freq
 
 
@@ -319,12 +321,13 @@ def get_wordclass_from_soup(soup):
         if tag_name == 'dl':
             if 'Wortart' in sib.dt.contents[0].string:
                 wortart = sib.dd.string
-                break
-        elif tag_name == 'div':
-            logger.warning(
-                "reached the end of header section without finding wortart")
-            wortart = ''
-            break
+                return wortart
+        # elif tag_name == 'div':
+        #     logger.warning(
+        #         "reached the end of header section without finding wortart")
+        #     wortart = ''
+        #     break
+    wortart = ''
     return wortart
 
 

@@ -8,14 +8,14 @@ from settings import dict_data_path, jinja_env
 logger = set_up_logger(__name__)
 
 
-def render_html(dict_dict, word_info, translate,
-                get_from_duden):
+def render_html(dict_dict, word, translate, get_from_duden):
     # get from duden > found in pons > not translate > else
     # TODO STRUCT (1) use one unified decision tree for all functions
 
-    source = dict_dict['source']
+    word_info = get_seen_word_info(word)
+
     if translate:
-        if source == 'pons':
+        if dict_dict:
             defined_html = render_html_from_dict('translation', dict_dict)
         else:
             tmpl = jinja_env.get_template('not_found_pons_translation.html')
@@ -23,23 +23,32 @@ def render_html(dict_dict, word_info, translate,
         return defined_html
 
     if get_from_duden:
-        if source == 'duden':
+        if dict_dict:
             defined_html = render_html_from_dict('duden', dict_dict, word_info)
         else:
             tmpl = jinja_env.get_template('not_found_duden.html')
             defined_html = tmpl.render(word=word_info["word"])
         return defined_html
-    
-    if source == 'pons':
-        defined_html = render_html_from_dict('definition', dict_dict, word_info)
-    elif source == 'duden':
-        defined_html = render_html_from_dict('duden', dict_dict, word_info)
-    else:
+
+    if not dict_dict:
         tmpl = jinja_env.get_template('not_found_pons_duden.html')
         defined_html = tmpl.render(word=word_info["word"])
+    elif dict_dict['source'] == 'pons':
+        defined_html = render_html_from_dict('definition', dict_dict, word_info)
+    elif dict_dict['source'] == 'duden':
+        defined_html = render_html_from_dict('duden', dict_dict, word_info)
 
     return defined_html
 
+def get_seen_word_info(word):
+    df = pd.read_csv(dict_data_path / 'wordlist.csv')
+    df.set_index('Word', inplace=True)
+    word_is_already_saved = word in df.index
+    word_info = {'word': word}
+    if word_is_already_saved:
+        word_info["Previous_date"] = df.loc[word, "Previous_date"]
+        word_info["Next_date"] = df.loc[word, "Next_date"]
+    return word_info
 
 def render_html_from_dict(html_type: str, dict_dict, word_info={}):
 
@@ -493,14 +502,3 @@ def treat_class_du(value, class_name, previous_class_name,
     value = f'<acronym title="{class_name}">{value}</acronym>'
     value = f'<font color="#ffff00">{value}</font>'
     return value
-
-
-def get_seen_word_info(word):
-    df = pd.read_csv(dict_data_path / 'wordlist.csv')
-    df.set_index('Word', inplace=True)
-    word_is_already_saved = word in df.index
-    word_info = {'word': word}
-    if word_is_already_saved:
-        word_info["Previous_date"] = df.loc[word, "Previous_date"]
-        word_info["Next_date"] = df.loc[word, "Next_date"]
-    return word_info

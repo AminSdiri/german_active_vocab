@@ -1,6 +1,8 @@
 from PyQt5.QtWidgets import (QPushButton, QWidget, QLineEdit, QCheckBox)
+from dataclasses import astuple, dataclass
+import sys
 
-from utils import set_up_logger
+from utils import replace_umlauts, set_up_logger
 
 logger = set_up_logger(__name__)
 
@@ -77,4 +79,19 @@ class SearchWindow(QWidget):
         self.history_button.clicked.connect(self.parent().launch_history_list_window)
         self.quiz_button.clicked.connect(self.parent().launch_quiz_window)
         self.focus_button.clicked.connect(self.parent().launch_focus_window)
-        self.expand_btn.clicked.connect(self.parent().expand_window_animation)
+        self.expand_btn.clicked.connect(self.parent().expand_search_window_animation)
+
+
+    def get_filled_search_form(self):
+        logger.info("return search form inputs")
+        
+        word = self.line.text()
+        
+        if self.translate_fr.isChecked():
+            word += ' fr'
+        if self.translate_fr.isChecked():
+            word += ' en'
+
+        return word
+
+    

@@ -109,7 +109,7 @@ def wrap_words_to_learn_in_clozes(german_phrase, dict_dict, dict_path):
     return front_with_cloze_wrapping
     
 
-def save_from_def_mode(dict_data_path, word, custom_html_from_qt, beispiel_de,
+def quizify_and_save(dict_data_path, word, custom_html_from_qt, beispiel_de,
                       beispiel_en, tag, dict_dict,
                       dict_dict_path):
     '''
@@ -147,6 +147,8 @@ def save_from_def_mode(dict_data_path, word, custom_html_from_qt, beispiel_de,
     - save the html
     '''
 
+    # TODO (3) look at qdatawidgetmapper
+
     # removing '\n' elements
     custom_html_from_qt = "".join(line.strip() for line in custom_html_from_qt.split("\n"))
     custom_qt_soup = bs(custom_html_from_qt, 'lxml')
@@ -162,8 +164,7 @@ def save_from_def_mode(dict_data_path, word, custom_html_from_qt, beispiel_de,
             ce_begin.parent.decompose()
 
         # destroy "word last seen" section
-        last_seen_begin = custom_qt_soup.find(
-            "span", string=re.compile("Last seen on"))
+        last_seen_begin = custom_qt_soup.find("span", string=re.compile("Last seen on"))
         if last_seen_begin:
             if last_seen_begin.parent.previous_sibling.name == 'hr':
                 last_seen_begin.parent.previous_sibling.decompose()
@@ -222,8 +223,10 @@ def save_from_def_mode(dict_data_path, word, custom_html_from_qt, beispiel_de,
     # clean_html = fix_html_with_custom_example(clean_html)
 
     write_str_to_file(dict_data_path / 'html' / f'{word}.html', custom_html_from_qt,
+                      overwrite=True,
                       notification_list=[f'{word} gespeichert!'])
-    write_str_to_file(dict_data_path / 'html' /f'{word}.quiz.html', clean_html)
+    write_str_to_file(dict_data_path / 'html' /f'{word}.quiz.html', clean_html,
+                      overwrite=True)
     logger.info(f'{word} gespeichert')
 
     return no_hidden_words_in_example

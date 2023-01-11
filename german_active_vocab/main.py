@@ -2,6 +2,7 @@
 # coding = utf-8
 
 # import setuptools
+from dataclasses import asdict
 import sys
 from PyQt5.QtCore import Qt, QRect, QPropertyAnimation, QPoint, QSize
 from PyQt5.QtWidgets import (QApplication,
@@ -12,11 +13,12 @@ from PyQt5.QtGui import (QKeySequence,
 import traceback
 from plyer import notification
 
-from DefinitionWindow import DefinitionWindow
+from view.DefinitionWindow import DefinitionWindow
 from FocusWindow import FocusWindow
 from HistoryWindow import HistoryWindow, WordlistWindow
 from QuizWindow import QuizWindow
-from SearchWindow import SearchWindow
+from view.SearchWindow import SearchWindow
+from DefEntry import DefEntry
 
 from utils import set_up_logger
 # from autologging import traced
@@ -74,21 +76,9 @@ class MainWindow(QMainWindow):
         logger.info("init MainWindow")
         super(MainWindow, self).__init__(parent)
         self.setGeometry(535, 150, 210, 50)
-        self.launch_first_window()
+        self.launch_search_window()
         self.move_to_center() 
         self.set_shortcuts()
-
-
-    def launch_first_window(self):
-        logger.info("launch_first_window")
-
-        nbargin = len(sys.argv) - 1
-        if nbargin:
-            logger.debug('shell command with args')
-            self.launch_definition_window()
-        else:
-            logger.debug('0 Args')
-            self.launch_search_window()
             
     def launch_search_window(self):
         logger.info("Launch search window")
@@ -99,16 +89,16 @@ class MainWindow(QMainWindow):
                                    central_widget=self.search_form,
                                    Frameless=True,
                                    size=QSize(self.search_form.base_width, 40))
+        
+        nbargin = len(sys.argv) - 1
+        if nbargin:
+            logger.debug('shell command with args')
+            self.launch_definition_window()
+        else:
+            logger.debug('0 Args')
+            self.show()
 
-        self.show()
-
-    def get_filled_search_form(self):
-        word = self.search_form.line.text()
-        checkbox_en = self.search_form.translate_en.isChecked()
-        checkbox_fr = self.search_form.translate_fr.isChecked()
-        return word, checkbox_en, checkbox_fr
-
-    def expand_window_animation(self):
+    def expand_search_window_animation(self):
         logger.info("expand_window")
         current_width = self.width()
         window_x = self.x()
@@ -134,7 +124,13 @@ class MainWindow(QMainWindow):
     def launch_definition_window(self):
         logger.info("launch definition window")
 
-        self.def_window = DefinitionWindow(self)
+        nbargin = len(sys.argv) - 1
+        input_word = self.search_form.get_filled_search_form() if nbargin == 0  else sys.argv[1]
+
+        def_obj = DefEntry(search_word=input_word)
+        self.def_window = DefinitionWindow(def_obj)
+        self.def_window.return_button.clicked.connect(self.launch_search_window)
+        self.def_window.fill_def_window(def_obj) # BUG (0) thabet fel unpacking thaherli mayhemouch esm el variable
         
         self.set_window_properties(title="Wörterbuch",
                                    central_widget=self.def_window,
