@@ -204,6 +204,38 @@ class TreeModel(QAbstractItemModel):
 
         return self.rootItem
 
+    def get_dict_address(self, index):
+        text = self.data(index)
+        last_index = index
+        address = []
+        while last_index.isValid():
+            column = last_index.column()
+            assert column<2, "Index path is not valid."
+            row = last_index.row()
+            if column == 0:
+                last_index_content = last_index.data()
+                if last_index_content:
+                    if (last_index_content[0].isdigit()
+                        or last_index_content=='Phrases:'):
+                        #special case for header_num
+                        address.append(row)
+                    else:
+                        address.append(last_index_content)
+                else:
+                    address.append(row)
+            elif column == 1:
+                # element is value in dict
+                # TODO test with multiple examples
+                key = last_index.siblingAtColumn(0).data()
+                if key:
+                    address.append(key)
+                else:
+                    address.append(row)
+            last_index = last_index.parent()
+        
+        address.reverse()
+        return text, address
+
     # def updateActions(self):
     #     hasSelection = not self.view.selectionModel().selection().isEmpty()
     #     self.removeRowAction.setEnabled(hasSelection)

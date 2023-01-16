@@ -214,3 +214,13 @@ def write_str_to_file(path: Path, string: str, overwrite=False, notification_lis
     #     logger.error('Error writing')
     #     # notify
     #     pass
+
+def wrap_html_red_strikethrough(text):
+    if text.startswith('<s'):
+        # already wrapped
+        return text
+    text=f'<s style="color:Tomato;">{text}</s>'
+    return text
+
+def remove_html_red_strikethrough(text):
+    return text.replace('<s style="color:Tomato;">','').replace('</s>', '')

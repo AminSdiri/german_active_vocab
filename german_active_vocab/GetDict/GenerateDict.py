@@ -10,7 +10,7 @@ from GetDict.ParsingSoup import (create_synonyms_list,
                                      get_word_freq_from_soup,
                                      parse_duden_html_to_dict)
 from GetDict.HiddenWordsList import generate_hidden_words_list
-from utils import fix_html_with_custom_example
+from utils import fix_html_with_custom_example, remove_html_red_strikethrough
 from utils import (get_cache,
                    read_str_from_file,
                    set_up_logger, write_str_to_file)
@@ -338,3 +338,36 @@ def update_hidden_words_in_dict(selected_text2hide, saving_word):
         write_str_to_file(dict_dict_path, json.dumps(dict_dict), overwrite=True)
     else:
         raise RuntimeError('dict for quized word not found')
+
+
+
+
+# most easily readable way to recursivly operate on a nested dict
+# https://stackoverflow.com/questions/55704719/python-replace-values-in-nested-dictionary
+# TODO (2) generalize this function to use here for dict operations
+def dict_replace_value(dict_object):
+    new_dict = {}
+    for key, value in dict_object.items():
+        if isinstance(value, dict):
+            value = dict_replace_value(value)
+        elif isinstance(value, list):
+            value = list_replace_value(value)
+        elif isinstance(value, str):
+            if value.startswith('<s'):
+                value = remove_html_red_strikethrough(value)
+        new_dict[key] = value
+    return new_dict
+
+
+def list_replace_value(list_object):
+    new_list = []
+    for elem in list_object:
+        if isinstance(elem, list):
+            elem = list_replace_value(elem)
+        elif isinstance(elem, dict):
+            elem = dict_replace_value(elem)
+        elif isinstance(elem, str):
+            if elem.startswith('<s'):
+                elem = remove_html_red_strikethrough(elem)
+        new_list.append(elem)
+    return new_list
