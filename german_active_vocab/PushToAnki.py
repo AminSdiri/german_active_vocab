@@ -235,8 +235,8 @@ def plain_to_html(plain):
 
 if __name__ == "__main__":
     # for testing
-    from settings import anki_cfg
-    with Anki(**anki_cfg) as a:
+    from settings import ANKI_CONFIG
+    with Anki(**ANKI_CONFIG) as a:
         a.add_notes_single(['a8', 'b8'], tags='', model=None, deck=None)
     print('done')
 

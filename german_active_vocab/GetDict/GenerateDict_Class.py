@@ -14,7 +14,7 @@ from utils import fix_html_with_custom_example
 from utils import (get_cache,
                    read_str_from_file,
                    set_up_logger, write_str_to_file)
-from settings import dict_data_path
+from settings import DICT_DATA_PATH
 
 logger = set_up_logger(__name__)
 
@@ -25,7 +25,7 @@ class WordDict():
     def __init__(self, saving_word, translate, translate2fr, translate2en,
                     get_from_duden, word, ignore_cache, ignore_dict):
         
-        self.dict_dict_path = dict_data_path / 'dict_dicts' / f'{saving_word}_standerised.json'
+        self.dict_dict_path = DICT_DATA_PATH / 'dict_dicts' / f'{saving_word}_standerised.json'
 
         if not (ignore_cache or ignore_dict):
             dict_cache_found, _error_reading_json, dict_dict = self._read_dict_from_file()
@@ -214,7 +214,7 @@ class WordDict():
         save custom examples list from the old version html in dict_dict
         '''
         # TODO (2) run in loop and then delete here
-        df = pd.read_csv(dict_data_path / 'wordlist.csv')
+        df = pd.read_csv(DICT_DATA_PATH / 'wordlist.csv')
         df.set_index('Word', inplace=True)
         word_is_already_saved = word in df.index
         if not word_is_already_saved:
@@ -222,7 +222,7 @@ class WordDict():
             alt_beispiel_en = []
             return alt_beispiel_de, alt_beispiel_en
 
-        old_html_path = dict_data_path / 'html' / f'{word}.html'
+        old_html_path = DICT_DATA_PATH / 'html' / f'{word}.html'
         old_html_str = read_str_from_file(old_html_path)
 
         alt_beispiel_de, alt_beispiel_en = self._get_custom_example_from_html(old_html_str)

@@ -4,10 +4,10 @@ from PyQt5.QtGui import QTextCursor
 from GetDict.GenerateDict import update_hidden_words_in_dict
 from SavingToQuiz import hide_text
 
-from settings import dict_data_path
+from settings import DICT_DATA_PATH
 
 
-from utils import read_str_from_file, read_text_from_files, replace_umlauts, set_up_logger, update_dataframe_file, write_str_to_file
+from utils import read_str_from_file, read_text_from_files, sanitize_word, set_up_logger, update_dataframe_file, write_str_to_file
 
 logger = set_up_logger(__name__)
 
@@ -28,7 +28,7 @@ class WordlistWindow(QWidget):
         self.wordlist.move(5, 5)
 
     def fill_wordlist(self):
-        files = (dict_data_path / 'html').glob("*.html")
+        files = (DICT_DATA_PATH / 'html').glob("*.html")
         files = list(files)
         files.sort(key=os.path.getmtime, reverse=True)
         files = [x.stem for x in files]
@@ -59,7 +59,7 @@ class HistoryWindow(QWidget):
 
         index = parent.wordlist_window.returned_index
         self.history_entry = index if type(index) is str else index.text()
-        history_entry_path = dict_data_path / 'html' / f'{self.history_entry}.html'
+        history_entry_path = DICT_DATA_PATH / 'html' / f'{self.history_entry}.html'
         text = read_str_from_file(history_entry_path)
 
         self.txt_cont.insertHtml(text)
@@ -84,12 +84,12 @@ class HistoryWindow(QWidget):
         selected_text2hide = self.txt_cont.textCursor().selectedText()
 
         word = self.history_entry.replace('.quiz', '')
-        saving_word = replace_umlauts(word)
+        saving_word = sanitize_word(word)
         update_hidden_words_in_dict(selected_text2hide, saving_word)
 
         logger.debug(f'word2hide: {selected_text2hide}')
         self.txt_cont.clear()
-        history_entry_path = dict_data_path / 'html' / f'{self.history_entry}.html'
+        history_entry_path = DICT_DATA_PATH / 'html' / f'{self.history_entry}.html'
         text = read_str_from_file(history_entry_path)
         text = hide_text(text, selected_text2hide)
         self.txt_cont.insertHtml(text)

@@ -1,7 +1,7 @@
 import json
 import subprocess
 from GetDict.HiddenWordsList import generate_hidden_words_list
-from settings import dict_src_path, dict_data_path
+from settings import DICT_SRC_PATH, DICT_DATA_PATH
 from utils import read_str_from_file, write_str_to_file
 import ast
 import os
@@ -12,7 +12,7 @@ import os
 # ezouz mafamech -> source pons w sajjel 
 
 if __name__ == '__main__':
-    files = (dict_data_path / 'dict_dicts').glob("*.json")
+    files = (DICT_DATA_PATH / 'dict_dicts').glob("*.json")
     files_path = list(files)
     files = [file.stem for file in files_path]
     print('Rest: ', len(files))

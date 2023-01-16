@@ -10,12 +10,12 @@ from ProcessQuizData import QuizEntry, spaced_repetition
 from SavingToQuiz import hide_text
 from GetDict.GenerateDict import update_hidden_words_in_dict
 
-from settings import (dict_src_path,
-                      maxrevpersession,
-                      quiz_priority_order)
+from settings import (DICT_SRC_PATH,
+                      MAX_REV_PER_SESSION,
+                      QUIZ_PRIORITY_ORDER)
 
 
-from utils import read_dataframe_from_file, read_text_from_files, replace_umlauts, set_up_logger, update_dataframe_file, write_str_to_file
+from utils import read_dataframe_from_file, read_text_from_files, sanitize_word, set_up_logger, update_dataframe_file, write_str_to_file
 
 logger = set_up_logger(__name__)
 
@@ -60,9 +60,9 @@ class QuizWindow(QWidget):
     def get_quiz_obj(self):
         wordlist_df = read_dataframe_from_file(total=True)
 
-        self.quiz_obj = QuizEntry(quiz_priority_order=quiz_priority_order,
+        self.quiz_obj = QuizEntry(quiz_priority_order=QUIZ_PRIORITY_ORDER,
                                   words_dataframe=wordlist_df,
-                                  maxrevpersession=maxrevpersession)
+                                  maxrevpersession=MAX_REV_PER_SESSION)
 
         logger.debug(
             f'queued_word output: {self.quiz_obj.quiz_params["queued_word"]}')
@@ -76,7 +76,7 @@ class QuizWindow(QWidget):
             self.reached_daily_limit_dialogue()
 
         if no_words_left4today:
-            if quiz_priority_order == 'old_words':
+            if QUIZ_PRIORITY_ORDER == 'old_words':
                 self.no_words_left_at_all_dialogue()
             else:
                 self.no_planned_words_left_dialogue()
@@ -105,7 +105,7 @@ class QuizWindow(QWidget):
             sys.exit()
 
     def no_planned_words_left_dialogue(self):
-        global quiz_priority_order
+        global QUIZ_PRIORITY_ORDER
         logger.info("no_planned_words_left_dialogue")
         choice = QMessageBox.question(self, "You've got it all!",
                                       "Well done, you have all planned words "
@@ -114,14 +114,14 @@ class QuizWindow(QWidget):
                                       QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Close)
         if choice == QMessageBox.StandardButton.Yes:
             logger.info("Repeating list Naaaaaaoooww!!!!")
-            quiz_priority_order = 'old_words'
+            QUIZ_PRIORITY_ORDER = 'old_words'
             logger.debug('mod switch')
             self.get_quiz_obj()
         else:
             sys.exit()
 
     def no_words_left_at_all_dialogue(self):
-        global quiz_priority_order
+        global QUIZ_PRIORITY_ORDER
         logger.info("no_words_left_at_all_dialogue")
         choice = QMessageBox.question(self, "Easy! You've got it all!",
                                       "Well done, you have all planned words and non planned"
@@ -163,7 +163,7 @@ class QuizWindow(QWidget):
     def update_word_html(self):
         logger.info("update_word_html")
         queued_word = self.quiz_obj.quiz_params["queued_word"]
-        subprocess.Popen(['python3', str(dict_src_path / 'main.py'),
+        subprocess.Popen(['python3', str(DICT_SRC_PATH / 'main.py'),
                           f'{queued_word} new_dict'])
 
 
@@ -184,7 +184,7 @@ class QuizWindow(QWidget):
         selected_text2hide = self.txt_cont.textCursor().selectedText()
 
         word = self.quiz_obj.quiz_params["queued_word"]
-        saving_word = replace_umlauts(word)
+        saving_word = sanitize_word(word)
         update_hidden_words_in_dict(selected_text2hide, saving_word)
 
         logger.debug(f'word2hide: {selected_text2hide}')

@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import (QPushButton, QWidget, QLineEdit, QCheckBox)
 from dataclasses import astuple, dataclass
 import sys
 
-from utils import replace_umlauts, set_up_logger
+from utils import sanitize_word, set_up_logger
 
 logger = set_up_logger(__name__)
 

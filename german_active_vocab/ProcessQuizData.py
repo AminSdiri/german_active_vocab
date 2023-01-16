@@ -10,7 +10,7 @@ from pandas.core.frame import DataFrame
 from plyer import notification
 
 from utils import read_text_from_files, set_up_logger
-from settings import dict_data_path
+from settings import DICT_DATA_PATH
 
 logger = set_up_logger(__name__)
 
@@ -38,8 +38,8 @@ class QuizEntry():
         logger.info("get quiz files")
 
         word = self.quiz_params["queued_word"]
-        self.quiz_file_path = dict_data_path / 'html' / f'{word}.quiz.html'
-        self.full_file_path = dict_data_path / 'html' / f'{word}.html'
+        self.quiz_file_path = DICT_DATA_PATH / 'html' / f'{word}.quiz.html'
+        self.full_file_path = DICT_DATA_PATH / 'html' / f'{word}.html'
         if word:
             self.full_text, self.quiz_text = read_text_from_files(word)
         else:
@@ -254,7 +254,7 @@ def update_train_data(queued_word, df, now, easiness, interval):
     new_train_row = pd.DataFrame(new_train_row)
 
     train_data = pd.read_csv(
-        dict_data_path / 'train_data.csv', index_col=0)
+        DICT_DATA_PATH / 'train_data.csv', index_col=0)
     train_data = train_data.append(new_train_row, ignore_index=True)
     cols = ['Word', 'Revist_date', 'Planned_date',
             'Previous_date', 'Current_Interval',
@@ -262,7 +262,7 @@ def update_train_data(queued_word, df, now, easiness, interval):
             'Repetitions', 'EF_score', 'Tag']
     train_data = train_data[cols]
 
-    train_data.to_csv(dict_data_path / 'train_data.csv')
+    train_data.to_csv(DICT_DATA_PATH / 'train_data.csv')
 
 
 def spaced_repetition(easiness, now, df, saving_file, EF_score=1,
@@ -294,4 +294,4 @@ def spaced_repetition(easiness, now, df, saving_file, EF_score=1,
     df.loc[queued_word, "Interval"] = interval
     df.loc[queued_word, "Easiness"] = easiness
     df.loc[queued_word, "Previous_date"] = now
-    df.to_csv(dict_data_path / saving_file)
+    df.to_csv(DICT_DATA_PATH / saving_file)

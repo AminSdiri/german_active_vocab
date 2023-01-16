@@ -265,6 +265,8 @@ def _populate_rom_and_arab_level_dict(full_headword,
                 continue
 
             if key_class in ['headword', 'wordclass', 'flexion', 'genus']:
+                if key_class == 'flexion':
+                    source_content = source_content.replace('<', '[').replace('>', ']')
                 rom_level_dict = _update_dict_w_ignoring(
                     rom_level_dict, key_class, source_content)
             elif key_class in arab_level_dict:

@@ -127,7 +127,7 @@ class MainWindow(QMainWindow):
         nbargin = len(sys.argv) - 1
         input_word = self.search_form.get_filled_search_form() if nbargin == 0  else sys.argv[1]
 
-        def_obj = DefEntry(search_word=input_word)
+        def_obj = DefEntry(input_word=input_word)
         self.def_window = DefinitionWindow(def_obj)
         self.def_window.return_button.clicked.connect(self.launch_search_window)
         self.def_window.fill_def_window(def_obj) # BUG (0) thabet fel unpacking thaherli mayhemouch esm el variable
@@ -135,9 +135,29 @@ class MainWindow(QMainWindow):
         self.set_window_properties(title="Wörterbuch",
                                    central_widget=self.def_window,
                                    Frameless=False,
-                                   size=QSize(700, 690))
-
+                                   size=QSize(self.def_window.base_width, 690))
         self.show()
+
+    def expand_definition_window_animation(self):
+        logger.info("expand_window")
+        current_width = self.width()
+        window_x = self.x()
+        window_y = self.y()
+
+        logger.info(current_width)
+
+        if self.def_window.base_width == current_width:
+            start_width = self.def_window.base_width
+            end_width = self.def_window.extended_width
+        else:
+            start_width = self.def_window.extended_width
+            end_width = self.def_window.base_width
+
+        self.animation = QPropertyAnimation(self, b'geometry')
+        self.animation.setDuration(200)
+        self.animation.setStartValue(QRect(window_x, window_y, start_width, 690))
+        self.animation.setEndValue(QRect(window_x, window_y, end_width, 690))
+        self.animation.start()
 
     def launch_history_list_window(self):
         logger.info("launch history list window")

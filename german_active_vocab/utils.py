@@ -2,12 +2,13 @@ from datetime import datetime, timedelta
 import logging
 import os
 from pathlib import Path
+import string
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 from plyer import notification
 # from autologging import TRACE
 
-from settings import dict_data_path
+from settings import DICT_DATA_PATH
 
 
 def set_up_logger(logger_name, level=logging.INFO):
@@ -42,20 +43,20 @@ def get_cache(cache_path):
     return cache_file_content, cache_found
 
 
-def replace_umlauts(word: str):
-    """for filenames that don't support umlauts
-
-    Args:
-        word (str): [description]
-
-    Returns:
-        [str]: strings without Umlaut
+def sanitize_word(word: str) -> str:
     """
-    normalized_word = word.replace("ü", "ue")\
-        .replace("ö", "oe")\
-        .replace("ä", "ae")\
-        .replace("ß", "ss")
-    return normalized_word
+    Sanitize unicode word for use as filename
+    Ascii letters and underscore are kept unchanged.
+    Other characters, umlauts for example are replaced with "-u{charccode}-" string.
+    """
+    allowed_chars = string.ascii_letters + "_"
+
+    def sanitize_char(char):
+        if char in allowed_chars:
+            return char
+        return "-u" + str(ord(char)) + "-"
+
+    return "".join(sanitize_char(char) for char in word)
 
 
 def replace_umlauts_2(word: str):
@@ -97,25 +98,9 @@ def remove_from_str(string: str, substrings: list):
         string = string.replace(substring, b'')
     return string.decode('utf-8')
 
-
-def log_word_in_wordlist_history(word):
-    now = datetime.now() - timedelta(hours=3)
-
-    logger.info("log_word_in_wordlist_history")
-    f = open(dict_data_path / 'Wordlist.txt', "a+")
-    fileend = f.tell()
-    f.seek(0)
-    historyfile = f.read()
-    f.seek(fileend)
-    word_count = (historyfile.count('\n'+word+', ')
-                  + historyfile.count('\n'+word+' ')
-                  + historyfile.count('\n'+word+'\n'))
-    f.write(f'\n{word}, {str(word_count)}, {now.strftime("%d.%m.%y")}')
-    f.close()
-
 def read_dataframe_from_file(total=True):
     filename = 'wordlist.csv' if total else 'wordpart_list.csv'
-    df = pd.read_csv(dict_data_path / filename)
+    df = pd.read_csv(DICT_DATA_PATH / filename)
     indexname = 'Word' if total else 'Wordpart'
     df.set_index(indexname, inplace=True)
     df['Next_date'] = pd.to_datetime(df['Next_date'])
@@ -136,7 +121,7 @@ def update_dataframe_file(word, quiz_text, full_text):
     # TODO STRUCT (2) minimize reading and writing to disk?
     wordlist_df = read_dataframe_from_file(total=True)
     wordlist_df.loc[word, 'Focused'] = 1
-    wordlist_df.to_csv(dict_data_path / 'wordlist.csv')
+    wordlist_df.to_csv(DICT_DATA_PATH / 'wordlist.csv')
 
     general_EF = wordlist_df.loc[word, 'EF_score']
 
@@ -154,7 +139,7 @@ def update_dataframe_file(word, quiz_text, full_text):
         focus_df.loc[wordpart, "Next_date"] = now # insixdays
         focus_df.loc[wordpart, "Part"] = k
         focus_df.loc[wordpart, "Ignore"] = ignore_list[k]
-    focus_df.to_csv(dict_data_path / 'wordpart_list.csv')
+    focus_df.to_csv(DICT_DATA_PATH / 'wordpart_list.csv')
 
     notification.notify(title=f'"{word}"',
                             message='Added to Focus Mode',
@@ -177,10 +162,10 @@ def fix_html_with_custom_example(html_text):
     return html_text
 
 def read_text_from_files(word):
-    quiz_file_path = dict_data_path / 'html' / f'{word}.quiz.html'
+    quiz_file_path = DICT_DATA_PATH / 'html' / f'{word}.quiz.html'
     quiz_text = read_str_from_file(quiz_file_path)
 
-    full_file_path = dict_data_path / 'html' / f'{word}.html'
+    full_file_path = DICT_DATA_PATH / 'html' / f'{word}.html'
     full_text = read_str_from_file(full_file_path)
 
     full_text = fix_html_with_custom_example(full_text)
@@ -192,8 +177,9 @@ def read_text_from_files(word):
     return full_text, quiz_text
 
 def read_str_from_file(path: Path):
-    path_str = replace_umlauts(str(path))
-    path = Path(path_str)
+    # word (path.stem) is sanitized before therefore not needed
+    # path_str = sanitize_word(str(path))
+    # path = Path(path_str)
     with open(path, 'r') as file:
         file_string = file.read()
 
@@ -203,15 +189,15 @@ def read_str_from_file(path: Path):
 def write_str_to_file(path: Path, string: str, overwrite=False, notification_list=[]):
     # TODO (3) Overwrite files?, in which case I want to do that
     # in which case I want to reset DF entries
-    path_str = replace_umlauts(str(path))
-    path = Path(path_str)
+    # path_str = str(path)
+    # path = Path(path_str)
 
     # Prevent unintentional overwriting
     if os.path.exists(path) and not overwrite:
         notification.notify(title='Overwriting is not allowed',
-                            message=f'Path: {path_str} exists',
+                            message=f'Path: {path} exists',
                             timeout=20)
-        raise RuntimeError(f'Path "{path_str}" exists and overwriting is not allowed')
+        raise RuntimeError(f'Path "{path}" exists and overwriting is not allowed')
 
     with open(path, 'w', encoding='utf-8') as f:
         f.write(string)

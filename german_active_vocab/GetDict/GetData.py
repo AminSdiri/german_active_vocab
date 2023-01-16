@@ -12,7 +12,7 @@ from utils import (get_cache,
                    replace_umlauts_2,
                    set_up_logger,
                    write_str_to_file)
-from settings import dict_data_path
+from settings import DICT_DATA_PATH
 
 logger = set_up_logger(__name__)
 
@@ -26,10 +26,10 @@ def get_word_from_source(translate2fr, translate2en, get_from_duden,
 
     # Pons data
     if get_from_duden:
-        _pons_json = ''
+        pons_json = ''
         _found_in_pons = None
     else:
-        _pons_json, _found_in_pons = _get_json_from_pons_api(word,
+        pons_json, _found_in_pons = _get_json_from_pons_api(word,
                                                             saving_word,
                                                             translate2en,
                                                             translate2fr,
@@ -38,33 +38,33 @@ def get_word_from_source(translate2fr, translate2en, get_from_duden,
 
 
     if translate:
-        _duden_soup = ''
-        _duden_syn_soup = ''
-        return (found_in_pons_duden, _pons_json, _duden_soup, _duden_syn_soup)
+        duden_soup = ''
+        duden_syn_soup = ''
+        return (found_in_pons_duden, pons_json, duden_soup, duden_syn_soup)
 
     # getting root headword
     if _found_in_pons:
         try:
-            duden_search_word = _pons_json[0]['hits'][0]['roms'][0]['headword']
+            duden_search_word = pons_json[0]['hits'][0]['roms'][0]['headword']
             duden_search_word = remove_from_str(duden_search_word, [b'\xcc\xa3', b'\xcc\xb1', b'\xc2\xb7'])
         except KeyError:
             duden_search_word = word
     else:
         duden_search_word = word
 
-    (_duden_soup, _found_in_duden) = _get_duden_soup(duden_search_word,
+    (duden_soup, _found_in_duden) = _get_duden_soup(duden_search_word,
                                                     saving_word,
                                                     ignore_cache,
                                                     'dictionnary')
     if _found_in_duden:
         found_in_pons_duden[1] = True
 
-    _duden_syn_soup, _ = _get_duden_soup(duden_search_word,
+    duden_syn_soup, _ = _get_duden_soup(duden_search_word,
                                         saving_word,
                                         ignore_cache,
                                         'synonymes')
 
-    return (found_in_pons_duden, _pons_json, _duden_soup, _duden_syn_soup)
+    return (found_in_pons_duden, pons_json, duden_soup, duden_syn_soup)
 
 
 def _get_duden_soup(word, filename, ignore_cache, duden_source):
@@ -76,7 +76,7 @@ def _get_duden_soup(word, filename, ignore_cache, duden_source):
     filename = filename if '_du' in filename else f'{filename}_du'
     if duden_source == 'synonymes':
         filename += '_syn'
-    cache_path = dict_data_path / 'cache' / filename
+    cache_path = DICT_DATA_PATH / 'cache' / filename
     duden_html, duden_cache_found = get_cache(cache_path)
 
     if duden_cache_found and not ignore_cache:
@@ -94,7 +94,7 @@ def _get_duden_soup(word, filename, ignore_cache, duden_source):
 
     if found_in_duden:
         duden_soup = _duden_html_to_soup(duden_source, duden_html)
-        write_str_to_file(dict_data_path / 'cache' / filename, str(duden_soup))
+        write_str_to_file(DICT_DATA_PATH / 'cache' / filename, str(duden_soup))
     else:
         duden_soup = ''
 
@@ -171,7 +171,7 @@ def _make_duden_url(word, duden_source):
 def _get_json_from_pons_api(word, filename: str, translate2en,
                            translate2fr, ignore_cache):
     logger.debug('Looking in Pons cache')
-    cache_path = dict_data_path / 'cache' / filename.replace('_du', '')
+    cache_path = DICT_DATA_PATH / 'cache' / filename
     json_file, json_cache_found = get_cache(cache_path)
 
     if json_cache_found and not ignore_cache:
@@ -196,7 +196,7 @@ def _get_json_from_pons_api(word, filename: str, translate2en,
             # Please consider using your own API (it's free)
             # this one is limited to 1000 request per month
             # (https://en.pons.com/open_dict/public_api/secret)
-            api_path = dict_data_path / 'PONS_API'
+            api_path = DICT_DATA_PATH / 'PONS_API'
             api_secret = read_str_from_file(api_path)
             api_secret = api_secret.replace('\n', '')
 
@@ -219,7 +219,7 @@ def _get_json_from_pons_api(word, filename: str, translate2en,
             if status_code == 200:
                 logger.debug('got Json from Pons')
                 json_data = raw_data.json()
-                write_str_to_file(dict_data_path / 'cache' /
+                write_str_to_file(DICT_DATA_PATH / 'cache' /
                                   filename, json.dumps(json_data))
             else:
                 logger.warning(

@@ -108,8 +108,10 @@
             {% if h1_key != 'custom_examples' %}
             {% if h1_key != 'synonymes' %}
             {% if h1_key != 'hidden_words_list' %}
-            <!-- TODO apparement lena zeda lezmni n'ignori source  -->
+            {% if h1_key != 'source' %}
+            <!-- done apparement lena zeda lezmni n'ignori source  -->
                 <span class={{h1_key}}>{{h1_value|treat_class(h1_key, ns.previous_h1_key, ns.previous_h1_value)}} </span>
+            {% endif %}
             {% endif %}
             {% endif %}
             {% endif %}

@@ -12,7 +12,7 @@ def generate_hidden_words_list(dict_dict_content):
         wordclass = _get_prop_from_dict(dict_dict_content, rom_idx,looking_for='wordclass')
         genus = _get_prop_from_dict(dict_dict_content, rom_idx,looking_for='genus')
         flexions = _get_prop_from_dict(dict_dict_content, rom_idx,looking_for='flexion')
-        flexions = flexions.replace('<', '').replace('>', '')
+        flexions = flexions.replace('<', '').replace('>', '').replace('[', '').replace(']', '')
         if flexions:
             flexion_list = flexions.split(', ')
         else:
@@ -43,8 +43,16 @@ def generate_hidden_words_list(dict_dict_content):
     return word_variants
 
 def _get_prop_from_dict(dict_dict_content, rom_idx, looking_for):
-    dict_level = dict_dict_content[rom_idx]
+    if isinstance(dict_dict_content, dict):
+        # dict from duden case (temporary)
+        dict_level = dict_dict_content
+    else:
+        dict_level = dict_dict_content[rom_idx]
     if looking_for in dict_level:
+        # temporary to fix flexion in saved dicts
+        if looking_for == 'flexion':
+            dict_level[looking_for] = dict_level[looking_for].replace('<', '[').replace('>', ']')
+        # end temporary
         prop = dict_level[looking_for]
     else:
         prop = ''

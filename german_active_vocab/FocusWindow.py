@@ -5,8 +5,8 @@ from PyQt5.QtWidgets import (QPushButton, QWidget, QLabel, QTextEdit,
 from PyQt5.QtGui import (QTextCursor)
 from ProcessQuizData import FocusEntry, spaced_repetition
 
-from settings import (dict_data_path,
-                      focus_font)
+from settings import (DICT_DATA_PATH,
+                      FOCUS_FONT)
 
 
 from utils import read_dataframe_from_file, set_up_logger
@@ -33,7 +33,7 @@ class FocusWindow(QWidget):
 
         focus_df = read_dataframe_from_file(total=False)
         self.focus_obj = FocusEntry(focus_df=focus_df)
-        self.txt_cont.setFont(focus_font)
+        self.txt_cont.setFont(FOCUS_FONT)
         self.txt_cont.insertHtml(self.focus_obj.focus_part)
         self.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
 
@@ -77,14 +77,14 @@ class FocusWindow(QWidget):
         logger.info("ignore_part")
         focus_df = self.focus_obj.focus_df
         focus_df.loc[self.focus_obj.focus_params_dict['queued_word'], "Ignore"] = 1
-        focus_df.to_csv(dict_data_path / 'wordpart_list.csv')
+        focus_df.to_csv(DICT_DATA_PATH / 'wordpart_list.csv')
         self.parent().launch_focus_window()
 
     def reveal_full_html_focus(self):
         logger.info("reveal_full_html_focus")
 
         self.txt_cont.clear()
-        self.txt_cont.setFont(focus_font)
+        self.txt_cont.setFont(FOCUS_FONT)
         self.txt_cont.insertHtml(self.focus_obj.focus_part_revealed)
         self.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
         

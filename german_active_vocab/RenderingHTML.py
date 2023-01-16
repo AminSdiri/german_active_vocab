@@ -1,53 +1,86 @@
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 
-from utils import (set_up_logger,
-                   write_str_to_file)
-from settings import dict_data_path, jinja_env
+from utils import (set_up_logger, write_str_to_file)
+from settings import DICT_DATA_PATH, JINJA_ENVIRONEMENT
 
 logger = set_up_logger(__name__)
 
 
-def render_html(dict_dict, word, translate, get_from_duden):
-    # get from duden > found in pons > not translate > else
-    # TODO STRUCT (1) use one unified decision tree for all functions
+# TODO (2) fama dl, Definition list, Supports the standard block attributes fel PyQT HTML esta3melha le def blocks bech yabdew alignee 3al isar.
 
-    word_info = get_seen_word_info(word)
+def render_html(dict_dict):
+    # get from duden > found in pons > not translate > else
+
+
+    # TODO STRUCT (1) use one unified decision tree for all functions
+    # ->> e7cen structure
+    # word_info = get_saved_seen_word_info(word)
+
+    # if translate:
+    #     if dict_dict:
+    #         defined_html = render_html_from_dict('translation', dict_dict)
+    #     else:
+    #         tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_translation.html')
+    #         defined_html = tmpl.render(word=word_info["word"])
+    #     return defined_html
+
+    # if get_from_duden:
+    #     if dict_dict:
+    #         defined_html = render_html_from_dict('duden', dict_dict, word_info)
+    #     else:
+    #         tmpl = JINJA_ENVIRONEMENT.get_template('not_found_duden.html')
+    #         defined_html = tmpl.render(word=word_info["word"])
+    #     return defined_html
+
+    # if not dict_dict:
+    #     tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_duden.html')
+    #     defined_html = tmpl.render(word=word_info["word"])
+    # elif dict_dict['source'] == 'pons':
+    #     defined_html = render_html_from_dict('pons', dict_dict, word_info)
+    # elif dict_dict['source'] == 'duden':
+    #     defined_html = render_html_from_dict('duden', dict_dict, word_info)
+
+    # BUG (0) dict_dict is list for translate
+    word_info = get_saved_seen_word_info(dict_dict['search_word'])
+
+    translate = isinstance(dict_dict, list)
 
     if translate:
         if dict_dict:
             defined_html = render_html_from_dict('translation', dict_dict)
         else:
-            tmpl = jinja_env.get_template('not_found_pons_translation.html')
+            tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_translation.html')
             defined_html = tmpl.render(word=word_info["word"])
         return defined_html
 
-    if get_from_duden:
+    if dict_dict['requested'] == 'duden':
         if dict_dict:
             defined_html = render_html_from_dict('duden', dict_dict, word_info)
         else:
-            tmpl = jinja_env.get_template('not_found_duden.html')
+            tmpl = JINJA_ENVIRONEMENT.get_template('not_found_duden.html')
             defined_html = tmpl.render(word=word_info["word"])
         return defined_html
 
     if not dict_dict:
-        tmpl = jinja_env.get_template('not_found_pons_duden.html')
+        tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_duden.html')
         defined_html = tmpl.render(word=word_info["word"])
     elif dict_dict['source'] == 'pons':
-        defined_html = render_html_from_dict('definition', dict_dict, word_info)
+        defined_html = render_html_from_dict('pons', dict_dict, word_info)
     elif dict_dict['source'] == 'duden':
         defined_html = render_html_from_dict('duden', dict_dict, word_info)
 
     return defined_html
 
-def get_seen_word_info(word):
-    df = pd.read_csv(dict_data_path / 'wordlist.csv')
+def get_saved_seen_word_info(word):
+    df = pd.read_csv(DICT_DATA_PATH / 'wordlist.csv')
     df.set_index('Word', inplace=True)
     word_is_already_saved = word in df.index
     word_info = {'word': word}
     if word_is_already_saved:
         word_info["Previous_date"] = df.loc[word, "Previous_date"]
         word_info["Next_date"] = df.loc[word, "Next_date"]
+
     return word_info
 
 def render_html_from_dict(html_type: str, dict_dict, word_info={}):
@@ -75,20 +108,20 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
 
     }
 
-    jinja_env.filters["is_list"] = is_list
-    if html_type == 'definition':
-        jinja_env.filters["treat_class"] = treat_class_def
-        tmpl = jinja_env.get_template('definition.html')
+    JINJA_ENVIRONEMENT.filters["is_list"] = is_list
+    if html_type == 'pons':
+        JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_def
+        tmpl = JINJA_ENVIRONEMENT.get_template('definition_pons.html')
         defined_html = tmpl.render(dict_dict=dict_dict,
                                    word_info=word_info,
                                    col_pal=color_palette_dict)
     elif html_type == 'translation':
-        jinja_env.filters["treat_class"] = treat_class_trans
-        tmpl = jinja_env.get_template('translation.html')
+        JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_trans
+        tmpl = JINJA_ENVIRONEMENT.get_template('translation.html')
         defined_html = tmpl.render(lang_dict=dict_dict)
     elif html_type == 'duden':
-        jinja_env.filters["treat_class"] = treat_class_du
-        tmpl = jinja_env.get_template('definition_du.html')
+        JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_du
+        tmpl = JINJA_ENVIRONEMENT.get_template('definition_du.html')
         defined_html = tmpl.render(du_dict=dict_dict,
                                    word_info=word_info)
 
@@ -97,7 +130,7 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
                            for line in defined_html.split("\n"))
 
     write_str_to_file(
-        dict_data_path / 'rendered_html_b4_qt.html', defined_html, overwrite=True)
+        DICT_DATA_PATH / 'rendered_html_b4_qt.html', defined_html, overwrite=True)
 
     # classes = [value for element in
     #            bs(defined_html, "html.parser").find_all(class_=True)
@@ -116,6 +149,11 @@ def treat_class_def(value, class_name, previous_class_name,
                     previous_class_value):
     '''workaround because of css21'''
     logger.info(f"treating class: {class_name}")
+
+    # ignore striked values
+    if isinstance(value, str):
+        if value.startswith('<s'):
+            return ''
 
     # value = value.strip()
 
@@ -388,6 +426,11 @@ def treat_class_du(value, class_name, previous_class_name,
                    previous_class_value):
     '''workaround because of css21'''
     logger.info(f"treating class: {class_name}")
+
+    # ignore striked values
+    if isinstance(value, str):
+        if value.startswith('<s'):
+            return ''
 
     # value = value.strip()
 

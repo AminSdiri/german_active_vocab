@@ -1,15 +1,16 @@
 from dataclasses import dataclass, field
 from pathlib import Path
+import re
 import sys
-from typing import Dict   # , field
+from datetime import datetime, timedelta
+
 from bs4.builder import HTML
-from GetDict.GenerateDict import extract_synonymes_in_html, get_definitions_from_dict_dict, standart_dict
+from GetDict.GenerateDict import extract_synonymes_in_html_format, get_definitions_from_dict_dict, standart_dict
 from RenderingHTML import render_html
 from PushToAnki import Anki
-from SavingToQuiz import wrap_words_to_learn_in_clozes
-from settings import anki_cfg
+from settings import ANKI_CONFIG, DICT_DATA_PATH
 
-from utils import (log_word_in_wordlist_history, replace_umlauts, set_up_logger)
+from utils import (sanitize_word, set_up_logger)
 
 logger = set_up_logger(__name__)
 
@@ -20,7 +21,8 @@ logger = set_up_logger(__name__)
 @dataclass
 class DefEntry():
     # TODO(0) STRUCT hiya nafs'ha lclass mta3 search_input
-    search_word: str
+    input_word: str
+    search_word: str = ''
     saving_word: str = ''
     beispiel_de: str = ''
     beispiel_en: str = ''
@@ -32,15 +34,16 @@ class DefEntry():
 
     dict_dict: dict = field(default_factory=dict)
     dict_dict_path: Path = ''
+
     defined_html: HTML = ''
     # duden_synonyms: list = field(default_factory=list)
     # hidden_words_list: list = field(default_factory=list)
 
     def __post_init__(self):
 
-        log_word_in_wordlist_history(self.search_word)
+        self._process_input()
 
-        self.process_input(self.search_word)
+        self._log_word_in_wordlist_history()
 
         (self.dict_dict,
          self.dict_dict_path) = standart_dict(self.saving_word,
@@ -50,37 +53,54 @@ class DefEntry():
                                 self.search_word,
                                 self._ignore_cache,
                                 self._ignore_dict)
+ 
+        self.defined_html = render_html(dict_dict=self.dict_dict)
+    
+    def update_dict(self, text, address):
+        # validate address
+        dict_slice = self.dict_dict['content']
+        for idx, entry in enumerate(address):
+            try:
+                if idx == len(address)-1:
+                    if isinstance(dict_slice[entry], str):
+                        dict_slice[entry] = text
+                else:
+                    dict_slice = dict_slice[entry]
+            except KeyError:
+                raise KeyError(f"{entry} not in dict. Invalid Address: {address}")
+            except TypeError: 
+                raise TypeError('list indices must be integers or slices, not str')
+        print(self.dict_dict)
 
-        translate = self.translate2fr or self.translate2en
+    def re_render_html(self):
+        self.defined_html = render_html(dict_dict=self.dict_dict)
+        return self.defined_html
 
-        self.defined_html = render_html(dict_dict=self.dict_dict,
-                                        word=self.search_word,
-                                        translate=translate,
-                                        get_from_duden=self.get_from_duden)
-
-    def process_input(self, input_word):
-        if ' new_dict' in input_word:
+    def _process_input(self):
+        if ' new_dict' in self.input_word:
             self._ignore_dict = True
-            input_word = input_word.replace(' new_dict', '')
+            self.input_word = self.input_word.replace(' new_dict', '')
         else:
             self._ignore_dict = False
 
-        if ' new_cache' in input_word:
+        if ' new_cache' in self.input_word:
             self._ignore_cache = True
-            input_word = input_word.replace(' new_cache', '')
+            self.input_word = self.input_word.replace(' new_cache', '')
         else:
             self._ignore_cache = False
 
         # search_word and translate-info
-        if ' fr' in input_word:
+        if ' fr' in self.input_word:
             self.translate2fr = True
-            self.search_word = input_word.replace(' fr', '')
-        elif ' en' in input_word:
+            self.search_word = self.input_word.replace(' fr', '')
+        elif ' en' in self.input_word:
             self.translate2en = True
-            self.search_word = input_word.replace(' en', '')
-        elif ' du' in input_word:
+            self.search_word = self.input_word.replace(' en', '')
+        elif ' du' in self.input_word:
             self.get_from_duden = True
-            self.search_word = input_word.replace(' du', '')
+            self.search_word = self.input_word.replace(' du', '')
+        else:
+            self.search_word = self.input_word
         self.search_word = self.search_word.lower()
 
         # saving word
@@ -90,7 +110,9 @@ class DefEntry():
             self.saving_word = self.search_word + '_en'
         elif self.get_from_duden:
             self.saving_word = self.search_word + '_du'
-        self.saving_word = replace_umlauts(self.saving_word)
+        else:
+            self.saving_word = self.search_word
+        self.saving_word = sanitize_word(self.saving_word)
 
         nbargin = len(sys.argv) - 1
         
@@ -109,24 +131,69 @@ class DefEntry():
         else :
             raise RuntimeError('Number of argument exceeds 3')
 
+    def _log_word_in_wordlist_history(self):
+        # TODO (1) update to with open
+        now = datetime.now() - timedelta(hours=3)
+
+        logger.info("log_word_in_wordlist_history")
+        f = open(DICT_DATA_PATH / 'Wordlist.txt', "a+")
+        fileend = f.tell()
+        f.seek(0)
+        historyfile = f.read()
+        f.seek(fileend)
+        word_count = (historyfile.count('\n'+self.input_word+', ')
+                    + historyfile.count('\n'+self.input_word+' ')
+                    + historyfile.count('\n'+self.input_word+'\n'))
+        f.write(f'\n{self.input_word}, {str(word_count)}, {now.strftime("%d.%m.%y")}')
+        f.close()
+
+    def wrap_words_to_learn_in_clozes(self, german_phrase):
+        logger.info("wrap_words_to_learn_in_clozes")
+        
+        hidden_words_list = self.dict_dict['hidden_words_list']
+        # TODO STRUCT before saving dict and maybe after adding hidden words manually
+        hidden_words_list = list(set(hidden_words_list))
+
+        front_with_cloze_wrapping = german_phrase
+
+        for w in hidden_words_list:
+            front_with_cloze_wrapping = self._wrap_in_clozes(front_with_cloze_wrapping, w)
+
+        return front_with_cloze_wrapping
+
+    def _wrap_in_clozes(self, text, word_to_wrap):
+        ' wrap word_to_wrap between {{c1:: and }} '
+        logger.info("wrap_in_clozes")
+
+        # TODO salla7ha zeda fel blassa lokhra
+        word_pattern = f'((^)|(?<=[^a-zA-Z])){word_to_wrap}((?=[^a-zA-Z])|($))'
+        try:
+            quiz_text = re.sub(word_pattern, f'{{{{c1::{word_to_wrap}}}}}', text)
+        except re.error:
+            quiz_text = text
+            logger.error(f'error by hiding {word_to_wrap}. '
+                        'Word may contains reserved Regex charactar')
+
+        return quiz_text
+
     def ankify(self, german_phrase, english_translation):
-        front_with_cloze_wrapping = wrap_words_to_learn_in_clozes(german_phrase, self.dict_dict, self.dict_dict_path)
+        front_with_cloze_wrapping = self.wrap_words_to_learn_in_clozes(german_phrase)
 
         definitions_list = get_definitions_from_dict_dict(self.dict_dict, info='definition')
         definitions_html = '<ul>' + ''.join([f'<li>{elem}</li>' for elem in definitions_list]) + '</ul>'
 
-        synonymes_html = extract_synonymes_in_html(self.dict_dict)
+        synonymes_html = extract_synonymes_in_html_format(self.dict_dict)
 
-        with Anki(base=anki_cfg['base'], profile=anki_cfg['profile']) as a:
+        with Anki(base=ANKI_CONFIG['base'], profile=ANKI_CONFIG['profile']) as a:
             a.add_notes_single(cloze=front_with_cloze_wrapping,
                                 hint1=synonymes_html,
                                 hint2=english_translation,
                                 hint3=definitions_html,
                                 answer_extra=self.search_word,
                                 tags='',
-                                model=anki_cfg['model'],
-                                deck=anki_cfg['deck'],
-                                overwrite_notes=anki_cfg['overwrite'])
+                                model=ANKI_CONFIG['model'],
+                                deck=ANKI_CONFIG['deck'],
+                                overwrite_notes=ANKI_CONFIG['overwrite'])
 
     def add_word_to_hidden_list(self, selected_text2hide):
         if selected_text2hide in self.dict_dict['hidden_words_list']:

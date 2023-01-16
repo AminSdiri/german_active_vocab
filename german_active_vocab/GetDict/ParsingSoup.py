@@ -74,7 +74,7 @@ def populate_content_entry(bedeutung_soup):
         dict_content[0][0] = dict()
         snd_lvl_dict = dict_content[0][0]
         snd_lvl_dict['header'] = ''
-        parse_child(bedeutung_soup, snd_lvl_dict)
+        snd_lvl_dict = parse_child(bedeutung_soup, snd_lvl_dict)
         return dict_content
 
     # TODO (4) use recursive function like recursivly_extract?
@@ -85,7 +85,7 @@ def populate_content_entry(bedeutung_soup):
         dict_content[0][0] = dict()
         snd_lvl_dict = dict_content[0][0]
         snd_lvl_dict['header'] = ''
-        parse_child(bedeutung_soup, snd_lvl_dict)
+        snd_lvl_dict = parse_child(bedeutung_soup, snd_lvl_dict)
         return dict_content
 
     len_arabs = len(fst_lvl_li_children)
@@ -102,7 +102,7 @@ def populate_content_entry(bedeutung_soup):
                 snd_lvl_dict['header'] = get_header_num(fst_lvl_num,
                                                         len_arabs=len_arabs)
 
-                parse_child(fst_lvl_child, snd_lvl_dict)
+                snd_lvl_dict = parse_child(fst_lvl_child, snd_lvl_dict)
             else:
                 raise RuntimeError('li Tag expected. '
                                    f'got {fst_lvl_child.name} instead')
@@ -121,7 +121,7 @@ def populate_content_entry(bedeutung_soup):
                                                         len_arabs=len_arabs,
                                                         len_letters=len(
                                                             snd_lvl_li_children))
-                parse_child(snd_lvl_child, snd_lvl_dict)
+                snd_lvl_dict = parse_child(snd_lvl_child, snd_lvl_dict)
 
     return dict_content
 
@@ -169,6 +169,8 @@ def parse_child(second_lvl_child, second_lvl_dict):
             pass
             # raise RuntimeError(f'Class {element_class_name} is not '
             #                    '"enumeration__text" or "note" or "tuple".')
+
+    return second_lvl_dict
 
 
 def process_data_corpus(data_corpus):
