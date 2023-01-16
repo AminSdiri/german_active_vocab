@@ -13,11 +13,11 @@ from PyQt5.QtGui import (QKeySequence,
 import traceback
 from plyer import notification
 
-from view.DefinitionWindow import DefinitionWindow
+from views.DefinitionWindow import DefinitionWindow
 from FocusWindow import FocusWindow
 from HistoryWindow import HistoryWindow, WordlistWindow
 from QuizWindow import QuizWindow
-from view.SearchWindow import SearchWindow
+from views.SearchWindow import SearchWindow
 from DefEntry import DefEntry
 
 from utils import set_up_logger

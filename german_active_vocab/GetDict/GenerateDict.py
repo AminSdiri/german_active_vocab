@@ -54,8 +54,7 @@ def standart_dict(saving_word, translate2fr, translate2en,
         dict_dict = _standart_duden_dict(found_in_pons_duden,
                                         _duden_soup,
                                         _duden_syn_soup,
-                                        search_word,
-                                        dict_dict_path)
+                                        search_word)
         dict_dict['requested'] = 'duden'
 
     elif found_in_pons_duden[0]:
@@ -64,21 +63,16 @@ def standart_dict(saving_word, translate2fr, translate2en,
                                         search_word,
                                         translate,
                                         _duden_soup)
-        if isinstance(dict_dict, dict):
-            dict_dict['requested'] = 'pons'
+        dict_dict['requested'] = 'pons'
 
     elif not translate:
         dict_dict = _standart_duden_dict(found_in_pons_duden,
                                         _duden_soup,
                                         _duden_syn_soup,
-                                        search_word,
-                                        dict_dict_path)
-        dict_dict['requested'] = 'pons'
-
-    else:
-        dict_dict = {}
+                                        search_word)
         dict_dict['requested'] = 'pons'
         dict_dict['source'] = 'NotFound'
+        dict_dict['content'] = []
     
     # BUG (0) dict_dict is list for translate
     dict_dict['search_word'] = search_word
@@ -143,9 +137,8 @@ def _standart_pons_dict(_pons_json, _duden_syn_soup, word, translate,
         json_data = _pons_json[0]["hits"]
         dict_dict = construct_dict_from_json(json_data, translate, word)
 
-        dict_dict = [{'lang': _pons_json[0]["lang"],
+        dict_dict = {'lang': _pons_json[0]["lang"],
                       'content': dict_dict}
-                    ]
     elif translate and len(_pons_json) == 2:
         logger.info(f'language: {_pons_json[0]["lang"]}')
         json_data_1 = _pons_json[0]["hits"]
@@ -155,12 +148,12 @@ def _standart_pons_dict(_pons_json, _duden_syn_soup, word, translate,
         dict_dict_2 = construct_dict_from_json(json_data_2, translate, word)
 
         # language=json_data[0]['lang']
-        dict_dict = [
-            {'lang': _pons_json[0]['lang'],
-                'content': dict_dict_1},
-            {'lang': _pons_json[1]['lang'],
-                'content': dict_dict_2}
-                ]
+        dict_dict = {
+            'lang_1': _pons_json[0]['lang'],
+            'content_1': dict_dict_1,
+            'lang_2': _pons_json[1]['lang'],
+            'content_2': dict_dict_2
+            }
     else:
         raise RuntimeError(
             'json API response is expected to be of length 1 '
@@ -168,8 +161,7 @@ def _standart_pons_dict(_pons_json, _duden_syn_soup, word, translate,
 
     return dict_dict
 
-def _standart_duden_dict(found_in_pons_duden, _duden_soup, _duden_syn_soup,
-                         word):
+def _standart_duden_dict(found_in_pons_duden, _duden_soup, _duden_syn_soup, word):
 
     if found_in_pons_duden[1]:
 

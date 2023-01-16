@@ -16,6 +16,8 @@ from settings import DICT_DATA_PATH
 
 logger = set_up_logger(__name__)
 
+# TODO implement proper search for duden https://github.com/radomirbosak/duden/blob/master/duden/search.py
+# TODO update dict "source" value if examples are manually given by user
 
 def get_word_from_source(translate2fr, translate2en, get_from_duden,
                          word, saving_word, ignore_cache):
@@ -34,7 +36,7 @@ def get_word_from_source(translate2fr, translate2en, get_from_duden,
                                                             translate2en,
                                                             translate2fr,
                                                             ignore_cache)
-        if _found_in_pons:  found_in_pons_duden[0] = True
+        found_in_pons_duden[0] = _found_in_pons
 
 
     if translate:
@@ -56,8 +58,7 @@ def get_word_from_source(translate2fr, translate2en, get_from_duden,
                                                     saving_word,
                                                     ignore_cache,
                                                     'dictionnary')
-    if _found_in_duden:
-        found_in_pons_duden[1] = True
+    found_in_pons_duden[1] = _found_in_duden
 
     duden_syn_soup, _ = _get_duden_soup(duden_search_word,
                                         saving_word,

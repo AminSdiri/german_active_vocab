@@ -1,11 +1,9 @@
-import sys
 from plyer import notification
 
 from PyQt5.QtWidgets import (QPushButton, QWidget, QLineEdit, QTextEdit, QCheckBox, QMessageBox, QTreeWidget, QTreeWidgetItem)
 from PyQt5.QtGui import (QTextCharFormat,
                          QTextCursor,
                          QColor)
-from PyQt5.QtCore import QModelIndex
 from SavingToQuiz import quizify_and_save
 from EditDictModelView import DictEditorWidget, TreeModel
 from utils import set_up_logger
@@ -14,6 +12,7 @@ from settings import (DICT_DATA_PATH,
 
 logger = set_up_logger(__name__)
 
+# TODO (1) separate Def-Obj Model operations from View 
 
 class DefinitionWindow(QWidget):
     def __init__(self, def_obj, parent=None):
@@ -39,7 +38,12 @@ class DefinitionWindow(QWidget):
         #         selected_recursive(child_item)
         
         headers = ["Type", "Content"]
-        self.model = TreeModel(headers, def_obj.dict_dict['content'])
+        if 'content' in def_obj.dict_dict:
+            self.model = TreeModel(headers, def_obj.dict_dict['content'])
+        elif 'content_1' in def_obj.dict_dict:
+            # ugly, not working with code, make user choose a language direction
+            self.model = TreeModel(headers, def_obj.dict_dict['content_1'])
+            self.model.createData(def_obj.dict_dict['content_2'])
         self.dict_tree_view = DictEditorWidget(self.model, parent = self)
         self.dict_tree_view.move(700, 5)
         self.dict_tree_view.resize(690, 635)
@@ -116,14 +120,6 @@ class DefinitionWindow(QWidget):
 
 
         self.def_window_connect_buttons()
-
-
-        # TODO (6) nsit chta3mel ama ta3ti fi erreur ki 3malte update PyQt5 -> PyQt5
-        # directory = os.getcwd()
-        # self.def_window.txt_cont.document().setMetaInformation(
-        #     QTextDocument.DocumentUrl,
-        #     QUrl.fromLocalFile(directory).toString() + "/",
-        # )
 
     def def_window_connect_buttons(self):
         # self.highlight_button.clicked.connect(self.highlight_selection)

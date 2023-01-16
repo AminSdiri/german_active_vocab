@@ -44,7 +44,7 @@ def render_html(dict_dict):
     # BUG (0) dict_dict is list for translate
     word_info = get_saved_seen_word_info(dict_dict['search_word'])
 
-    translate = isinstance(dict_dict, list)
+    translate = 'lang' in dict_dict or 'lang_1' in dict_dict
 
     if translate:
         if dict_dict:
@@ -55,20 +55,20 @@ def render_html(dict_dict):
         return defined_html
 
     if dict_dict['requested'] == 'duden':
-        if dict_dict:
+        if dict_dict['source'] == 'duden':
             defined_html = render_html_from_dict('duden', dict_dict, word_info)
         else:
             tmpl = JINJA_ENVIRONEMENT.get_template('not_found_duden.html')
             defined_html = tmpl.render(word=word_info["word"])
         return defined_html
 
-    if not dict_dict:
-        tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_duden.html')
-        defined_html = tmpl.render(word=word_info["word"])
-    elif dict_dict['source'] == 'pons':
+    if dict_dict['source'] == 'pons':
         defined_html = render_html_from_dict('pons', dict_dict, word_info)
     elif dict_dict['source'] == 'duden':
         defined_html = render_html_from_dict('duden', dict_dict, word_info)
+    else:
+        tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_duden.html')
+        defined_html = tmpl.render(word=word_info["word"])
 
     return defined_html
 
@@ -118,7 +118,9 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
     elif html_type == 'translation':
         JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_trans
         tmpl = JINJA_ENVIRONEMENT.get_template('translation.html')
-        defined_html = tmpl.render(lang_dict=dict_dict)
+        # TODO (4) ugly
+        dict_dict_trans = dict_to_list_of_dicts(dict_dict)
+        defined_html = tmpl.render(lang_dict=dict_dict_trans)
     elif html_type == 'duden':
         JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_du
         tmpl = JINJA_ENVIRONEMENT.get_template('definition_du.html')
@@ -139,6 +141,21 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
     # print('classes: ', set(classes))
 
     return defined_html
+
+def dict_to_list_of_dicts(dict_dict):
+    if 'lang_1' in dict_dict:
+            # dict has 2 languanges
+        dict_dict_trans = [
+            {'lang': dict_dict['lang_1'],
+                'content': dict_dict['content_1']},
+            {'lang': dict_dict['lang_2'],
+                'content': dict_dict['content_2']}
+                ]
+    elif 'lang' in dict_dict:
+        dict_dict_trans = [dict_dict]
+    else:
+        raise RuntimeError('dict has not translation')
+    return dict_dict_trans
 
 
 def is_list(value):

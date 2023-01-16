@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
-from PyQt5.QtWidgets import QPushButton, QTreeView, QStyledItemDelegate, QStyleOptionViewItem, QStyle, QItemDelegate
+from PyQt5.QtWidgets import QTreeView, QStyledItemDelegate, QStyleOptionViewItem, QStyle
 from PyQt5.QtCore import Qt, QAbstractItemModel, QModelIndex, QRectF, QSize, QItemSelectionModel
 from PyQt5.QtGui import QTextDocument, QAbstractTextDocumentLayout
 
