@@ -1,13 +1,13 @@
 from plyer import notification
 
-from PyQt5.QtWidgets import (QPushButton, QWidget, QLineEdit, QTextEdit, QCheckBox, QMessageBox, QTreeWidget, QTreeWidgetItem)
+from PyQt5.QtWidgets import (QPushButton, QWidget, QLineEdit, QTextEdit, QCheckBox, QMessageBox)
 from PyQt5.QtGui import (QTextCharFormat,
                          QTextCursor,
                          QColor)
 from SavingToQuiz import quizify_and_save
 from EditDictModelView import DictEditorWidget, TreeModel
 from GetDict.GenerateDict import dict_replace_value
-from utils import remove_html_red_strikethrough, set_up_logger, wrap_html_red_strikethrough
+from utils import set_up_logger, format_html
 from settings import (DICT_DATA_PATH,
                       NORMAL_FONT)
 
@@ -90,8 +90,8 @@ class DefinitionWindow(QWidget):
         self.restore_button.setToolTip("Restore discarded items")
 
         self.bookmark_button = QPushButton('Bookmark', self)
-        self.bookmark_button.move(1310, 645)
-        self.bookmark_button.resize(80, 30)
+        self.bookmark_button.move(1270, 645)
+        self.bookmark_button.resize(120, 30)
         self.bookmark_button.setToolTip("Add Items to Focus Mode, those parts will be seperatly reviewed and also will be sent to Anki.")
 
 
@@ -112,19 +112,26 @@ class DefinitionWindow(QWidget):
         self.anki_button.clicked.connect(self.send_to_anki)
         self.save_button.clicked.connect(self.save_definition)
         self.edit_button.clicked.connect(self.expend_window_to_edit_dict)
-        self.discard_button.clicked.connect(self.discard_selection)
+        self.discard_button.clicked.connect(lambda: self.format_selection(operation='discard'))
         self.restore_button.clicked.connect(self.restore_discarded)
-        self.bookmark_button.clicked.connect(self.bookmark_selection)
+        self.bookmark_button.clicked.connect(lambda: self.format_selection(operation='bookmark'))
         # self.highlight_button.clicked.connect()
 
-    def discard_selection(self):
+    def format_selection(self, operation: str):
         for index in self.dict_tree_view.selectedIndexes():
             if not index.data() or not index.column():
                 # ignore if it's in front of a branche or it's a key
-                print(f'Ignoring {index.data()}')
+                print(f'formatting {index.data()}')
                 continue
             text, address = self.model.get_dict_address(index)
-            text = wrap_html_red_strikethrough(text)
+            text = format_html(text, operation)
+            if operation == 'bookmark':
+                # TODO (-1)
+                # khouth definition wel examples me selection
+                # zidhom lel anki
+                # khouth l'adress mta3 lblock w khalih 3la jnab li tal9a kifeh structure mta3 el focus ejdida
+                # 
+                pass
             self.def_obj.update_dict(text, address)
 
             # update_model
@@ -161,10 +168,6 @@ class DefinitionWindow(QWidget):
         self.dict_tree_view.move(700, 5)
         self.dict_tree_view.resize(690, 635)
         self.dict_tree_view.show()
-
-    def bookmark_selection(self):
-        # TODO a3mel Tag mta3 Bookmark fi dict w zidou fel focus wel anki (anki 9bal)
-        pass
 
     def refresh_textView(self, index):
         text, address = self.model.get_dict_address(index)

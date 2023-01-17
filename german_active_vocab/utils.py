@@ -98,10 +98,10 @@ def remove_from_str(string: str, substrings: list):
         string = string.replace(substring, b'')
     return string.decode('utf-8')
 
-def read_dataframe_from_file(total=True):
-    filename = 'wordlist.csv' if total else 'wordpart_list.csv'
+def read_dataframe_from_file(parts=False):
+    filename = 'wordlist.csv' if not parts else 'wordpart_list.csv'
     df = pd.read_csv(DICT_DATA_PATH / filename)
-    indexname = 'Word' if total else 'Wordpart'
+    indexname = 'Word' if not parts else 'Wordpart'
     df.set_index(indexname, inplace=True)
     df['Next_date'] = pd.to_datetime(df['Next_date'])
     df['Created'] = pd.to_datetime(df['Created'])
@@ -119,13 +119,13 @@ def update_dataframe_file(word, quiz_text, full_text):
     logger.debug(f'Ignore List: {ignore_list}')
 
     # TODO STRUCT (2) minimize reading and writing to disk?
-    wordlist_df = read_dataframe_from_file(total=True)
+    wordlist_df = read_dataframe_from_file(parts=False)
     wordlist_df.loc[word, 'Focused'] = 1
     wordlist_df.to_csv(DICT_DATA_PATH / 'wordlist.csv')
 
     general_EF = wordlist_df.loc[word, 'EF_score']
 
-    focus_df = read_dataframe_from_file(total=False)
+    focus_df = read_dataframe_from_file(parts=True)
     now = datetime.now() - timedelta(hours=3)
     for k in range(0, nb_parts):
         wordpart = word+' '+str(k)
@@ -215,12 +215,40 @@ def write_str_to_file(path: Path, string: str, overwrite=False, notification_lis
     #     # notify
     #     pass
 
-def wrap_html_red_strikethrough(text):
-    if text.startswith('<s'):
-        # already wrapped
+def format_html(text, operation: str):
+    if text.startswith('<s') and operation == 'discard':
         return text
-    text=f'<s style="color:Tomato;">{text}</s>'
-    return text
+    elif text.startswith('<s') and operation == 'bookmark':
+        text = remove_html_wrapping(text, unwrap= 'red_strikthrough')
+        text = wrap_html(text, style='lime')
+        return text
+    elif text.startswith('<font') and operation == 'discard':
+        text = remove_html_wrapping(text, unwrap= 'lime')
+        text = wrap_html(text, style='red_strikthrough')
+        return text
+    elif text.startswith('<font') and operation == 'bookmark':
+        return text
+    elif operation == 'discard':
+        text = wrap_html(text, style='red_strikthrough')
+        return text
+    elif operation == 'bookmark':
+        text = wrap_html(text, style='lime')
+        return text
+    raise RuntimeError(f'wrap to {operation} not executed')
 
-def remove_html_red_strikethrough(text):
-    return text.replace('<s style="color:Tomato;">','').replace('</s>', '')
+def wrap_html(text, style :str):
+    if style == 'red_strikthrough':
+        text=f'<s style="color:Tomato;">{text}</s>'
+        return text
+    elif style == 'lime':
+        text=f'<font color="Lime">{text}</font>'
+        return text
+    raise RuntimeError(f'wrap to {style} not executed')
+
+def remove_html_wrapping(text, unwrap: str):
+    if unwrap == 'red_strikthrough':
+        return text.replace('<s style="color:Tomato;">','').replace('</s>', '') 
+    if unwrap == 'lime':
+        # BUG (2) ken fama deja font fi dict original yetna7a rodbelek
+        return text.replace('<font color="Lime">','').replace('</font>', '')
+    raise RuntimeError(f'unwrapping {unwrap} not executed')

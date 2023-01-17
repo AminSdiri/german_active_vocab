@@ -31,7 +31,7 @@ class FocusWindow(QWidget):
         self.ignore_button = QPushButton('Ignore', self)
         self.ignore_button.move(50, 240)
 
-        focus_df = read_dataframe_from_file(total=False)
+        focus_df = read_dataframe_from_file(parts=False)
         self.focus_obj = FocusEntry(focus_df=focus_df)
         self.txt_cont.setFont(FOCUS_FONT)
         self.txt_cont.insertHtml(self.focus_obj.focus_part)

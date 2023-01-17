@@ -176,11 +176,12 @@ class DefEntry():
 
         return quiz_text
 
-    def ankify(self, german_phrase, english_translation):
+    def ankify(self, german_phrase, english_translation='', definitions_html=None):
         front_with_cloze_wrapping = self.wrap_words_to_learn_in_clozes(german_phrase)
 
-        definitions_list = get_definitions_from_dict_dict(self.dict_dict, info='definition')
-        definitions_html = '<ul>' + ''.join([f'<li>{elem}</li>' for elem in definitions_list]) + '</ul>'
+        if definitions_html is None:
+            definitions_list = get_definitions_from_dict_dict(self.dict_dict, info='definition')
+            definitions_html = '<ul>' + ''.join([f'<li>{elem}</li>' for elem in definitions_list]) + '</ul>'
 
         synonymes_html = extract_synonymes_in_html_format(self.dict_dict)
 

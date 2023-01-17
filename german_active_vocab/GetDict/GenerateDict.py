@@ -10,7 +10,7 @@ from GetDict.ParsingSoup import (create_synonyms_list,
                                      get_word_freq_from_soup,
                                      parse_duden_html_to_dict)
 from GetDict.HiddenWordsList import generate_hidden_words_list
-from utils import fix_html_with_custom_example, remove_html_red_strikethrough
+from utils import fix_html_with_custom_example, remove_html_wrapping
 from utils import (get_cache,
                    read_str_from_file,
                    set_up_logger, write_str_to_file)
@@ -18,6 +18,7 @@ from settings import DICT_DATA_PATH
 
 logger = set_up_logger(__name__)
 
+# You can set the python.analysis.diagnosticMode to workspace rather than its default value of openFilesOnly to check for error without opening files
 # TODO STRUCT (1) BUG dicts saved from duden are not the same as those saved from Pons!! (different outer structure)
 
 def standart_dict(saving_word, translate2fr, translate2en,
@@ -354,7 +355,7 @@ def dict_replace_value(dict_object):
             value = list_replace_value(value)
         elif isinstance(value, str):
             if value.startswith('<s'):
-                value = remove_html_red_strikethrough(value)
+                value = remove_html_wrapping(value, unwrap='red_strikthrough')
         new_dict[key] = value
     return new_dict
 
@@ -368,6 +369,6 @@ def list_replace_value(list_object):
             elem = dict_replace_value(elem)
         elif isinstance(elem, str):
             if elem.startswith('<s'):
-                elem = remove_html_red_strikethrough(elem)
+                elem = remove_html_wrapping(elem, unwrap='red_strikthrough')
         new_list.append(elem)
     return new_list

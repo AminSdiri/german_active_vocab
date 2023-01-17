@@ -58,7 +58,7 @@ class QuizWindow(QWidget):
         self.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
 
     def get_quiz_obj(self):
-        wordlist_df = read_dataframe_from_file(total=True)
+        wordlist_df = read_dataframe_from_file(parts=True)
 
         self.quiz_obj = QuizEntry(quiz_priority_order=QUIZ_PRIORITY_ORDER,
                                   words_dataframe=wordlist_df,
@@ -134,7 +134,7 @@ class QuizWindow(QWidget):
         logger.info("quiz_score")
         self.rating_diag_quiz = QuizRatingDiag(self)
         self.rating_diag_quiz.word = self.quiz_obj.quiz_params["queued_word"]
-        worldlist_df = read_dataframe_from_file(total=True)
+        worldlist_df = read_dataframe_from_file(parts=True)
         self.rating_diag_quiz.show()
         self.reveal_full_html_quiz()
 
