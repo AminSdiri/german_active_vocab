@@ -56,21 +56,29 @@ class DefEntry():
  
         self.defined_html = render_html(dict_dict=self.dict_dict)
     
-    def update_dict(self, text, address):
+    def get_dict_slice_from_adress(self, address: list):
         # validate address
         dict_slice = self.dict_dict['content']
         for idx, entry in enumerate(address):
             try:
                 if idx == len(address)-1:
                     if isinstance(dict_slice[entry], str):
-                        dict_slice[entry] = text
+                        return dict_slice
+                    else:
+                        return dict_slice[entry]
                 else:
                     dict_slice = dict_slice[entry]
             except KeyError:
                 raise KeyError(f"{entry} not in dict. Invalid Address: {address}")
             except TypeError: 
                 raise TypeError('list indices must be integers or slices, not str')
-        print(self.dict_dict)
+
+    def update_dict(self, text, address: list):
+        dict_slice = self.get_dict_slice_from_adress(address)
+        if isinstance(dict_slice[address[-1]], str):
+            dict_slice[address[-1]] = text
+        else:
+            raise RuntimeError('dict elemt is not str')
 
     def re_render_html(self):
         self.defined_html = render_html(dict_dict=self.dict_dict)
