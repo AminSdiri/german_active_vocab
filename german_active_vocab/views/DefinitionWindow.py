@@ -16,6 +16,10 @@ logger = set_up_logger(__name__)
 # TODO* (1) separate Def-Obj Model operations from View 
 # custom example li savitou mel pons dict zeda mawjoud fel kelma me duden (prolet).
 # 7aja zaboura 3alekher ama fama risque mta3 conflit
+
+# TODO Subtile color for all words that are supposed to be hidden.
+# This will help detect if no word will be hidden in the custom examples and 
+# write a better algorithm for hiding words
 class DefinitionWindow(QWidget):
     def __init__(self, def_obj, parent=None):
         super().__init__(parent)
@@ -52,7 +56,7 @@ class DefinitionWindow(QWidget):
         self.return_button.move(105, 645)
         self.return_button.resize(80, 30)
 
-        self.highlight_button = QPushButton('Highlight', self)
+        self.highlight_button = QPushButton('Force Hide', self)
         self.highlight_button.move(250, 645)
         self.highlight_button.resize(90, 30)
 
@@ -119,18 +123,6 @@ class DefinitionWindow(QWidget):
         # self.highlight_button.clicked.connect()
 
     def format_selection(self, operation: str):
-        def extract_definition_and_examples(address):
-            bookmarked_address = address[:(address.index('def_blocks')+1+1)]
-            bookmarked_def_block = self.def_obj.get_dict_slice_from_adress(bookmarked_address)
-            bookmarked_def_block = bookmarked_def_block.copy() # we're not modifing dict_dict
-            if isinstance(bookmarked_def_block, dict):
-                if isinstance(address[-1], int):
-                    # case of only one example is bookmarked 
-                    bookmarked_def_block[address[-2]] = bookmarked_def_block[address[-2]][address[-1]]
-                return bookmarked_def_block
-            else:
-                raise RuntimeError('Case not taken into account')
-
         for index in self.dict_tree_view.selectedIndexes():
             if not index.data() or not index.column():
                 # ignore if it's in front of a branche or it's a key
@@ -139,16 +131,12 @@ class DefinitionWindow(QWidget):
             text, address = self.model.get_dict_address(index)
             text = format_html(text, operation)
             if operation == 'bookmark':
-                bookmarked_def_block = extract_definition_and_examples(address)
-                if 'definition' in bookmarked_def_block:
-                    definition = bookmarked_def_block['definition']
-                elif 'sense' in bookmarked_def_block:
-                    definition = bookmarked_def_block['sense']
-                else:
-                    definition = ''
-                self.def_obj.ankify(german_phrase=bookmarked_def_block['example'],
+                # 'buggy code
+                definition, example = self.def_obj.extract_definition_and_examples(address)
+                if not isinstance(example, list):
+                    # write a better algo that parse the dict to find focused elem? can  be used in focus section
+                    self.def_obj.ankify(german_phrase=example,
                                     definitions_html=definition)
-                                    # BUG this will raise errors if either is not found, shoud be more flexible
                 # TODO (2) khouth l'adress mta3 lblock w khalih 3la jnab li tal9a kifeh structure mta3 el focus ejdida
             self.def_obj.update_dict(text, address)
 

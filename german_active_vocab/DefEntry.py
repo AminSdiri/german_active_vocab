@@ -73,6 +73,30 @@ class DefEntry():
             except TypeError: 
                 raise TypeError('list indices must be integers or slices, not str')
 
+    def extract_definition_and_examples(self, address):
+        if self.dict_dict['source'] == 'pons':
+            bookmarked_address = address[:(address.index('def_blocks')+1+1)]
+        elif self.dict_dict['source'] == 'duden':
+            # TODO change after standerising dicts
+            bookmarked_address = address[:2]
+        bookmarked_def_block = self.get_dict_slice_from_adress(bookmarked_address)
+        bookmarked_def_block = bookmarked_def_block.copy() # we're not modifing dict_dict
+        if isinstance(bookmarked_def_block, dict):
+            if isinstance(address[-1], int):
+                # case of only one example is bookmarked
+                bookmarked_def_block[address[-2]] = bookmarked_def_block[address[-2]][address[-1]]
+            if 'definition' in bookmarked_def_block:
+                definition = bookmarked_def_block['definition']
+            elif 'sense' in bookmarked_def_block:
+                definition = bookmarked_def_block['sense']
+            else:
+                definition = ''
+            # TODO change after standerising dicts
+            example = bookmarked_def_block['example'] if 'example' in bookmarked_def_block else bookmarked_def_block['Beispiele']
+            return definition, example
+        else:
+            raise RuntimeError('Case not taken into account')
+
     def update_dict(self, text, address: list):
         dict_slice = self.get_dict_slice_from_adress(address)
         if isinstance(dict_slice[address[-1]], str):
