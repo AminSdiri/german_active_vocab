@@ -7,7 +7,7 @@ from PushToAnki import Anki
 from SavingToQuiz import wrap_words_to_learn_in_clozes
 from itertools import zip_longest
 
-# TODO mark words added to anki as added to anki in dict_dict and/or wordlist.csv
+# TODO (1) mark words added to anki as added to anki in dict_dict and/or wordlist.csv
 # DONE add manually hidden words to dict_dict hidden_words_list
 
 

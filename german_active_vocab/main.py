@@ -23,7 +23,7 @@ from DefEntry import DefEntry
 from utils import set_up_logger
 # from autologging import traced
 
-# TODO STRUCT (0) Baddel structure mta3 Model, Viewer, controller walla Presenter
+# TODO (0) STRUCT Baddel structure mta3 Model, Viewer, controller walla Presenter
 
 # git update-index --skip-worktree <file> to skip tracking files
 # https://www.youtube.com/watch?v=0kpm10AxiNE&list=PLQVvvaa0QuDdVpDFNq4FwY9APZPGSUyR4&index=11 choose theme
@@ -33,7 +33,8 @@ from utils import set_up_logger
 # TODO (1) using boxLayout with percentages instead of hardcoded dimensions
 # TODO (0) Write Readme file with examples (screenshots) and how to install
 # TODO (0) List the different fonctionalities for the readme.md
-# TODO BIG (2) write test functions for the different functionalities,
+# TODO (0) write test functions for the different search syntaxes,
+# TODO (2) BIG write test functions for the different functionalities,
 # DONE (2) find os-agnostic alternative to notify-send for windows and macos
 # example: from plyer import notification
 
@@ -41,7 +42,7 @@ logger = set_up_logger(__name__)
 
 
 # .strftime("%d.%m.%y") is a bad idea! losing the time information
-# TODO STRUCT (1) organize now and now_(-3h) 
+# TODO (1) STRUCT organize now and now_(-3h) 
 # TODO (2) move theme to settings.py
 
 def wrap(pre, post):

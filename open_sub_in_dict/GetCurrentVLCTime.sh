@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# TODO STRUCT (1) UPDATE and move to the right directory
+# TODO (0) STRUCT UPDATE and move to the right directory
 
 # Script to link to a shortcut
 

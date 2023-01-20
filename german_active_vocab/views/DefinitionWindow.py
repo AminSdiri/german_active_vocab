@@ -13,7 +13,7 @@ from settings import (DICT_DATA_PATH,
 
 logger = set_up_logger(__name__)
 
-# TODO* (1) separate Def-Obj Model operations from View 
+# TODO (1) * separate Def-Obj Model operations from View 
 # custom example li savitou mel pons dict zeda mawjoud fel kelma me duden (prolet).
 # 7aja zaboura 3alekher ama fama risque mta3 conflit
 
@@ -28,7 +28,7 @@ class DefinitionWindow(QWidget):
         self.base_width = 700
         self.extended_width = 1400
         
-        # TODO add deleted and focused Properties from TreeModel, update TextView 
+        # DONE add deleted and focused Properties from TreeModel, update TextView 
         # DONE delete an element should hide all of it's children -> select an element should select all of it's children
         # DONE get all selected items
         # DONE update get path in get_address 

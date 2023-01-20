@@ -14,7 +14,7 @@ def render_html(dict_dict):
     # get from duden > found in pons > not translate > else
 
 
-    # TODO STRUCT (1) use one unified decision tree for all functions
+    # TODO (1) STRUCT use one unified decision tree for all functions
     # ->> e7cen structure
     # word_info = get_saved_seen_word_info(word)
 

@@ -19,7 +19,7 @@ from settings import DICT_DATA_PATH
 logger = set_up_logger(__name__)
 
 # You can set the python.analysis.diagnosticMode to workspace rather than its default value of openFilesOnly to check for error without opening files
-# TODO STRUCT (1) BUG dicts saved from duden are not the same as those saved from Pons!! (different outer structure)
+# TODO (1) STRUCT BUG dicts saved from duden are not the same as those saved from Pons!! (different outer structure)
 
 def standart_dict(saving_word, translate2fr, translate2en,
                   get_from_duden, search_word, ignore_cache, ignore_dict):
@@ -47,7 +47,7 @@ def standart_dict(saving_word, translate2fr, translate2en,
                                             saving_word,
                                             ignore_cache)
 
-    # TODO STRUCT (1) baddalha el fonction tbadel struct dict twalli standarisee
+    # TODO (1) STRUCT baddalha el fonction tbadel struct dict twalli standarisee
     
     translate = translate2fr or translate2en
 

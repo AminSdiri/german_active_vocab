@@ -64,7 +64,7 @@ class QuizEntry():
         # Start by words due Today then yesteday
         # Then queue the oldest due word with oldest seen date
         # then oldest seen non due words
-        # TODO STRUCT (1) repair code runflow
+        # TODO (2) STRUCT repair code runflow
         if self.quiz_priority_order == 'due_words':
             logger.debug('11')
             logger.debug('Quiz Order set to planned Words')

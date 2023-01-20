@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (QApplication,
                              QTextEdit,
                              QProgressBar)
 
-# TODO STRUCT (1) UPDATE and move to the right directory or a separate project
+# TODO (0) STRUCT UPDATE and move to the right directory or a separate project
 
 videos_path = Path('/media/mani/50 jdida') / 'Videos' / 'Shows'
 script_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'german_active_vocab' / 'main.py'

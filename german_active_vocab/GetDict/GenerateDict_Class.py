@@ -18,7 +18,7 @@ from settings import DICT_DATA_PATH
 
 logger = set_up_logger(__name__)
 
-# TODO STRUCT (1) BUG dicts saved from duden are not the same as those saved from Pons!! (different outer structure)
+# TODO (1) STRUCT BUG dicts saved from duden are not the same as those saved from Pons!! (different outer structure)
 
 class WordDict(): 
 
@@ -43,7 +43,7 @@ class WordDict():
                                                     saving_word,
                                                     ignore_cache)
 
-        # TODO STRUCT (1) baddalha el fonction tbadel struct dict twalli standarisee
+        # TODO (1) STRUCT baddalha el fonction tbadel struct dict twalli standarisee
 
         if get_from_duden:
             self._standart_duden_dict(found_in_pons_duden,

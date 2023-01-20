@@ -74,7 +74,7 @@ class TreeModel(QAbstractItemModel):
                 if not isinstance(dict_values ,(dict,list)):
                     parent.child(parent.childCount() - 1).setData(1, str(dict_values))
                 elif isinstance(dict_values, dict):
-                    # TODO mirror changes in get obj path structure
+                    # TODO (2) STRUCT (systematicly?) mirror changes in get obj path structure
                     if 'header_num' in dict_values:
                         parent.child(parent.childCount() - 1).setData(0, dict_values['header_num'])
                 self.createData(dict_values, indent)
@@ -225,7 +225,7 @@ class TreeModel(QAbstractItemModel):
                     address.append(row)
             elif column == 1:
                 # element is value in dict
-                # TODO test with multiple examples
+                # DONE (0) test with multiple examples
                 key = last_index.siblingAtColumn(0).data()
                 if key:
                     address.append(key)

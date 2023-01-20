@@ -53,8 +53,9 @@ class DefEntry():
                                 self.search_word,
                                 self._ignore_cache,
                                 self._ignore_dict)
-
-        logger.info(f'Words to hide: {self.dict_dict["hidden_words_list"]}')
+                                
+        if not (self.translate2en or self.translate2fr):
+            logger.info(f'Words to hide: {self.dict_dict["hidden_words_list"]}')
  
         self.defined_html = render_html(dict_dict=self.dict_dict)
     
@@ -79,7 +80,7 @@ class DefEntry():
         if self.dict_dict['source'] == 'pons':
             bookmarked_address = address[:(address.index('def_blocks')+1+1)]
         elif self.dict_dict['source'] == 'duden':
-            # TODO change after standerising dicts
+            # TODO (2) change after standerising dicts
             bookmarked_address = address[:2]
         bookmarked_def_block = self.get_dict_slice_from_adress(bookmarked_address)
         bookmarked_def_block = bookmarked_def_block.copy() # we're not modifing dict_dict
@@ -93,7 +94,7 @@ class DefEntry():
                 definition = bookmarked_def_block['sense']
             else:
                 definition = ''
-            # TODO change after standerising dicts
+            # TODO (2) change after standerising dicts
             example = bookmarked_def_block['example'] if 'example' in bookmarked_def_block else bookmarked_def_block['Beispiele']
             return definition, example
         else:
@@ -185,7 +186,7 @@ class DefEntry():
         logger.info("wrap_words_to_learn_in_clozes")
         
         hidden_words_list = self.dict_dict['hidden_words_list']
-        # TODO STRUCT before saving dict and maybe after adding hidden words manually
+        # TODO (1) STRUCT before saving dict and maybe after adding hidden words manually
         hidden_words_list = list(set(hidden_words_list))
 
         front_with_cloze_wrapping = german_phrase
@@ -199,7 +200,7 @@ class DefEntry():
         ' wrap word_to_wrap between {{c1:: and }} '
         logger.info("wrap_in_clozes")
 
-        # TODO salla7ha zeda fel blassa lokhra
+        # DONE (1) salla7ha zeda fel blassa lokhra
         word_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_wrap}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
         try:
             quiz_text = re.sub(word_pattern, f'{{{{c1::{word_to_wrap}}}}}', text)

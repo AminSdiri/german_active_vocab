@@ -69,9 +69,9 @@ def replace_umlauts_2(word: str):
         [str]: strings without Umlaut
     """
     normalized_word = word.replace("ü", "ue")\
-        .replace("ö", "oe")\
-        .replace("ä", "ae")\
-        .replace("ß", "sz")
+                        .replace("ö", "oe")\
+                        .replace("ä", "ae")\
+                        .replace("ß", "sz")
     return normalized_word
 
 def ignore_headers(quiz_text):
@@ -118,7 +118,7 @@ def update_dataframe_file(word, quiz_text, full_text):
     ignore_list, nb_parts = ignore_headers(quiz_text)
     logger.debug(f'Ignore List: {ignore_list}')
 
-    # TODO STRUCT (2) minimize reading and writing to disk?
+    # TODO (3) STRUCT minimize reading and writing to disk?
     wordlist_df = read_dataframe_from_file(parts=False)
     wordlist_df.loc[word, 'Focused'] = 1
     wordlist_df.to_csv(DICT_DATA_PATH / 'wordlist.csv')

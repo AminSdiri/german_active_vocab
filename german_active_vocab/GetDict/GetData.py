@@ -16,8 +16,8 @@ from settings import DICT_DATA_PATH
 
 logger = set_up_logger(__name__)
 
-# TODO implement proper search for duden https://github.com/radomirbosak/duden/blob/master/duden/search.py
-# TODO update dict "source" value if examples are manually given by user
+# TODO (1) implement proper search for duden https://github.com/radomirbosak/duden/blob/master/duden/search.py
+# TODO (1) update dict "source" value if examples are manually given by user
 
 def get_word_from_source(translate2fr, translate2en, get_from_duden,
                          word, saving_word, ignore_cache):
@@ -69,7 +69,7 @@ def get_word_from_source(translate2fr, translate2en, get_from_duden,
 
 
 def _get_duden_soup(word, filename, ignore_cache, duden_source):
-    # TODO find better way to request word from duden
+    # TODO (1) find better way to request word from duden
     # example schleife is not found in duden but it's there under
     # https://www.duden.de/rechtschreibung/Schleife_Schlinge_Kurve_Schlaufe 
     
