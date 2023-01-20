@@ -18,7 +18,7 @@ FOCUS_FONT = QFont("Arial", 20)
 QUIZ_PRIORITY_ORDER: str = 'due_words'
 MAX_REV_PER_SESSION = 10
 
-JINJA_ENVIRONEMENT = Environment(loader=FileSystemLoader(DICT_SRC_PATH / 'templates'),
+JINJA_ENVIRONEMENT = Environment(loader=FileSystemLoader(DICT_SRC_PATH / 'RenderHTML' / 'templates'),
                         trim_blocks=True,
                         lstrip_blocks=True)
 

@@ -1,3 +1,4 @@
+import re
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 
@@ -50,7 +51,7 @@ def render_html(dict_dict):
         if dict_dict:
             defined_html = render_html_from_dict('translation', dict_dict)
         else:
-            tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_translation.html')
+            tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_translation.html.j2')
             defined_html = tmpl.render(word=word_info["word"])
         return defined_html
 
@@ -58,7 +59,7 @@ def render_html(dict_dict):
         if dict_dict['source'] == 'duden':
             defined_html = render_html_from_dict('duden', dict_dict, word_info)
         else:
-            tmpl = JINJA_ENVIRONEMENT.get_template('not_found_duden.html')
+            tmpl = JINJA_ENVIRONEMENT.get_template('not_found_duden.html.j2')
             defined_html = tmpl.render(word=word_info["word"])
         return defined_html
 
@@ -67,7 +68,7 @@ def render_html(dict_dict):
     elif dict_dict['source'] == 'duden':
         defined_html = render_html_from_dict('duden', dict_dict, word_info)
     else:
-        tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_duden.html')
+        tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_duden.html.j2')
         defined_html = tmpl.render(word=word_info["word"])
 
     return defined_html
@@ -83,8 +84,7 @@ def get_saved_seen_word_info(word):
 
     return word_info
 
-def render_html_from_dict(html_type: str, dict_dict, word_info={}):
-
+def render_html_from_dict(html_type: str, dict_dict, word_info={}, mode='full'):
     # background-color (from pyqt darktheme styling) = #2D2D2D
     color_palette_dict = {
         # Main Primary color
@@ -109,23 +109,33 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}):
     }
 
     JINJA_ENVIRONEMENT.filters["is_list"] = is_list
+    if mode == 'full':
+        JINJA_ENVIRONEMENT.filters["treat_hidden_words"] = highlight_words_to_hide
+    elif mode == 'quiz':
+        JINJA_ENVIRONEMENT.filters["treat_hidden_words"] = hide_words_to_hide
+    else:
+        raise RuntimeError
+    
     if html_type == 'pons':
         JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_def
-        tmpl = JINJA_ENVIRONEMENT.get_template('definition_pons.html')
+        tmpl = JINJA_ENVIRONEMENT.get_template('definition_pons.html.j2')
         defined_html = tmpl.render(dict_dict=dict_dict,
                                    word_info=word_info,
-                                   col_pal=color_palette_dict)
+                                   col_pal=color_palette_dict,
+                                   mode=mode)
     elif html_type == 'translation':
         JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_trans
-        tmpl = JINJA_ENVIRONEMENT.get_template('translation.html')
+        tmpl = JINJA_ENVIRONEMENT.get_template('translation.html.j2')
         # TODO (4) ugly
         dict_dict_trans = dict_to_list_of_dicts(dict_dict)
-        defined_html = tmpl.render(lang_dict=dict_dict_trans)
+        defined_html = tmpl.render(lang_dict=dict_dict_trans,
+                                   mode=mode)
     elif html_type == 'duden':
         JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_du
-        tmpl = JINJA_ENVIRONEMENT.get_template('definition_du.html')
+        tmpl = JINJA_ENVIRONEMENT.get_template('definition_du.html.j2')
         defined_html = tmpl.render(du_dict=dict_dict,
-                                   word_info=word_info)
+                                   word_info=word_info,
+                                   mode=mode)
 
     # trim_vlocks and lstrip_blocks are not enoughs?
     defined_html = "".join(line.strip()
@@ -166,6 +176,8 @@ def treat_class_def(value, class_name, previous_class_name,
                     previous_class_value):
     '''workaround because of css21'''
     logger.info(f"treating class: {class_name}")
+
+    
 
     # ignore striked values
     if isinstance(value, str):
@@ -561,4 +573,50 @@ def treat_class_du(value, class_name, previous_class_name,
         print(value)
     value = f'<acronym title="{class_name}">{value}</acronym>'
     value = f'<font color="#ffff00">{value}</font>'
+    return value
+
+def hide_words_to_hide(value, class_name, words_to_hide):
+    ''' hide words to hide (subtile color) for quiz html'''
+    if not value:
+        return value
+
+    # no replacing in definitions
+    if class_name in ('definition', 'sense'):
+        return value
+
+    # Remove triangles (search word in another wordclass, noun from verb for example)
+    if '▶' in value:
+        return ''
+
+    for word_to_hide in words_to_hide:
+        word_length = len(word_to_hide)
+
+        hide_pattern = f'(?<=[^a-zA-Z]){word_to_hide}(?=[^a-zA-Z])'
+        try:
+            value = re.sub(hide_pattern, word_length*'_', value)
+        except re.error:
+            logger.error(f'error by hiding {word_to_hide}. '
+                        'Word may contains a reserved Regex charactar')
+
+    return value
+
+def highlight_words_to_hide(value, class_name, words_to_hide):
+    ''' highlight words to hide (subtile color) for full html'''
+    if not value:
+        return value
+
+    # no replacing in definitions
+    if class_name in ('definition', 'sense'):
+        return value
+
+    for word_to_hide in words_to_hide:
+
+        hide_pattern = f'(?<=[^a-zA-Z]){word_to_hide}(?=[^a-zA-Z])'
+        try:
+            colored_word_to_hide = f'<font color="#ccdcff">{word_to_hide}</font>'
+            value = re.sub(hide_pattern, colored_word_to_hide, value)
+        except re.error:
+            logger.error(f'error by hiding {word_to_hide}. '
+                        'Word may contains a reserved Regex charactar')
+
     return value

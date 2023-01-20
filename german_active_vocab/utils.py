@@ -17,7 +17,7 @@ def set_up_logger(logger_name, level=logging.INFO):
     # Levels: debug, info, warning, error, critical
     # level = TRACE
     # level = logging.DEBUG
-    level = logging.WARNING
+    level = logging.INFO
 
     logger = logging.getLogger(logger_name)
     logger.addHandler(logging.StreamHandler())

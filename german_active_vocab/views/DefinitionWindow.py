@@ -112,8 +112,7 @@ class DefinitionWindow(QWidget):
             self.model.createData(def_obj.dict_dict['content_2'])
 
     def def_window_connect_buttons(self):
-        # self.highlight_button.clicked.connect(self.highlight_selection)
-        # self.highlight_button.clicked.connect(lambda: self.refresh(def_obj))
+        self.highlight_button.clicked.connect(self.force_hide)
         self.anki_button.clicked.connect(self.send_to_anki)
         self.save_button.clicked.connect(self.save_definition)
         self.edit_button.clicked.connect(self.expend_window_to_edit_dict)
@@ -276,6 +275,8 @@ class DefinitionWindow(QWidget):
         selected_text2hide = self.txt_cont.textCursor().selectedText() or self.beispiel.selectedText()
 
         self.def_obj.add_word_to_hidden_list(selected_text2hide)
+
+        self.update_TextEdit()
         
         notification.notify(title='Word added to hidden words',
                             message=selected_text2hide,

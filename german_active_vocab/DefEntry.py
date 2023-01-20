@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 
 from bs4.builder import HTML
 from GetDict.GenerateDict import extract_synonymes_in_html_format, get_definitions_from_dict_dict, standart_dict
-from RenderingHTML import render_html
+from RenderHTML.RenderingHTML import render_html
 from PushToAnki import Anki
 from settings import ANKI_CONFIG, DICT_DATA_PATH
 
@@ -53,6 +53,8 @@ class DefEntry():
                                 self.search_word,
                                 self._ignore_cache,
                                 self._ignore_dict)
+
+        logger.info(f'Words to hide: {self.dict_dict["hidden_words_list"]}')
  
         self.defined_html = render_html(dict_dict=self.dict_dict)
     

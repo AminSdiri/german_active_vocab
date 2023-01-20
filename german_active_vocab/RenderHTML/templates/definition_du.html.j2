@@ -100,6 +100,7 @@
     </style>
 </head>
 <body>
+    {% if mode == "full" %}
     <h1>
         {% set ns = namespace(previous_h1_key="")%}
         {% set ns = namespace(previous_h1_value="")%}
@@ -109,8 +110,12 @@
             {% if h1_key != 'synonymes' %}
             {% if h1_key != 'hidden_words_list' %}
             {% if h1_key != 'source' %}
+            {% if h1_key != 'requested' %}
+            {% if h1_key != 'search_word' %}
             <!-- done apparement lena zeda lezmni n'ignori source  -->
-                <span class={{h1_key}}>{{h1_value|treat_class(h1_key, ns.previous_h1_key, ns.previous_h1_value)}} </span>
+                <span class={{h1_key}}>{{h1_value|treat_class(h1_key, ns.previous_h1_key, ns.previous_h1_value)|treat_hidden_words(h1_key, du_dict['hidden_words_list'])}} </span>
+            {% endif %}
+            {% endif %}
             {% endif %}
             {% endif %}
             {% endif %}
@@ -120,6 +125,7 @@
             {% set ns.previous_h1_value = h1_value %}
         {% endfor %}
     </h1>
+    {% endif %}
     {% for first_level in du_dict["content"] %}
         {% for second_level in first_level %}
             <p>
@@ -128,12 +134,12 @@
             {% for h3_key,h3_value in second_level.items() %}
                 {% if h3_value|is_list %}
                     {% for h4_value in h3_value %}
-                        <span class={{h3_key}}>{{h4_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)}} </span>
+                        <span class={{h3_key}}>{{h4_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, du_dict['hidden_words_list'])}} </span>
                         {% set ns.previous_h3_key = h3_key %}
                         {% set ns.previous_h3_value = h4_value %}
                     {% endfor %}
                 {% else %}
-                    <span class={{h3_key}}>{{h3_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)}} </span>
+                    <span class={{h3_key}}>{{h3_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, du_dict['hidden_words_list'])}} </span>
                 {% endif %}
                 {% set ns.previous_h3_key = h3_key %}
                 {% set ns.previous_h3_value = h3_value %}
