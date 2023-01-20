@@ -17,7 +17,7 @@ logger = set_up_logger(__name__)
 # custom example li savitou mel pons dict zeda mawjoud fel kelma me duden (prolet).
 # 7aja zaboura 3alekher ama fama risque mta3 conflit
 
-# TODO Subtile color for all words that are supposed to be hidden.
+# DONE Subtile color for all words that are supposed to be hidden.
 # This will help detect if no word will be hidden in the custom examples and 
 # write a better algorithm for hiding words
 class DefinitionWindow(QWidget):

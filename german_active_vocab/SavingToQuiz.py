@@ -112,7 +112,7 @@ def quizify_and_save(dict_data_path, word, qt_html_content, beispiel_de,
     return no_hidden_words_in_example
 
 def _create_quiz_html(html_res, hidden_words_list):
-    # TODO delete when moved to rendering html
+    # TODO (3) delete when moved to rendering html
     logger.info("create_quiz_html")
     clean_html = html_res
 
@@ -149,7 +149,7 @@ def _create_quiz_html(html_res, hidden_words_list):
     return clean_html
 
 def _remove_triangles(clean_html_soup):
-    # TODO delete when moved to rendering html
+    # TODO (3) delete when moved to rendering html
     for elem in clean_html_soup.find_all():
         if elem.string:
             if '▶' in elem.string:
@@ -243,12 +243,12 @@ def _check_for_hidden_words_presence_in_custom_examples(examples: list, hidden_w
     return no_hidden_words_in_example
 
 def hide_text(text, word_to_hide):
-    # TODO delete when moved to rendering html
+    # TODO (3) delete when moved to rendering html
     logger.info("hide_text")
 
     word_length = len(word_to_hide)
 
-    hide_pattern = f'(?<=[^a-zA-Z]){word_to_hide}(?=[^a-zA-Z])'
+    hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_hide}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
     try:
         quiz_text = re.sub(hide_pattern, word_length*'_', text)
     except re.error:

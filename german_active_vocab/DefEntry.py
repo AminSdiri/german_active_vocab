@@ -200,7 +200,7 @@ class DefEntry():
         logger.info("wrap_in_clozes")
 
         # TODO salla7ha zeda fel blassa lokhra
-        word_pattern = f'((^)|(?<=[^a-zA-Z])){word_to_wrap}((?=[^a-zA-Z])|($))'
+        word_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_wrap}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
         try:
             quiz_text = re.sub(word_pattern, f'{{{{c1::{word_to_wrap}}}}}', text)
         except re.error:

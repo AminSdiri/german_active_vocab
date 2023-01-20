@@ -379,7 +379,7 @@ def treat_class_trans(value, class_name, previous_class_name,
     # base color: #4ae08c
 
     if class_name == 'source':
-        # TODO  STRUCT (2) this treatement should be done before standerised json
+        # TODO (2) STRUCT this treatement should be done before standerised json
         soup = bs(value, 'lxml')
         headword = soup.find_all(**{"class": "headword"})
         if headword:
@@ -591,7 +591,7 @@ def hide_words_to_hide(value, class_name, words_to_hide):
     for word_to_hide in words_to_hide:
         word_length = len(word_to_hide)
 
-        hide_pattern = f'(?<=[^a-zA-Z]){word_to_hide}(?=[^a-zA-Z])'
+        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_hide}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
         try:
             value = re.sub(hide_pattern, word_length*'_', value)
         except re.error:
@@ -611,7 +611,7 @@ def highlight_words_to_hide(value, class_name, words_to_hide):
 
     for word_to_hide in words_to_hide:
 
-        hide_pattern = f'(?<=[^a-zA-Z]){word_to_hide}(?=[^a-zA-Z])'
+        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_hide}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
         try:
             colored_word_to_hide = f'<font color="#ccdcff">{word_to_hide}</font>'
             value = re.sub(hide_pattern, colored_word_to_hide, value)
