@@ -6,6 +6,9 @@ import string
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 from plyer import notification
+import argparse
+import traceback
+
 # from autologging import TRACE
 
 from settings import DICT_DATA_PATH
@@ -29,6 +32,40 @@ def set_up_logger(logger_name, level=logging.INFO):
 
 
 logger = set_up_logger(__name__)
+
+def get_command_line_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-w', '--word')
+    parser.add_argument('-g', '--ger')
+    parser.add_argument('-e', '--eng')
+    args = parser.parse_args()
+    return args
+
+# TODO (2) auto-logging 
+def wrap(pre, post):
+	""" Wrapper """
+	def decorate(func):
+		""" Decorator """
+		def call(*args, **kwargs):
+			""" Actual wrapping """
+			pre(func)
+			result = func(*args, **kwargs)
+			post(func)
+			return result
+		return call
+	return decorate
+
+def entering(func):
+	""" Pre function logging """
+	logger.debug("Entered %s", func.__name__)
+
+def exiting(func):
+	""" Post function logging """
+	logger.debug("Exited  %s", func.__name__)
+
+# @wrap(entering, exiting)
+
+# or @traced(logger)
 
 
 def get_cache(cache_path):
