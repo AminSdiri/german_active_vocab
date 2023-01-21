@@ -59,7 +59,7 @@ if __name__ == '__main__':
                                     overwrite_notes=ANKI_CONFIG['overwrite'])
                 # fixing issues                   
                 if note_dupeOrEmpty == 3:
-                    command = ['python3', str(DICT_SRC_PATH / 'main.py'), word]
+                    command = ['python3', str(DICT_SRC_PATH / 'main.py'), "-w", word]
                     print(f'reached {k} from {amount}')
                     if '{{c1::' not in front_with_cloze_wrapping:
                         print(dict_dict['hidden_words_list'])

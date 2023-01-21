@@ -2,9 +2,9 @@
 # coding = utf-8
 
 # import setuptools
-from dataclasses import asdict
 import sys
-from PyQt5.QtCore import Qt, QRect, QPropertyAnimation, QPoint, QSize
+import argparse
+from PyQt5.QtCore import Qt, QRect, QPropertyAnimation, QPoint, QSize, QCoreApplication
 from PyQt5.QtWidgets import (QApplication,
                              QMainWindow,
                              QShortcut)
@@ -91,10 +91,10 @@ class MainWindow(QMainWindow):
                                    Frameless=True,
                                    size=QSize(self.search_form.base_width, 40))
         
-        nbargin = len(sys.argv) - 1
-        if nbargin:
+        cl_args = get_command_line_args()
+        if cl_args.word:
             logger.debug('shell command with args')
-            self.launch_definition_window()
+            self.launch_definition_window(cl_args)
         else:
             logger.debug('0 Args')
             self.show()
@@ -122,13 +122,12 @@ class MainWindow(QMainWindow):
         self.animation.setEndValue(QRect(window_x, window_y, end_width, 40))
         self.animation.start()
 
-    def launch_definition_window(self):
+    def launch_definition_window(self, cl_args=None):
         logger.info("launch definition window")
 
-        nbargin = len(sys.argv) - 1
-        input_word = self.search_form.get_filled_search_form() if nbargin == 0  else sys.argv[1]
+        input_word = cl_args.word if cl_args and cl_args.word else self.search_form.get_filled_search_form()
 
-        def_obj = DefEntry(input_word=input_word)
+        def_obj = DefEntry(input_word=input_word, cl_args=cl_args)
         self.def_window = DefinitionWindow(def_obj)
         self.def_window.return_button.clicked.connect(self.launch_search_window)
         self.def_window.fill_def_window(def_obj) # BUG (0) thabet fel unpacking thaherli mayhemouch esm el variable
@@ -277,9 +276,17 @@ def set_theme(app):
     
     import qdarktheme
     qdarktheme.setup_theme("dark")
+
+def get_command_line_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-w', '--word')
+    parser.add_argument('-g', '--ger')
+    parser.add_argument('-e', '--eng')
+    args = parser.parse_args()
+    return args
     
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
+    app = QApplication([])
     set_theme(app)
     sys.excepthook = excepthook
     w = MainWindow()

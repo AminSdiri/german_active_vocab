@@ -163,7 +163,7 @@ class QuizWindow(QWidget):
     def update_word_html(self):
         logger.info("update_word_html")
         queued_word = self.quiz_obj.quiz_params["queued_word"]
-        subprocess.Popen(['python3', str(DICT_SRC_PATH / 'main.py'),
+        subprocess.Popen(['python3', str(DICT_SRC_PATH / 'main.py'), "-w",
                           f'{queued_word} new_dict'])
 
 

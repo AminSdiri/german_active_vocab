@@ -3,6 +3,7 @@ from pathlib import Path
 import re
 import sys
 from datetime import datetime, timedelta
+from argparse import Namespace
 
 from bs4.builder import HTML
 from GetDict.GenerateDict import extract_synonymes_in_html_format, get_definitions_from_dict_dict, standart_dict
@@ -22,6 +23,7 @@ logger = set_up_logger(__name__)
 class DefEntry():
     # TODO(0) STRUCT hiya nafs'ha lclass mta3 search_input
     input_word: str
+    cl_args: Namespace
     search_word: str = ''
     saving_word: str = ''
     beispiel_de: str = ''
@@ -151,20 +153,15 @@ class DefEntry():
 
         nbargin = len(sys.argv) - 1
         
-        if nbargin <2:
+        if not self.cl_args.ger:
             self.beispiel_de = ''
             self.beispiel_en = ''
-        elif nbargin == 2:
-            self.beispiel_de = sys.argv[2].replace(
+        else:
+            self.beispiel_de = self.cl_args.ger.replace(
                 "//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
-            self.beispiel_en = ''
-        elif nbargin == 3 :
-            self.beispiel_de = sys.argv[2].replace(
+        if self.cl_args.eng :
+            self.beispiel_en = self.cl_args.eng.replace(
                 "//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
-            self.beispiel_en = sys.argv[3].replace(
-                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
-        else :
-            raise RuntimeError('Number of argument exceeds 3')
 
     def _log_word_in_wordlist_history(self):
         # TODO (1) update to with open
