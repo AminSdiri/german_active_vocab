@@ -1,4 +1,5 @@
 [tool.pytest.ini_options]
-pythonpath = [
-  "german_active_vocab"
-]
+pythonpath = ["german_active_vocab"]
+filterwarnings = ["ignore::DeprecationWarning:aqt:"]
+# "Individual warnings filters are specified as a sequence of fields separated by colons:"
+# action:message:category:module:line
