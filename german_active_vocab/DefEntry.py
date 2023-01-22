@@ -150,16 +150,14 @@ class DefEntry():
         else:
             self.saving_word = self.search_word
         self.saving_word = sanitize_word(self.saving_word)
-
-        nbargin = len(sys.argv) - 1
         
-        if not self.cl_args.ger:
+        if not self.cl_args or not self.cl_args.ger:
             self.beispiel_de = ''
             self.beispiel_en = ''
         else:
             self.beispiel_de = self.cl_args.ger.replace(
                 "//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
-        if self.cl_args.eng :
+        if self.cl_args and self.cl_args.eng :
             self.beispiel_en = self.cl_args.eng.replace(
                 "//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
 

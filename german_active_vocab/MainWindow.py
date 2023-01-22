@@ -2,7 +2,8 @@
 import sys
 from PyQt5.QtCore import Qt, QRect, QPropertyAnimation, QPoint, QSize, QCoreApplication
 from PyQt5.QtWidgets import (QMainWindow,
-                             QShortcut)
+                             QShortcut,
+                             QApplication)
 from PyQt5.QtGui import (QKeySequence,
                          QGuiApplication) # QShortcut PyQt6
 
@@ -43,9 +44,15 @@ class MainWindow(QMainWindow):
         logger.info("init MainWindow")
         super(MainWindow, self).__init__(parent)
         self.setGeometry(535, 150, 210, 50)
-        self.launch_search_window()
-        self.move_to_center() 
         self.set_shortcuts()
+
+        cl_args = get_command_line_args()
+        if cl_args.word:
+            logger.debug('shell command with args')
+            self.launch_definition_window(cl_args)
+        else:
+            logger.debug('0 Args')
+            self.launch_search_window()
             
     def launch_search_window(self):
         logger.info("Launch search window")
@@ -57,13 +64,7 @@ class MainWindow(QMainWindow):
                                    Frameless=True,
                                    size=QSize(self.search_form.base_width, 40))
         
-        cl_args = get_command_line_args()
-        if cl_args.word:
-            logger.debug('shell command with args')
-            self.launch_definition_window(cl_args)
-        else:
-            logger.debug('0 Args')
-            self.show()
+        self.show()
 
     def expand_search_window_animation(self):
         logger.info("expand_window")
@@ -95,7 +96,13 @@ class MainWindow(QMainWindow):
 
         def_obj = DefEntry(input_word=input_word, cl_args=cl_args)
         self.def_window = DefinitionWindow(def_obj)
-        self.def_window.return_button.clicked.connect(self.launch_search_window)
+        # if code is being tested, the Return button have the "Pass Test" fonctionality
+        # Do NOT load pytest anywhere outside test files for this to work
+        if "pytest" not in sys.modules:
+            self.def_window.return_button.clicked.connect(self.launch_search_window)
+        else:
+            self._end_test = False
+            self.def_window.return_button.clicked.connect(self.return_clicked)
         self.def_window.fill_def_window(def_obj) # BUG (0) thabet fel unpacking thaherli mayhemouch esm el variable
         
         self.set_window_properties(title="Wörterbuch",
@@ -103,6 +110,9 @@ class MainWindow(QMainWindow):
                                    Frameless=False,
                                    size=QSize(self.def_window.base_width, 690))
         self.show()
+
+    def return_clicked(self):
+        self._end_test = True
 
     def expand_definition_window_animation(self):
         logger.info("expand_window")
@@ -196,7 +206,7 @@ class MainWindow(QMainWindow):
 
     def set_shortcuts(self):
         self.shortcut_close = QShortcut(QKeySequence('Ctrl+Q'), self)
-        self.shortcut_close.activated.connect(lambda :sys.exit())
+        self.shortcut_close.activated.connect(lambda :QApplication.quit())
 
 
 def set_theme(app):

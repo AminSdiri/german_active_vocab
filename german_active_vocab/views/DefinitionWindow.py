@@ -1,3 +1,4 @@
+import sys
 from plyer import notification
 
 from PyQt5.QtWidgets import (QPushButton, QWidget, QLineEdit, QTextEdit, QCheckBox, QMessageBox)
@@ -17,6 +18,12 @@ logger = set_up_logger(__name__)
 # custom example li savitou mel pons dict zeda mawjoud fel kelma me duden (prolet).
 # 7aja zaboura 3alekher ama fama risque mta3 conflit
 
+# DONE add deleted and focused Properties from TreeModel, update TextView 
+# DONE delete an element should hide all of it's children -> select an element should select all of it's children
+# DONE get all selected items
+# DONE update get path in get_address 
+# DONE update tree construction in treeModel
+# DONE highlight deleted in red in tree
 # DONE Subtile color for all words that are supposed to be hidden.
 # This will help detect if no word will be hidden in the custom examples and 
 # write a better algorithm for hiding words
@@ -27,13 +34,6 @@ class DefinitionWindow(QWidget):
 
         self.base_width = 700
         self.extended_width = 1400
-        
-        # DONE add deleted and focused Properties from TreeModel, update TextView 
-        # DONE delete an element should hide all of it's children -> select an element should select all of it's children
-        # DONE get all selected items
-        # DONE update get path in get_address 
-        # DONE update tree construction in treeModel
-        # DONE highlight deleted in red in tree
         
         headers = ["Type", "Content"]
         self.set_dict_tree_model(def_obj, headers)
@@ -52,7 +52,9 @@ class DefinitionWindow(QWidget):
         self.save_to_stud = QCheckBox('Studium', self)
         self.save_to_stud.move(5, 645)
         
-        self.return_button = QPushButton('Return', self)
+        # if code is being tested, the Return button have the "Pass Test" fonctionality
+        # Do NOT load pytest anywhere outside test files for this to work
+        self.return_button = QPushButton('Return' if "pytest" not in sys.modules else "Pass Test", self)
         self.return_button.move(105, 645)
         self.return_button.resize(80, 30)
 
@@ -98,7 +100,6 @@ class DefinitionWindow(QWidget):
         self.bookmark_button.move(1270, 645)
         self.bookmark_button.resize(120, 30)
         self.bookmark_button.setToolTip("Add Items to Focus Mode, those parts will be seperatly reviewed and also will be sent to Anki.")
-
 
         self.def_window_connect_buttons()
 
