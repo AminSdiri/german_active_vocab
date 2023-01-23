@@ -134,7 +134,7 @@ class DefEntry():
             self.search_word = self.input_word.replace(' du', '')
         else:
             self.search_word = self.input_word
-        self.search_word = self.search_word.lower()
+        self.search_word = self.search_word.lower().strip()
 
         # saving word
         if self.translate2fr:
@@ -152,10 +152,11 @@ class DefEntry():
             self.beispiel_en = ''
         else:
             self.beispiel_de = self.cl_args.ger.replace(
-                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
+                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"').strip()
+                
         if self.cl_args and self.cl_args.eng :
             self.beispiel_en = self.cl_args.eng.replace(
-                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"')
+                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"').strip()
 
     def _log_word_in_wordlist_history(self):
         # TODO (1) update to with open

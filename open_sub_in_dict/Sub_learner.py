@@ -1,10 +1,27 @@
 #!/usr/bin/env python3
 #coding=utf-8
 
-import pysrt
+'''Pre-requisits
+- enable HTTP web interface in VLC:
+Settings > Show all settings > Main interfaces > Check web checkbox > On the left select "Lua" from the tree > use "vlc" as HTTP password (without quotes) > Save settings > Restart VLC
+- install xmllint: 
+(for ubuntu) sudo apt install libxml2-utils
+- set a Shortcutkey to launch GetCurrentVLCTime.sh
+
+* when you have a Movie/Show you like in your wished language:
+1. Download subs in both source and translation languages, 2 Options: 
+    - The hard way: get subs manually and rename the files to video.lang.srt format where lang is "ger" or "eng".
+    - The easy way: You can do this automaticly with the VLC extension VLsub (usually preinstalled with VLC, otherwise download and set up from here https://addons.videolan.org/p/1154045) under Tools, check the option add lang suffixe in filename in VLsub configuration to get the right format.
+2. Sync sub programmatically with ffsubsync (https://github.com/smacke/ffsubsync) from terminal. you can run it twice for better synchronisation:
+    2.1 ffs video.mp4 -i video.ger.srt -o video.ger.srt (sync ger subtitle to ger video
+    2.2 ffs video.ger.srt -i video.eng.srt -o video.eng.srt (sync eng subs to ger subs)
+3. Enjoy watching your movie and call the learn subs shortcut when you hear/see a new word (don't try to catch them all, I was there..)
+'''
+
 import sys
 import os
 import glob
+import pysrt
 from pathlib import Path
 from PyQt5.QtWidgets import (QApplication,
                              QMainWindow,
@@ -14,10 +31,13 @@ from PyQt5.QtWidgets import (QApplication,
                              QTextEdit,
                              QProgressBar)
 
-# TODO (0) STRUCT UPDATE and move to the right directory or a separate project
 
-videos_path = Path('/media/mani/50 jdida') / 'Videos' / 'Shows'
-script_path = Path.home() / 'Dokumente' / 'active_vocabulary' / 'german_active_vocab' / 'main.py'
+# TODO (1) add button to automaticly execute second step
+# TODO (0)* STRUCT UPDATE and move to the right directory or a separate project
+
+# videos_path = Path('/media/mani/50 jdida') / 'Videos' / 'Shows'
+videos_path = Path.home() / 'Videos'
+script_path = Path.home() / 'Dokumente' / 'Algorithms' / 'german_active_vocab' / 'german_active_vocab'
 
 
 def clean_subtitle(subs):
@@ -77,8 +97,7 @@ class MainWindow(QMainWindow):
         nbargin = len(sys.argv) - 1
         print(nbargin)
         if nbargin == 2:
-            self.file_name = sys.argv[1].replace(
-                '.mp4', '').replace('.avi', '').replace('.mkv', '')
+            self.file_name = sys.argv[1].replace('.mp4', '').replace('.avi', '').replace('.mkv', '')
             self.curr_time = sys.argv[2]
             self.start_BigWindow()
             self.go_to_sub()
@@ -123,8 +142,10 @@ class MainWindow(QMainWindow):
                 self.path_en = file
         else:
             name_show = self.file_name
-            search_path_de = videos_path / 'Movies' / f'{name_show}*Ger*.srt'
-            search_path_en = videos_path / 'Movies' / f'{name_show}*Eng*.srt'
+            # search_path_de = videos_path / 'Movies' / f'{name_show}*Ger*.srt'
+            # search_path_en = videos_path / 'Movies' / f'{name_show}*Eng*.srt'
+            search_path_de = videos_path / f'{name_show}*ger*.srt'
+            search_path_en = videos_path / f'{name_show}*eng*.srt'
             print(search_path_de)
             for file in glob.glob(str(search_path_de)):
                 self.path_de = file
@@ -306,7 +327,7 @@ class MainWindow(QMainWindow):
         
         print('Executing Command')
         command_str = (f'python3 {script_path}'
-                       f' "{word}" "{Beispiel_de}" "{Beispiel_en}"')
+                       f' -w {word} -g {Beispiel_de} -e {Beispiel_en}')
         print(command_str)
         os.popen(command_str)  # stream = os...
         # output = stream.read()
