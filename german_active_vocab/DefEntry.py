@@ -21,7 +21,6 @@ logger = set_up_logger(__name__)
 
 @dataclass
 class DefEntry():
-    # TODO(0) STRUCT hiya nafs'ha lclass mta3 search_input
     input_word: str
     cl_args: Namespace
     search_word: str = ''

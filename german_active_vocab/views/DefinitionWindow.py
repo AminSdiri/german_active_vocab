@@ -26,7 +26,9 @@ logger = set_up_logger(__name__)
 # DONE highlight deleted in red in tree
 # DONE Subtile color for all words that are supposed to be hidden.
 # This will help detect if no word will be hidden in the custom examples and 
-# write a better algorithm for hiding words
+# TODO (1) write a better algorithm for hiding words
+
+
 class DefinitionWindow(QWidget):
     def __init__(self, def_obj, parent=None):
         super().__init__(parent)

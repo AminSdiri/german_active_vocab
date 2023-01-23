@@ -1,5 +1,9 @@
 [tool.pytest.ini_options]
-# TODO (0) fix paths and imports https://stackoverflow.com/questions/42996270/change-pytest-rootdir
+# TODO (3) fix paths and imports and delete pythonpath here
+# https://docs.pytest.org/en/latest/explanation/goodpractices.html#test-discovery
+# https://docs.python-guide.org/writing/structure/
+# https://dev.to/codemouse92/dead-simple-python-project-structure-and-imports-38c6
+# https://stackoverflow.com/questions/42996270/change-pytest-rootdir
 pythonpath = ["german_active_vocab"]
 filterwarnings = ["ignore::DeprecationWarning::"]
 addopts = "-q --no-qt-log -p no:logging --show-capture=no"

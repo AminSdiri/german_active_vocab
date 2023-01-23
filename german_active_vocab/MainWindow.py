@@ -1,6 +1,6 @@
 # import setuptools
 import sys
-from PyQt5.QtCore import Qt, QRect, QPropertyAnimation, QPoint, QSize, QCoreApplication
+from PyQt5.QtCore import Qt, QRect, QPropertyAnimation, QPoint, QSize
 from PyQt5.QtWidgets import (QMainWindow,
                              QShortcut,
                              QApplication)
@@ -17,27 +17,9 @@ from DefEntry import DefEntry
 from utils import get_command_line_args, set_up_logger
 # from autologging import traced
 
-# TODO (0) STRUCT Baddel structure mta3 Model, Viewer, controller walla Presenter
-
-# git update-index --skip-worktree <file> to skip tracking files
-# https://www.youtube.com/watch?v=0kpm10AxiNE&list=PLQVvvaa0QuDdVpDFNq4FwY9APZPGSUyR4&index=11 choose theme
-
-
-# user needs to generate API and put in in API path...
-# TODO (1) using boxLayout with percentages instead of hardcoded dimensions
-# TODO (0) Write Readme file with examples (screenshots) and how to install
-# TODO (0) List the different fonctionalities for the readme.md
-# TODO (0) write test functions for the different search syntaxes,
-# TODO (2) BIG write test functions for the different functionalities,
-# DONE (2) find os-agnostic alternative to notify-send for windows and macos
-# example: from plyer import notification
 
 logger = set_up_logger(__name__)
 
-
-# .strftime("%d.%m.%y") is a bad idea! losing the time information
-# TODO (1) STRUCT organize now and now_(-3h) 
-# TODO (2) move theme to settings.py
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):

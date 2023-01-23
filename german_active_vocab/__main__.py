@@ -21,8 +21,7 @@ from utils import set_up_logger
 # TODO (1) STRUCT organize now and now_(-3h) 
 # DONE (2) move theme
 # DONE (0) restruct main
-# TODO (0) configure testing in vscode
-# TODO (0) STRUCT Baddel structure mta3 Model, Viewer, controller walla Presenter
+# TODO (0) STRUCT all to Model, Viewer/controller architecture
 # TODO (4) choose theme https://www.youtube.com/watch?v=0kpm10AxiNE&list=PLQVvvaa0QuDdVpDFNq4FwY9APZPGSUyR4&index=11
 # DONE (0) ignore data files :: git update-index --skip-worktree <file> to skip tracking files
 
@@ -43,9 +42,7 @@ def excepthook(exc_type, exc_value, exc_tb):
     msg.setInformativeText(exc_value.args[0])
     msg.setWindowTitle("Error")
 
-    QApplication.quit()
-   # OR
-   # sys.exit(1)
+    QApplication.quit() # or sys.exit(0)? 
 
 def main() -> int:
     app = QApplication(sys.argv)

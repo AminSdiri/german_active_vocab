@@ -6,9 +6,12 @@ from german_active_vocab.MainWindow import MainWindow
 from pytestqt.plugin import qapp
 
 
-# BUG* multiple tests are not possible, PyQt doesn't immediatly close event loop after w.close
-# TODO test new_cache keyword
-# TODO test new_dict keyword
+# SOLVED multiple tests are not possible, PyQt doesn't immediatly close event loop after w.close
+# TODO (0) add pre-commit hooks in vscode
+# TODO (1) test new_cache keyword
+# TODO (1) test new_dict keyword
+# DONE configure testing in vscode
+# https://code.visualstudio.com/docs/python/testing
 
 def run_app(qapp):
     import qdarktheme
