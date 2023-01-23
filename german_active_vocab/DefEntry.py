@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from argparse import Namespace
 
 from bs4.builder import HTML
-from GetDict.GenerateDict import extract_synonymes_in_html_format, get_definitions_from_dict_dict, standart_dict
+from GetDict.GenerateDict import extract_synonymes_in_html_format, get_definitions_from_dict_dict, get_value_from_dict_if_exists, standart_dict
 from RenderHTML.RenderingHTML import render_html
 from PushToAnki import Anki
 from settings import ANKI_CONFIG, DICT_DATA_PATH
@@ -89,14 +89,11 @@ class DefEntry():
             if isinstance(address[-1], int):
                 # case of only one example is bookmarked
                 bookmarked_def_block[address[-2]] = bookmarked_def_block[address[-2]][address[-1]]
-            if 'definition' in bookmarked_def_block:
-                definition = bookmarked_def_block['definition']
-            elif 'sense' in bookmarked_def_block:
-                definition = bookmarked_def_block['sense']
-            else:
-                definition = ''
+            definition = get_value_from_dict_if_exists(keys=['definition', 'sense'],
+                                                       dictionnary=bookmarked_def_block)
             # TODO (2) change after standerising dicts
-            example = bookmarked_def_block['example'] if 'example' in bookmarked_def_block else bookmarked_def_block['Beispiele']
+            example = get_value_from_dict_if_exists(keys=['example', 'Beispiel', 'Beispiele'],
+                                                    dictionnary=bookmarked_def_block)
             return definition, example
         else:
             raise RuntimeError('Case not taken into account')

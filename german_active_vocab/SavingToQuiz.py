@@ -100,6 +100,7 @@ def quizify_and_save(dict_data_path, word, qt_html_content, beispiel_de,
     # custom_qt_html = fix_html_with_custom_example(custom_qt_html)
     # clean_html = fix_html_with_custom_example(clean_html)
 
+    # TODO (0) Be careful not to overwrite any old examples or modified dicts
     write_str_to_file(path=dict_data_path / 'html' / f'{word}.html',
                       string=qt_html_content,
                       overwrite=True,
@@ -195,7 +196,7 @@ def _remove_headwords(clean_html_soup):
     return clean_html_soup
 
 def _create_custom_section(dict_dict):
-    tmpl = JINJA_ENVIRONEMENT.get_template('custom_examples_section.html')
+    tmpl = JINJA_ENVIRONEMENT.get_template('custom_examples_section.html.j2')
     custom_section_html = tmpl.render(dict_dict=dict_dict)
 
     custom_section_html = "".join(line.strip()

@@ -24,7 +24,8 @@ logger = set_up_logger(__name__)
 # DONE update get path in get_address 
 # DONE update tree construction in treeModel
 # DONE highlight deleted in red in tree
-# DONE Subtile color for all words that are supposed to be hidden.
+# DONE Subtle color for all words that are supposed to be hidden.
+# TODO Subtle color for all words that are supposed to be hidden in custom examples.
 # This will help detect if no word will be hidden in the custom examples and 
 # TODO (1) write a better algorithm for hiding words
 

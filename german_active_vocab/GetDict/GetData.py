@@ -95,7 +95,7 @@ def _get_duden_soup(word, filename, ignore_cache, duden_source):
 
     if found_in_duden:
         duden_soup = _duden_html_to_soup(duden_source, duden_html)
-        write_str_to_file(DICT_DATA_PATH / 'cache' / filename, str(duden_soup))
+        write_str_to_file(DICT_DATA_PATH / 'cache' / filename, str(duden_soup), overwrite=True)
     else:
         duden_soup = ''
 
@@ -121,11 +121,11 @@ def _duden_html_to_soup(duden_source, duden_html):
             duden_soup = duden_soup[0]
     return duden_soup
 
-def _get_html_from_duden(url_lowercase):
+def _get_html_from_duden(url_string):
     found_in_duden = False
     http_code = 0
     try:
-        with request.urlopen(url_lowercase) as response:
+        with request.urlopen(url_string) as response:
             # use whatever encoding as per the webpage
             duden_html = response.read().decode('utf-8')
         logger.debug('got Duden Html (lower)')
@@ -133,16 +133,16 @@ def _get_html_from_duden(url_lowercase):
         http_code =200
 
     except InvalidURL:
-        logger.error(f'{url_lowercase} '
+        logger.error(f'{url_string} '
                         'words containing spaces in german to german ',
                         'are not allowed, did you wanted a translation?')
     except request.HTTPError as e:
         http_code = e.code
         if http_code == 404:
-            logger.warning(f"{url_lowercase} is not found")
+            logger.warning(f"{url_string} is not found")
             duden_html = '404 Wort nicht gefunden'
         elif http_code == 503:
-            logger.warning(f'{url_lowercase} '
+            logger.warning(f'{url_string} '
                            'base webservices are not available')
             pass
         else:

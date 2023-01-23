@@ -217,8 +217,12 @@ def read_str_from_file(path: Path):
     # word (path.stem) is sanitized before therefore not needed
     # path_str = sanitize_word(str(path))
     # path = Path(path_str)
-    with open(path, 'r') as file:
-        file_string = file.read()
+    try:
+        with open(path, 'r') as file:
+            file_string = file.read()
+    except FileNotFoundError:
+        logger.error(f'Path not Found: "{path}"')
+        file_string = ''
 
     return file_string
 

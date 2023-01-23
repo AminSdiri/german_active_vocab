@@ -71,10 +71,15 @@ def standart_dict(saving_word, translate2fr, translate2en,
                                         _duden_soup,
                                         _duden_syn_soup,
                                         search_word)
-        dict_dict['requested'] = 'pons'
-        dict_dict['source'] = 'NotFound'
-        dict_dict['content'] = []
-    
+        if dict_dict:
+            dict_dict['requested'] = 'pons'
+        else:
+            # word is not found anywhere
+            dict_dict['requested'] = 'pons'
+            dict_dict['source'] = 'NotFound'
+            dict_dict['content'] = []
+            dict_dict['hidden_words_list'] = []
+
     # BUG (0) dict_dict is list for translate
     dict_dict['search_word'] = search_word
 
@@ -187,7 +192,7 @@ def _extract_custom_examples_from_html(word):
     Temporary function:
     save custom examples list from the old version html in dict_dict
     '''
-    # TODO (2) run in loop and then delete here
+    # TODO (2) run in loop to update dicts and then delete
     old_german_examples = []
     old_englisch_examples = []
     df = pd.read_csv(DICT_DATA_PATH / 'wordlist.csv')
@@ -372,3 +377,9 @@ def list_replace_value(list_object):
                 elem = remove_html_wrapping(elem, unwrap='red_strikthrough')
         new_list.append(elem)
     return new_list
+
+def get_value_from_dict_if_exists(keys, dictionnary):
+    for key in keys:
+        if key in dictionnary:
+            return dictionnary[key]
+    return ''

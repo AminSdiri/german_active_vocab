@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QTreeView, QStyledItemDelegate, QStyleOptionViewItem
 from PyQt5.QtCore import Qt, QAbstractItemModel, QModelIndex, QRectF, QSize, QItemSelectionModel
 from PyQt5.QtGui import QTextDocument, QAbstractTextDocumentLayout
 
+# TODO (0) allow modifing custom examples in TreeView
 
 class DictEditorWidget(QTreeView):
     def __init__(self, model, parent=None):
