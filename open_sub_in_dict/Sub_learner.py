@@ -56,7 +56,40 @@ def clean_subtitle(subs):
         .replace("\n", " ")
     return subs
 
+def fetch_subs_from_timestamp(srt_file, minute, second):
+    '''progressivly expand time window until a subtitle is found'''
+    for time_window in range(1, 60):
+        subtitle_slice = srt_file.slice(starts_before={'minutes': int(minute),
+                                                    'seconds': int(second)+2*time_window},
+                                        ends_after={'minutes': int(minute),
+                                                    'seconds': int(second)-2*time_window})
+        if subtitle_slice:
+            break
+        if time_window == 60:
+            # TODO (4) reconvert minutes to hours:minutes
+            raise Exception(f'No German Subtitles found between {minute-2}:{second} and {minute+2}:{second}')
 
+    index_list = [subtitle_phrase.index for subtitle_phrase in subtitle_slice]
+
+    slice_text = ''.join([f' – {subtitle_phrase.text}' for subtitle_phrase in subtitle_slice])
+    return slice_text, index_list
+
+def get_phrase_text(srt_file, slice_indexes: list, jump_to:str, mode: str):
+    if jump_to=='next' and mode=='replace':
+        slice_indexes = [max(slice_indexes)+1]
+    elif jump_to=='previous' and mode=='replace':
+        slice_indexes = [min(slice_indexes)-1]
+    elif jump_to=='next' and mode=='append':
+        slice_indexes.append(max(slice_indexes)+1)
+    elif jump_to=='previous' and mode=='append':
+        slice_indexes.insert(0, min(slice_indexes)-1)
+    else:
+        raise RuntimeError('jump_to should be "previous" or "next", mode should be "replace" or "append"')
+
+    slice_text = ''.join([f' – {srt_file[x].text}' for x in slice_indexes])
+
+    return slice_text, slice_indexes
+        
 class BigWindow(QWidget):
     def __init__(self, parent=None):
         super(BigWindow, self).__init__(parent)
@@ -129,87 +162,59 @@ class MainWindow(QMainWindow):
         hour, minute, second = self.curr_time.split(':')
         minute = int(minute) + 60*int(hour)
         
-        # progressivly expand time window until a subtitle is found
-        for time_window in range(1, 60):
-            parts_de = self.subs_de.slice(starts_before={'minutes': int(minute),
-                                                        'seconds': int(second)+2*time_window},
-                                        ends_after={'minutes': int(minute),
-                                                    'seconds': int(second)-2*time_window})
-            if parts_de:
-                break
-            if time_window == 60:
-                raise Exception(f'No German Subtitles found between {hour}:{minute-2}:{second} and {hour}:{minute+2}:{second}')
+        current_slice_deu, self.slice_indexes_deu = fetch_subs_from_timestamp(srt_file=self.subs_de,
+                                                                              minute=minute,
+                                                                              second=second)
 
-        self.index_list_de = [part.index for part in parts_de]
+        current_slice_eng, self.slice_indexes_eng = fetch_subs_from_timestamp(srt_file=self.subs_en,
+                                                                              minute=minute,
+                                                                              second=second)
 
-        current_sub_de = ''.join([f' – {part.text}' for part in parts_de])
-
-        print('Deu: '+current_sub_de)
-
-        for time_window in range(1, 60):
-            parts_en = self.subs_en.slice(starts_before={'minutes': int(minute),
-                                                        'seconds': int(second)+2*time_window},
-                                        ends_after={'minutes': int(minute),
-                                                    'seconds': int(second)-2*time_window})
-            if parts_en:
-                break
-            if time_window == 60:
-                raise Exception(f'No English Subtitles found between {hour}:{minute-2}:{second} and {hour}:{minute+2}:{second}')
-
-        self.index_list_en = [part.index for part in parts_en]
-
-        current_sub_en = ''.join([f' – {part.text}' for part in parts_en])
-        print('Eng: '+current_sub_en)
-
-        self.update_view(current_sub_de, current_sub_en)
+        self.update_view(current_slice_deu, current_slice_eng)
 
     def get_srts(self):
         # updated
-        # TODO use same methode for both lang
-        print(self.curr_time)
+        # DONE use same methode for both lang
+
+        self.subs_de, self.path_de = self.get_srt_file(lang='ger')
+        self.subs_en, self.path_en = self.get_srt_file(lang='eng') 
+
+    def get_srt_file(self, lang):
+        if lang not in ('ger', 'eng'):
+            raise RuntimeError('language must be german or english')
+
+        # TODO split into two functions
+    
         if "S0" in self.file_name:
             name_show, number_episode = self.file_name.split()
-            print(name_show)
-            print(number_episode)
-            search_pattern_ger = f'{name_show}*{number_episode}*Ger*.srt'
-            search_path_de = videos_path / name_show / search_pattern_ger
-            search_pattern_eng = f'{name_show}*{number_episode}*Eng*.srt'
-            search_path_en = videos_path / name_show / search_pattern_eng
-            for file in glob.glob(str(search_path_de)):
-                print(file)
-                self.path_de = file
-            for file in glob.glob(str(search_path_en)):
-                print(file)
-                self.path_en = file
+            search_pattern = f'{name_show}*{number_episode}*{lang}*.srt'
+            search_path = videos_path / name_show / search_pattern
         else:
-            search_path_de = videos_path / f'{self.file_name}*ger*.srt'
-            search_path_en = videos_path / f'{self.file_name}*eng*.srt'
-            for file in glob.glob(str(search_path_de)):
-                self.path_de = file
-            for file in glob.glob(str(search_path_en)):
-                self.path_en = file
-
+            search_path = videos_path / f'{self.file_name}*{lang}*.srt'
+        
+        for file in glob.glob(str(search_path)):
+            srt_file_path = file
+            
         try:
-            self.subs_de = pysrt.open(self.path_de)
+            srt_file = pysrt.open(srt_file_path)
         except UnicodeDecodeError: # UnicodeEncodeError:
-            self.subs_de = pysrt.open(self.path_de, encoding='iso-8859-1')  
+            srt_file = pysrt.open(srt_file_path, encoding='iso-8859-1') # error_handling=pysrt.ERROR_PASS
 
-        try:
-            self.subs_en = pysrt.open(self.path_en)
-        except UnicodeDecodeError:
-            self.subs_en = pysrt.open(self.path_en, encoding='iso-8859-1') # error_handling=pysrt.ERROR_PASS
+        return srt_file, srt_file_path
 
     def go_previous(self):
         # go to next sub_de
-        previous_de_sub_index = min(self.index_list_de)-1
-        self.index_list_de = [previous_de_sub_index]
-        current_sub_de = self.subs_de[previous_de_sub_index]
-        current_sub_de = current_sub_de.text
+        jump_to = 'previous'
+        mode = 'append'
+        current_slice_deu, self.slice_indexes_deu = get_phrase_text(srt_file=self.subs_de,
+                                                                             slice_indexes=self.slice_indexes_deu,
+                                                                             jump_to=jump_to,
+                                                                             mode=mode)
 
-        previous_en_sub_index = min(self.index_list_en)-1
-        self.index_list_en = [previous_en_sub_index]
-        current_sub_en = self.subs_de[previous_en_sub_index]
-        current_sub_en = current_sub_en.text
+        current_slice_eng, self.slice_indexes_eng = get_phrase_text(srt_file=self.subs_en,
+                                                                             slice_indexes=self.slice_indexes_eng,
+                                                                             jump_to=jump_to,
+                                                                             mode=mode)
 
 
         # TODO (2) Why?
@@ -231,24 +236,27 @@ class MainWindow(QMainWindow):
                                                
         # current_sub_en = ''.join([f' – {part.text}' for part in parts_en])
 
-        self.update_view(current_sub_de, current_sub_en)
+        self.update_view(current_slice_deu, current_slice_eng)
+
+    
 
     def update_progress(self):
-        progress = (max(self.index_list_de)/len(self.subs_de))*100
+        progress = (max(self.slice_indexes_deu)/len(self.subs_de))*100
         self.ToolTab.progress.setValue(int(progress))
 
     def go_next(self):
         # go to next sub_de
-        next_de_sub_index = max(self.index_list_de)+1
-        self.index_list_de = [next_de_sub_index]
-        current_sub_de = self.subs_de[next_de_sub_index]
-        current_sub_de = current_sub_de.text
+        jump_to = 'next'
+        mode = 'replace'
+        current_slice_deu, self.slice_indexes_deu = get_phrase_text(srt_file=self.subs_de,
+                                                                             slice_indexes=self.slice_indexes_deu,
+                                                                             jump_to=jump_to,
+                                                                             mode=mode)
 
-        next_en_sub_index = max(self.index_list_en)+1
-        self.index_list_en = [next_en_sub_index]
-        current_sub_en = self.subs_en[next_en_sub_index]
-        current_sub_en = current_sub_en.text
-        
+        current_slice_eng, self.slice_indexes_eng = get_phrase_text(srt_file=self.subs_en,
+                                                                             slice_indexes=self.slice_indexes_eng,
+                                                                             jump_to=jump_to,
+                                                                             mode=mode)
         # same, why?
         # # get start_timestamp and end_timestamp
         # sub_start_minutes = current_sub_de.start.minutes
@@ -271,14 +279,20 @@ class MainWindow(QMainWindow):
         # for part in parts:
         #     current_sub_en += ' – ' + part.text
 
-        self.update_view(current_sub_de, current_sub_en)
+        self.update_view(current_slice_deu, current_slice_eng)
 
     def add_previous(self):
-        self.index_list_de.insert(0, min(self.index_list_de)-1)
-        current_sub_de = ''.join([f' – {self.subs_de[x].text}' for x in self.index_list_de])
+        jump_to = 'previous'
+        mode = 'append'
+        current_slice_deu, self.slice_indexes_deu = get_phrase_text(srt_file=self.subs_de,
+                                                                             slice_indexes=self.slice_indexes_deu,
+                                                                             jump_to=jump_to,
+                                                                             mode=mode)
 
-        self.index_list_en.insert(0, min(self.index_list_en)-1)
-        current_sub_en = ''.join([f' – {self.subs_en[x].text}' for x in self.index_list_en])
+        current_slice_eng, self.slice_indexes_eng = get_phrase_text(srt_file=self.subs_en,
+                                                                             slice_indexes=self.slice_indexes_eng,
+                                                                             jump_to=jump_to,
+                                                                             mode=mode)
 
         # Why
         # first_sub = self.subs_de[min(self.index_list_de)-1]
@@ -303,14 +317,20 @@ class MainWindow(QMainWindow):
         # for part in parts:
         #     current_sub_en += ' – ' + part.text
         
-        self.update_view(current_sub_de, current_sub_en)
+        self.update_view(current_slice_deu, current_slice_eng)
 
     def add_next(self):
-        self.index_list_de.append(max(self.index_list_de) + 1)
-        current_sub_de = ''.join([f' – {self.subs_de[x].text}' for x in self.index_list_de])
+        jump_to = 'next'
+        mode = 'append'
+        current_slice_deu, self.slice_indexes_deu = get_phrase_text(srt_file=self.subs_de,
+                                                                             slice_indexes=self.slice_indexes_deu,
+                                                                             jump_to=jump_to,
+                                                                             mode=mode)
 
-        self.index_list_en.append(max(self.index_list_en) + 1)
-        current_sub_en = ''.join([f' – {self.subs_en[x].text}' for x in self.index_list_en])
+        current_slice_eng, self.slice_indexes_eng = get_phrase_text(srt_file=self.subs_en,
+                                                                             slice_indexes=self.slice_indexes_eng,
+                                                                             jump_to=jump_to,
+                                                                             mode=mode)
 
         # why again
         # first_sub = self.subs_de[min(self.index_list)]
@@ -333,7 +353,7 @@ class MainWindow(QMainWindow):
         # for part in parts:
         #     current_sub_en += ' – ' + part.text
 
-        self.update_view(current_sub_de, current_sub_en)
+        self.update_view(current_slice_deu, current_slice_eng)
 
     def update_view(self, current_sub_de, current_sub_en):
         self.ToolTab.Deu_cont.clear()
