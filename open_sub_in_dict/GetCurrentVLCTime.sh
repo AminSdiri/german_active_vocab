@@ -28,9 +28,11 @@ if [ 0 -eq $? ]; then
 	timecode="${hour}:${min}:${sec}"
 
 	notify-send "Time is Captured" "$vlc_filename: $timecode"
+	# TODO (0) fix this path to be dynamic
 	echo $vlc_filename, $timecode >>~/Dokumente/Dictionnary/VLC_saved_time.txt
-	echo /home/mani/Dokumente/active_vocabulary/open_sub_in_dict/Sub_learner.py "$vlc_filename" "$timecode"
-	/home/parkdepot/Dokumente/Algorithms/german_active_vocab/open_sub_in_dict/Sub_learner.py "$vlc_filename" "$timecode"
+	echo /home/mani/Dokumente/active_vocabulary/open_sub_in_dict/LearnFromSubtitles.py "$vlc_filename" "$timecode"
+	# TODO (0) fix this path to be dynamic
+	/home/parkdepot/Dokumente/Algorithms/german_active_vocab/open_sub_in_dict/LearnFromSubtitles.py "$vlc_filename" "$timecode"
 else
 	echo "no data from vlc"
 	notify-send "no data from vlc"
