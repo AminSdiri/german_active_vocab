@@ -1,12 +1,12 @@
 import pysrt
 
-def fetch_subs_from_timestamp(srt_object: pysrt.srtitem.SubRipItem, minute: str, second: str) -> tuple[str, list]:
+def fetch_subs_from_timestamp(srt_object: pysrt.srtitem.SubRipItem, minute: int, second: int) -> tuple[str, list]:
     '''progressivly expand time window until a subtitle is found'''
     for time_window in range(1, 60):
-        subtitle_slice = srt_object.slice(starts_before={'minutes': int(minute),
-                                                    'seconds': int(second)+2*time_window},
-                                        ends_after={'minutes': int(minute),
-                                                    'seconds': int(second)-2*time_window})
+        subtitle_slice = srt_object.slice(starts_before={'minutes': minute,
+                                                    'seconds': second+2*time_window},
+                                        ends_after={'minutes': minute,
+                                                    'seconds': second-2*time_window})
         if subtitle_slice:
             break
         if time_window == 60:

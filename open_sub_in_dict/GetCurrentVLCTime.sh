@@ -1,10 +1,8 @@
 #!/bin/bash
 
 # TODO (0) STRUCT UPDATE and move to the right directory
-# TODO (1) dynamic paths 
+# DONE (0) dynamic paths 
 # Script to link to a shortcut
-
-# 
 
 vlc_request=$(curl -u :vlc http://localhost:8080/requests/status.xml)
 
@@ -28,11 +26,10 @@ if [ 0 -eq $? ]; then
 	timecode="${hour}:${min}:${sec}"
 
 	notify-send "Time is Captured" "$vlc_filename: $timecode"
-	# TODO (0) fix this path to be dynamic
-	echo $vlc_filename, $timecode >>~/Dokumente/Dictionnary/VLC_saved_time.txt
-	echo /home/mani/Dokumente/active_vocabulary/open_sub_in_dict/LearnFromSubtitles.py "$vlc_filename" "$timecode"
-	# TODO (0) fix this path to be dynamic
-	/home/parkdepot/Dokumente/Algorithms/german_active_vocab/open_sub_in_dict/LearnFromSubtitles.py "$vlc_filename" "$timecode"
+	# get current script path
+	SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+	echo $vlc_filename, $timecode >> $SCRIPT_DIR/VLC_saved_times.txt
+	$SCRIPT_DIR/LearnFromSubtitles.py "$vlc_filename" "$timecode"
 else
 	echo "no data from vlc"
 	notify-send "no data from vlc"

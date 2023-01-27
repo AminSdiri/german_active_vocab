@@ -21,9 +21,9 @@ Settings > Show all settings > Main interfaces > Check web checkbox > On the lef
 import sys
 import os
 import glob
-import pysrt
 from pathlib import Path
 import traceback
+import pysrt
 from plyer import notification
 from PyQt5.QtWidgets import (QApplication,
                              QMainWindow,
@@ -46,40 +46,40 @@ from TreatSubtitles import clean_subtitle, fetch_subs_from_timestamp, format_exa
 
 # videos_path = Path('/media/mani/50 jdida') / 'Videos' / 'Shows'
 videos_path = Path.home() / 'Videos'
-script_path = Path.home() / 'Dokumente' / 'Algorithms' / 'german_active_vocab' / 'german_active_vocab'
+script_path = Path().absolute() / 'german_active_vocab'
         
 class BigWindow(QWidget):
     def __init__(self, parent=None):
         super(BigWindow, self).__init__(parent)
 
-        self.Deu_cont = QTextEdit(self)
-        self.Deu_cont.move(5, 5)
-        self.Deu_cont.resize(490, 140)
+        self.example_field_ger = QTextEdit(self)
+        self.example_field_ger.move(5, 5)
+        self.example_field_ger.resize(490, 140)
 
-        self.Eng_cont = QTextEdit(self)
-        self.Eng_cont.move(5, 150)
-        self.Eng_cont.resize(490, 145)
+        self.example_field_eng = QTextEdit(self)
+        self.example_field_eng.move(5, 150)
+        self.example_field_eng.resize(490, 145)
 
         self.line = QLineEdit(self)
         self.line.move(5, 355)
         self.line.resize(200, 45)
         self.line.setPlaceholderText("type the new word...")
 
-        self.appendPrevious_button = QPushButton('Add Prev', self)
-        self.appendPrevious_button.move(5, 305)
-        self.appendPrevious_button.resize(90, 25)
+        self.append_previous_button = QPushButton('Add Prev', self)
+        self.append_previous_button.move(5, 305)
+        self.append_previous_button.resize(90, 25)
 
-        self.jumpPrevious_button = QPushButton('Previous', self)
-        self.jumpPrevious_button.move(105, 305)
-        self.jumpPrevious_button.resize(90, 25)
+        self.jump_previous_button = QPushButton('Previous', self)
+        self.jump_previous_button.move(105, 305)
+        self.jump_previous_button.resize(90, 25)
 
-        self.jumpNext_button = QPushButton('Next', self)
-        self.jumpNext_button.move(300, 305)
-        self.jumpNext_button.resize(90, 25)
+        self.jump_next_button = QPushButton('Next', self)
+        self.jump_next_button.move(300, 305)
+        self.jump_next_button.resize(90, 25)
 
-        self.appendNext_button = QPushButton('Add Next', self)
-        self.appendNext_button.move(400, 305)
-        self.appendNext_button.resize(90, 25)
+        self.append_next_button = QPushButton('Add Next', self)
+        self.append_next_button.move(400, 305)
+        self.append_next_button.resize(90, 25)
 
         self.save_button = QPushButton('Save\nto Dict', self)
         self.save_button.move(210, 355)
@@ -98,29 +98,34 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
         
+        self.big_window = BigWindow(self)
+        self.current_slice_deu = ''
+        self.slice_indexes_deu = []
+        self.current_slice_eng = ''
+        self.slice_indexes_eng = []
+
         if len(sys.argv) == 1+2:
             self.file_name = sys.argv[1].replace('.mp4', '')\
                                         .replace('.avi', '')\
                                         .replace('.mkv', '')
             self.curr_time = sys.argv[2]
             self.get_srts()
-            self.start_BigWindow()
+            self.start_big_window()
             self.go_to_sub()
         else:
-            self.start_BigWindow()
+            self.start_big_window()
 
-    def start_BigWindow(self):
+    def start_big_window(self):
         self.resize(500, 410)
         self.move(100, 150)
-        self.big_window = BigWindow(self)
         self.setWindowTitle("Sub-Learner")
         self.setCentralWidget(self.big_window)
 
         self.big_window.line.returnPressed.connect(self.save_method)
-        self.big_window.jumpPrevious_button.clicked.connect(self.go_previous)
-        self.big_window.jumpNext_button.clicked.connect(self.go_next)
-        self.big_window.appendPrevious_button.clicked.connect(self.add_previous)
-        self.big_window.appendNext_button.clicked.connect(self.add_next)
+        self.big_window.jump_previous_button.clicked.connect(self.go_previous)
+        self.big_window.jump_next_button.clicked.connect(self.go_next)
+        self.big_window.append_previous_button.clicked.connect(self.add_previous)
+        self.big_window.append_next_button.clicked.connect(self.add_next)
         self.big_window.save_button.clicked.connect(self.save_method)
         self.big_window.sync_button.clicked.connect(self.sync_subtitles)
 
@@ -131,6 +136,7 @@ class MainWindow(QMainWindow):
 
         hour, minute, second = self.curr_time.split(':')
         minute = int(minute) + 60*int(hour)
+        second = int(second)
         
         current_slice_deu, self.slice_indexes_deu = fetch_subs_from_timestamp(srt_object=self.subs_de,
                                                                               minute=minute,
@@ -172,7 +178,7 @@ class MainWindow(QMainWindow):
     def go_previous(self):
         # go to next sub_de
         jump_to = 'previous'
-        mode = 'append'
+        mode = 'replace'
         current_slice_deu, self.slice_indexes_deu = get_phrase_text(srt_object=self.subs_de,
                                                                              slice_indexes=self.slice_indexes_deu,
                                                                              jump_to=jump_to,
@@ -232,10 +238,10 @@ class MainWindow(QMainWindow):
         self.update_view(current_slice_deu, current_slice_eng)
 
     def update_view(self, current_sub_de, current_sub_en):
-        self.big_window.Deu_cont.clear()
-        self.big_window.Eng_cont.clear()
-        self.big_window.Deu_cont.insertPlainText(clean_subtitle(current_sub_de))
-        self.big_window.Eng_cont.insertPlainText(clean_subtitle(current_sub_en))
+        self.big_window.example_field_ger.clear()
+        self.big_window.example_field_eng.clear()
+        self.big_window.example_field_ger.insertPlainText(clean_subtitle(current_sub_de))
+        self.big_window.example_field_eng.insertPlainText(clean_subtitle(current_sub_en))
         self.update_progress()
         self.show()
 
@@ -244,10 +250,10 @@ class MainWindow(QMainWindow):
         # updated
         print('save_method')
 
-        german_example = self.big_window.Deu_cont.toPlainText()
+        german_example = self.big_window.example_field_ger.toPlainText()
         german_example = format_example(video_title=self.file_name,
                                         example=german_example)
-        english_example = self.big_window.Eng_cont.toPlainText()
+        english_example = self.big_window.example_field_eng.toPlainText()
         english_example = format_example(video_title=self.file_name,
                                          example=english_example)
 
@@ -264,18 +270,18 @@ class MainWindow(QMainWindow):
         print('Synching Subtitles: ')
         print(sync_to_video_command_str)
         print(sync_to_str_command_str)
-        # TODO use QPrecess? https://stackoverflow.com/questions/19409940/how-to-get-output-system-command-in-qt
+        # TODO (3) use QPrecess? https://stackoverflow.com/questions/19409940/how-to-get-output-system-command-in-qt
         os.popen(sync_to_video_command_str)
         os.popen(sync_to_str_command_str)
         os.popen(sync_to_video_command_str)
         os.popen(sync_to_str_command_str)
-        import subprocess # better? if I want to launch the command in a separate terminal
+        import subprocess # TODO (3) better? if I want to launch the command in a separate terminal
         subprocess.Popen(['gnome-terminal', '--', 'bash', '-c', sync_to_str_command_str], stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
 
 def excepthook(exc_type, exc_value, exc_tb):
-    tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    formatted_traceback = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
     print("error catched!:")
-    print("error message:\n", tb)
+    print("error message:\n", formatted_traceback)
     notification.notify(title='An Error Occured',
                         message=exc_value.args[0],
                         timeout=10)
