@@ -97,13 +97,13 @@
 </head>
 
 <body>
-    {% for dict_dict in lang_dict %}
+    {# {% for dict_dict in lang_dict %} #}
     <!-- {% if dict_dict["lang"] == "de" %}
         {% else %}
         {% endif %} -->
-    {% if dict_dict["lang"]|length %}
+    {# {% if dict_dict["lang"]|length %}
     <h1 style="text-align:center">{{dict_dict["lang"]}}</h1>
-    {% endif %}
+    {% endif %} #}
     
     {% set dict_dict = dict_dict["content"]%}
 
@@ -193,7 +193,7 @@
 
     {% endfor %}
 
-    {% endfor %}
+    {# {% endfor %} #}
 
 </body>
 

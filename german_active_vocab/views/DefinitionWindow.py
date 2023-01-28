@@ -25,7 +25,7 @@ logger = set_up_logger(__name__)
 # DONE update tree construction in treeModel
 # DONE highlight deleted in red in tree
 # DONE Subtle color for all words that are supposed to be hidden.
-# TODO Subtle color for all words that are supposed to be hidden in custom examples.
+# DONE Subtle color for all words that are supposed to be hidden in custom examples.
 # This will help detect if no word will be hidden in the custom examples and 
 # TODO (1) write a better algorithm for hiding words
 
@@ -39,13 +39,13 @@ class DefinitionWindow(QWidget):
         self.extended_width = 1400
         
         headers = ["Type", "Content"]
-        self.set_dict_tree_model(def_obj, headers)
+        self.model = TreeModel(headers, def_obj.dict_dict['content'])
         self.dict_tree_view = DictEditorWidget(self.model, parent = self)
         self.dict_tree_view.move(700, 5)
         self.dict_tree_view.resize(690, 635)
 
         self.def_obj = def_obj
-        self.model.dataChanged.connect(self.refresh_textView)
+        self.model.dataChanged.connect(self.refresh_text_view)
         
         self.txt_cont = QTextEdit(self)
         self.txt_cont.move(5, 5)
@@ -106,15 +106,6 @@ class DefinitionWindow(QWidget):
 
         self.def_window_connect_buttons()
 
-    def set_dict_tree_model(self, def_obj, headers):
-        if 'content' in def_obj.dict_dict:
-            self.model = TreeModel(headers, def_obj.dict_dict['content'])
-        elif 'content_1' in def_obj.dict_dict:
-            # ugly, not working with code, make user choose a language direction
-            # and have a unified dict
-            self.model = TreeModel(headers, def_obj.dict_dict['content_1'])
-            self.model.createData(def_obj.dict_dict['content_2'])
-
     def def_window_connect_buttons(self):
         self.highlight_button.clicked.connect(self.force_hide)
         self.anki_button.clicked.connect(self.send_to_anki)
@@ -123,7 +114,13 @@ class DefinitionWindow(QWidget):
         self.discard_button.clicked.connect(lambda: self.format_selection(operation='discard'))
         self.restore_button.clicked.connect(self.restore_discarded)
         self.bookmark_button.clicked.connect(lambda: self.format_selection(operation='bookmark'))
-        # self.highlight_button.clicked.connect()
+        # if code is being tested, the Return button have the "Pass Test" fonctionality
+        # Do NOT load pytest anywhere outside test files for this to work
+        if "pytest" not in sys.modules:
+            self.return_button.clicked.connect(self.parent().launch_search_window)
+        else:
+            self._end_test = False
+            self.return_button.clicked.connect(self.parent().return_clicked)
 
     def format_selection(self, operation: str):
         for index in self.dict_tree_view.selectedIndexes():
@@ -178,12 +175,12 @@ class DefinitionWindow(QWidget):
         self.dict_tree_view.resize(690, 635)
         self.dict_tree_view.show()
 
-    def refresh_textView(self, index):
+    def refresh_text_view(self, index):
         text, address = self.model.get_dict_address(index)
         self.def_obj.update_dict(text, address)
         self.update_TextEdit()
 
-    def update_TextEdit(self):
+    def update_text_view(self):
         defined_html = self.def_obj.re_render_html()
         self.txt_cont.clear()
         self.txt_cont.insertHtml(defined_html)
@@ -208,11 +205,11 @@ class DefinitionWindow(QWidget):
 
     def highlight_selection(self):
         logger.info("highlight_selection")
-        format = QTextCharFormat()
+        color_format = QTextCharFormat()
         color = QColor(3, 155, 224)
         color = QColor(int(220*1.15), int(212*1.15), int(39*1.15))
-        format.setForeground(color)
-        self.txt_cont.textCursor().mergeCharFormat(format)
+        color_format.setForeground(color)
+        self.txt_cont.textCursor().mergeCharFormat(color_format)
 
     def send_to_anki(self):
 

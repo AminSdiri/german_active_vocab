@@ -42,7 +42,7 @@ def render_html(dict_dict):
     # elif dict_dict['source'] == 'duden':
     #     defined_html = render_html_from_dict('duden', dict_dict, word_info)
 
-    # BUG (0) dict_dict is list for translate
+    # FIXED (0) dict_dict is list for translate
     word_info = get_saved_seen_word_info(dict_dict['search_word'])
 
     translate = 'lang' in dict_dict or 'lang_1' in dict_dict
@@ -126,9 +126,7 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}, mode='full'):
     elif html_type == 'translation':
         JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_trans
         tmpl = JINJA_ENVIRONEMENT.get_template('translation.html.j2')
-        # TODO (4) ugly
-        dict_dict_trans = dict_to_list_of_dicts(dict_dict)
-        defined_html = tmpl.render(lang_dict=dict_dict_trans,
+        defined_html = tmpl.render(dict_dict=dict_dict,
                                    mode=mode)
     elif html_type == 'duden':
         JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_du
@@ -152,20 +150,20 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}, mode='full'):
 
     return defined_html
 
-def dict_to_list_of_dicts(dict_dict):
-    if 'lang_1' in dict_dict:
-            # dict has 2 languanges
-        dict_dict_trans = [
-            {'lang': dict_dict['lang_1'],
-                'content': dict_dict['content_1']},
-            {'lang': dict_dict['lang_2'],
-                'content': dict_dict['content_2']}
-                ]
-    elif 'lang' in dict_dict:
-        dict_dict_trans = [dict_dict]
-    else:
-        raise RuntimeError('dict has not translation')
-    return dict_dict_trans
+# def dict_to_list_of_dicts(dict_dict):
+#     if 'lang_1' in dict_dict:
+#             # dict has 2 languanges
+#         dict_dict_trans = [
+#             {'lang': dict_dict['lang_1'],
+#                 'content': dict_dict['content_1']},
+#             {'lang': dict_dict['lang_2'],
+#                 'content': dict_dict['content_2']}
+#                 ]
+#     elif 'lang' in dict_dict:
+#         dict_dict_trans = [dict_dict]
+#     else:
+#         raise RuntimeError('dict has not translation')
+#     return dict_dict_trans
 
 
 def is_list(value):

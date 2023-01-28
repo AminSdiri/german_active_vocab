@@ -3,6 +3,7 @@ import pandas as pd
 from bs4 import BeautifulSoup as bs
 import ast
 from collections import Counter
+from PyQt5.QtWidgets import QMessageBox
 
 from GetDict.GetData import get_word_from_source
 from GetDict.ParsingJson import construct_dict_from_json
@@ -80,7 +81,7 @@ def standart_dict(saving_word, translate2fr, translate2en,
             dict_dict['content'] = []
             dict_dict['hidden_words_list'] = []
 
-    # BUG (0) dict_dict is list for translate
+    # FIXED (0) dict_dict is list for translate
     dict_dict['search_word'] = search_word
 
     return dict_dict, dict_dict_path
@@ -140,26 +141,49 @@ def _standart_pons_dict(_pons_json, _duden_syn_soup, word, translate,
 
     elif translate and len(_pons_json) == 1:
         logger.info(f'language: {_pons_json[0]["lang"]}')
-        json_data = _pons_json[0]["hits"]
-        dict_dict = construct_dict_from_json(json_data, translate, word)
 
         dict_dict = {'lang': _pons_json[0]["lang"],
-                      'content': dict_dict}
+                      'content': construct_dict_from_json(_pons_json[0]["hits"], translate, word)}
     elif translate and len(_pons_json) == 2:
-        logger.info(f'language: {_pons_json[0]["lang"]}')
-        json_data_1 = _pons_json[0]["hits"]
-        dict_dict_1 = construct_dict_from_json(json_data_1, translate, word)
+        # resolve language translation confusion by asking the user
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Question)
+        msg.setText("Confused.. I need you help??")
+        msg.setWindowTitle("Choice of translation")
 
-        json_data_2 = _pons_json[1]["hits"]
-        dict_dict_2 = construct_dict_from_json(json_data_2, translate, word)
+        languages = [_pons_json[0]["lang"], _pons_json[1]["lang"]]
+        mother_language = languages[0] if languages[0] != 'de' else _pons_json[1]["lang"]
+        if languages[0]=='de':
+            mother_language = 'an english' if languages[1]=='en' else 'a french'
+            zero_to_one_str = 'De -> En' if languages[1]=='en' else 'De -> Fr'
+            one_to_zero_str = 'En -> De' if languages[1]=='en' else 'Fr -> De'
+        else:
+            mother_language = 'an english' if languages[0]=='en' else 'a french'
+            zero_to_one_str = 'De -> En' if languages[0]=='en' else 'De -> Fr'
+            one_to_zero_str = 'En -> De' if languages[0]=='en' else 'Fr -> De'
 
-        # language=json_data[0]['lang']
-        dict_dict = {
-            'lang_1': _pons_json[0]['lang'],
-            'content_1': dict_dict_1,
-            'lang_2': _pons_json[1]['lang'],
-            'content_2': dict_dict_2
-            }
+        msg.setInformativeText(f'"{word}" is both a german and {mother_language} word. Please choose the translation direction')
+        zero_to_one = msg.addButton(zero_to_one_str, QMessageBox.YesRole)
+        one_to_zero = msg.addButton(one_to_zero_str, QMessageBox.NoRole)
+        msg.exec_()
+
+        if msg.clickedButton() == zero_to_one:
+            json_data = _pons_json[0]["hits"]
+            dict_dict_content = construct_dict_from_json(json_data, translate, word)
+            dict_dict = {
+                'lang': _pons_json[0]['lang'],
+                'content': dict_dict_content
+                }
+        elif msg.clickedButton() == one_to_zero:
+            json_data = _pons_json[1]["hits"]
+            dict_dict_content = construct_dict_from_json(json_data, translate, word)
+            dict_dict = {
+                'lang': _pons_json[1]['lang'],
+                'content': dict_dict_content
+                }
+        else:
+            raise RuntimeError('how can this happen')
+
     else:
         raise RuntimeError(
             'json API response is expected to be of length 1 '
@@ -239,7 +263,7 @@ def _add_synonymes_from_duden(_duden_syn_soup):
         return synonyms_list
     except TypeError:
         # logger.warning('Type Error in create_synonyms_list >> Check it!')
-        raise RuntimeError('Type Error in create_synonyms_list >> Check it!')
+        raise TypeError('Type Error in create_synonyms_list >> Check it!')
 
 def get_definitions_from_dict_dict(dict_dict, info='definition'):
     definitions_list = []
@@ -336,7 +360,7 @@ def create_dict_for_manually_added_words():
 
 def update_hidden_words_in_dict(selected_text2hide, saving_word):
     dict_dict_path = DICT_DATA_PATH / 'dict_dicts' / f'{saving_word}_standerised.json'
-    dict_cache_found, _, _, dict_dict = _read_dict_from_file(dict_dict_path)
+    dict_cache_found, _, dict_dict = _read_dict_from_file(dict_dict_path)
     if dict_cache_found:
         if selected_text2hide in dict_dict['hidden_words_list']:
             raise RuntimeError('selected word is already in hidden words list')
