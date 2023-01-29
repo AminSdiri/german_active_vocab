@@ -1,32 +1,46 @@
-from PyQt5.QtWidgets import (QPushButton, QWidget, QLineEdit, QCheckBox)
+from PyQt5.QtWidgets import (QPushButton, QWidget, QLineEdit, QCheckBox, QLabel)
+from PyQt5.QtGui import QMovie
 
 from utils import set_up_logger
+from settings import DICT_SRC_PATH
 
 logger = set_up_logger(__name__)
 
-# TODO (0) use Qthread to prevent gui from freezing when waiting for the word data to be fetched 
+# DONE (0) use Qthread to prevent gui from freezing when waiting for the word data to be fetched 
 
 class SearchWindow(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         logger.info("init Search_win")
 
-
         self.base_width = 233
         self.extended_width = 405
         # self.rect = QRect(600, 300, self.base_width, 40)
         # parent.setGeometry(self.rect)
 
-        # self.define_button = QPushButton("Define", self)
-        # self.define_button.move(100, 350)
         self.line = QLineEdit(self)
         self.line.setPlaceholderText("Search for a Word")
-        self.line.setFocus()
+        # self.line.setFocus() # BUG not working
         self.line.move(2, 2)
         self.line.resize(200, 36)  # 30
+        # TODO update this
         if hasattr(self, 'def_obj'):
             self.line.setText(self.def_obj.word)
 
+        # DONE (0) show loading gif when process_data_thread is running
+        self.label = QLabel(self)
+        self.label.move(165, 2)
+        self.label.resize(37, 37)
+        self.label.raise_()
+        # self.loading_animation.backgroundColor() 
+        self.label.setObjectName("label")
+
+        self.loading_animation = QMovie(str(DICT_SRC_PATH/'ressources'/'Spinner-1s-34px.gif')) # https://loading.io/
+        # check if path is valid
+        if not self.loading_animation.isValid():
+            raise RuntimeError('Loading animation gif not found or invalid.') 
+        self.label.setMovie(self.loading_animation)
+        self.label.hide()
 
         self.expand_btn = QPushButton('>', self)
         self.expand_btn.move(205, 2)
@@ -72,8 +86,17 @@ class SearchWindow(QWidget):
         # layout.addLayout(buttons, 1, 7, 1, 3)
         # self.setLayout(layout)
 
+    def start_loading_animation(self):
+        self.label.show()
+        self.loading_animation.start()
+        self.label.raise_()
+
+    def stop_loading_animation(self):
+        self.label.hide()
+        self.loading_animation.stop()
+
     def search_window_button_actions(self):
-        self.line.returnPressed.connect(self.parent().launch_definition_window)
+        self.line.returnPressed.connect(self.parent().process_data_in_thread)
         self.history_button.clicked.connect(self.parent().launch_history_list_window)
         self.quiz_button.clicked.connect(self.parent().launch_quiz_window)
         self.focus_button.clicked.connect(self.parent().launch_focus_window)
@@ -91,5 +114,3 @@ class SearchWindow(QWidget):
             word += ' en'
 
         return word
-
-    

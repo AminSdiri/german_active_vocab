@@ -1,22 +1,28 @@
-# import setuptools
-import sys
-from PyQt5.QtCore import Qt, QRect, QPropertyAnimation, QPoint, QSize
+ # import setuptools
+from PyQt5.QtCore import (Qt, QPropertyAnimation,
+                          QRect, QPoint,
+                          QSize, QThreadPool)
 from PyQt5.QtWidgets import (QMainWindow,
                              QShortcut,
                              QApplication)
 from PyQt5.QtGui import (QKeySequence,
-                         QGuiApplication) # QShortcut PyQt6
+                         QGuiApplication)
 
 from views.DefinitionWindow import DefinitionWindow
+from views.SearchWindow import SearchWindow
 from FocusWindow import FocusWindow
 from HistoryWindow import HistoryWindow, WordlistWindow
 from QuizWindow import QuizWindow
-from views.SearchWindow import SearchWindow
 from DefEntry import DefEntry
-
 from utils import get_command_line_args, set_up_logger
+from german_active_vocab.another_qthread import Worker
+
 # from autologging import traced
 
+# TODO (1) use rootword for filename and database enteries, different flexions of the word are now saved separetly
+# TODO (1) separate Wendungen, Redensarten, Sprichwörter in different headers for duden_dict (example absehen)
+# TODO (0) choose carefully your code helpers: mypy for type hinting, mccbee
+# TODO (4) delete all out-commented code
 
 logger = set_up_logger(__name__)
 
@@ -25,25 +31,34 @@ class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         logger.info("init MainWindow")
         super(MainWindow, self).__init__(parent)
-        self.setGeometry(535, 150, 210, 50)
+
+        self.def_window: DefinitionWindow
+        self.search_form: SearchWindow
+        self.centered_pos : QPoint
+        self.animation = QPropertyAnimation(self, b'geometry')
+        
+        # init QThreads
+        self.threadpool = QThreadPool()
+        print(f"Multithreading with maximum {self.threadpool.maxThreadCount()} threads")
+
         self.set_shortcuts()
 
         cl_args = get_command_line_args()
-        if cl_args.word:
-            logger.debug('shell command with args')
-            self.launch_definition_window(cl_args)
-        else:
-            logger.debug('0 Args')
-            self.launch_search_window()
+        self.launch_search_window(cl_args)
             
-    def launch_search_window(self):
+    def launch_search_window(self, cl_args):
         logger.info("Launch search window")
+        
+        self.search_form = SearchWindow(parent=self)
 
-        self.search_form = SearchWindow(self)
+        if cl_args and cl_args.word:
+            logger.debug('shell command with args')
+            self.search_form.line.setText(cl_args.word)
+            self.process_data_in_thread(cl_args)
 
         self.set_window_properties(title="Wörterbuch",
                                    central_widget=self.search_form,
-                                   Frameless=True,
+                                   frameless=True,
                                    size=QSize(self.search_form.base_width, 40))
         
         self.show()
@@ -65,36 +80,47 @@ class MainWindow(QMainWindow):
             end_width = self.search_form.base_width
             self.search_form.expand_btn.setText('>')
 
-        self.animation = QPropertyAnimation(self, b'geometry')
         self.animation.setDuration(200)
         self.animation.setStartValue(QRect(window_x, window_y, start_width, 40))
         self.animation.setEndValue(QRect(window_x, window_y, end_width, 40))
         self.animation.start()
 
-    def launch_definition_window(self, cl_args=None):
+    def launch_definition_window(self, def_obj):
         logger.info("launch definition window")
 
-        input_word = cl_args.word if cl_args and cl_args.word else self.search_form.get_filled_search_form()
+        self.def_window = DefinitionWindow(parent=self)
 
-        def_obj = DefEntry(input_word=input_word, cl_args=cl_args)
-        self.def_window = DefinitionWindow(def_obj)
-        # if code is being tested, the Return button have the "Pass Test" fonctionality
-        # Do NOT load pytest anywhere outside test files for this to work
-        if "pytest" not in sys.modules:
-            self.def_window.return_button.clicked.connect(self.launch_search_window)
-        else:
-            self._end_test = False
-            self.def_window.return_button.clicked.connect(self.return_clicked)
+        self.def_window.construct_model(def_obj)
         self.def_window.fill_def_window(def_obj) # BUG (0) thabet fel unpacking thaherli mayhemouch esm el variable
-        
         self.set_window_properties(title="Wörterbuch",
                                    central_widget=self.def_window,
-                                   Frameless=False,
+                                   frameless=False,
                                    size=QSize(self.def_window.base_width, 690))
         self.show()
 
+    def process_data_in_thread(self, cl_args=None):
+        logger.info("process_data_in_thread")
+
+        # Pass the function to execute
+        worker = Worker(self.get_def_obj, cl_args=cl_args) # Any other args, kwargs are passed to the run function
+        
+        # Execute
+        self.search_form.start_loading_animation()
+        self.threadpool.start(worker)
+
+        # connect signals and slots from second thread
+        worker.signals.result.connect(self.launch_definition_window)
+        worker.signals.finished.connect(self.search_form.stop_loading_animation)
+        # worker.signals.progress.connect(self.progress_fn)
+
+    def get_def_obj(self, cl_args):
+        input_word = cl_args.word if cl_args and cl_args.word else self.search_form.get_filled_search_form()
+        def_obj = DefEntry(input_word=input_word, cl_args=cl_args)
+        return def_obj
+
     def return_clicked(self):
         self._end_test = True
+        QApplication.quit()
 
     def expand_definition_window_animation(self):
         logger.info("expand_window")
@@ -127,7 +153,7 @@ class MainWindow(QMainWindow):
 
         self.set_window_properties(title="Saved Words",
                                    central_widget=self.wordlist_window,
-                                   Frameless=False,
+                                   frameless=False,
                                    size=QSize(400, 500))
 
         self.show()
@@ -140,18 +166,18 @@ class MainWindow(QMainWindow):
 
         self.set_window_properties(title="Saved Words",
                                    central_widget=self.history_window,
-                                   Frameless=False,
+                                   frameless=False,
                                    size=QSize(700, 700))
         self.show()
 
     def launch_quiz_window(self):
         logger.info("launch_quiz_window")
 
-        self.quiz_window = QuizWindow()
+        self.quiz_window = QuizWindow(self)
 
         self.set_window_properties(title=self.quiz_window.quiz_obj.quiz_window_titel,
                                    central_widget=self.quiz_window,
-                                   Frameless=False,
+                                   frameless=False,
                                    size=QSize(700, 700))
 
         self.show()
@@ -163,32 +189,33 @@ class MainWindow(QMainWindow):
 
         self.set_window_properties(title=self.focus_window.focus_obj.window_titel,
                                    central_widget=self.focus_window,
-                                   Frameless=False,
+                                   frameless=False,
                                    size=QSize(700, 300))
 
         self.show()
 
-    def set_window_properties(self, title, central_widget, Frameless, size):
+    def set_window_properties(self, title, central_widget, frameless, size):
         self.setWindowTitle(title)
+        # Each time you use setCentralWidget(), the object that was previously the central widget is deleted.
         self.setCentralWidget(central_widget)
-        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, on=Frameless)
+        self.setWindowFlag(Qt.WindowType.FramelessWindowHint, on=frameless)
         self.resize(size)
         self.move_to_center()
 
     def move_to_center(self):
         # TODO (5) BUG move is not working at all in pyqt6!
         logger.info("move_to_center")
-        frameGm=self.frameGeometry()           
+        frame_geometry=self.frameGeometry()           
         screen_width=int(QGuiApplication.primaryScreen().availableGeometry().width()/2)
         screen_hight_eye_level=int(QGuiApplication.primaryScreen().availableGeometry().height()*1/4)
         screen_pos=QPoint(screen_width,screen_hight_eye_level)
-        frameGm.moveCenter(screen_pos)
-        self.centered_pos = frameGm.topLeft()
+        frame_geometry.moveCenter(screen_pos)
+        self.centered_pos = frame_geometry.topLeft()
         self.move(self.centered_pos)
 
     def set_shortcuts(self):
         self.shortcut_close = QShortcut(QKeySequence('Ctrl+Q'), self)
-        self.shortcut_close.activated.connect(lambda :QApplication.quit())
+        self.shortcut_close.activated.connect(QApplication.quit)
 
 
 def set_theme(app):

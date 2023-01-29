@@ -1,24 +1,25 @@
 from unittest.mock import patch
 import pytest
+import qdarktheme
+from pytestqt.plugin import qapp
+# from pytestqt import qtbot # mokrza ki zebi. Documentation moch wath7a, sa3at ghalta.
+
 from german_active_vocab.MainWindow import MainWindow
 
-# from pytestqt import qtbot # mokrza ki zebi. Documentation moch wath7a, sa3at ghalta.
-from pytestqt.plugin import qapp
 
 
 # SOLVED multiple tests are not possible, PyQt doesn't immediatly close event loop after w.close
-# TODO (0) add pre-commit hooks in vscode
+# CANCELED (0) add pre-commit hooks in vscode # not possible now
 # TODO (1) test new_cache keyword
 # TODO (1) test new_dict keyword
 # DONE configure testing in vscode
 # https://code.visualstudio.com/docs/python/testing
 
 def run_app(qapp):
-    import qdarktheme
     qdarktheme.setup_theme("dark")
-    w = MainWindow()
+    main_window = MainWindow()
     qapp.exec_()
-    assert w._end_test
+    assert main_window._end_test
 
 @pytest.mark.dependency()
 @patch('sys.argv', ['main'])
@@ -27,22 +28,37 @@ def test_simple_search_from_search_box(qapp): #qtbot
 
 @pytest.mark.dependency(depends=["test_simple_search_from_search_box"])
 @patch('sys.argv', ['main', '--word', 'machen'])
-def test_simple_search_from_pons(qapp):
+def test_pons(qapp):
     run_app(qapp)
 
 @pytest.mark.dependency(depends=["test_simple_search_from_search_box"])
 @patch('sys.argv', ['main', '--word', 'machen', '--ger', 'german example phrase', '--eng', 'english translation phrase'])
-def test_simple_search_from_pons_with_examples(qapp):
+def test_pons_with_examples(qapp):
     run_app(qapp)
 
 @pytest.mark.dependency(depends=["test_simple_search_from_search_box"])
 @patch('sys.argv', ['main', '--word', 'machen du'])
-def test_simple_search_from_duden(qapp):
+def test_duden(qapp):
     run_app(qapp)
     
 @pytest.mark.dependency(depends=["test_simple_search_from_search_box"])
 @patch('sys.argv', ['main', '--word', 'machen en'])
-def test_simple_search_translate_en(qapp):
+def test_translate_en(qapp):
+    run_app(qapp)
+
+@pytest.mark.dependency(depends=["test_simple_search_from_search_box"])
+@patch('sys.argv', ['main', '--word', 'machen new_cache'])
+def test_no_cache_pons(qapp):
+    run_app(qapp)
+
+@pytest.mark.dependency(depends=["test_simple_search_from_search_box"])
+@patch('sys.argv', ['main', '--word', 'machen du new_cache'])
+def test_no_cache_duden(qapp):
+    run_app(qapp)
+
+@pytest.mark.dependency(depends=["test_simple_search_from_search_box"])
+@patch('sys.argv', ['main', '--word', 'machen new_dict'])
+def test_no_dict_pons(qapp):
     run_app(qapp)
 
 

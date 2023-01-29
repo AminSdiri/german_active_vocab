@@ -31,22 +31,20 @@ logger = set_up_logger(__name__)
 
 
 class DefinitionWindow(QWidget):
-    def __init__(self, def_obj, parent=None):
+    def __init__(self, def_obj=None, parent=None):
         super().__init__(parent)
         logger.info("init defWindow")
 
         self.base_width = 700
         self.extended_width = 1400
         
-        headers = ["Type", "Content"]
-        self.model = TreeModel(headers, def_obj.dict_dict['content'])
+        self.def_obj = def_obj
+        self.model: TreeModel = None
+
         self.dict_tree_view = DictEditorWidget(self.model, parent = self)
         self.dict_tree_view.move(700, 5)
         self.dict_tree_view.resize(690, 635)
 
-        self.def_obj = def_obj
-        self.model.dataChanged.connect(self.refresh_text_view)
-        
         self.txt_cont = QTextEdit(self)
         self.txt_cont.move(5, 5)
         self.txt_cont.resize(690, 545)
@@ -106,6 +104,13 @@ class DefinitionWindow(QWidget):
 
         self.def_window_connect_buttons()
 
+    def construct_model(self, def_obj):
+        self.def_obj = def_obj
+        self.model = TreeModel(headers=["Type", "Content"],
+                               data=self.def_obj.dict_dict['content'])
+        self.model.dataChanged.connect(self.refresh_text_view)
+        self.dict_tree_view.setModel(self.model)
+
     def def_window_connect_buttons(self):
         self.highlight_button.clicked.connect(self.force_hide)
         self.anki_button.clicked.connect(self.send_to_anki)
@@ -143,7 +148,7 @@ class DefinitionWindow(QWidget):
             # update_model
             self.model.setData(index, text)
             self.model.dataChanged.emit(index, index)
-        self.update_TextEdit()
+        self.update_text_view()
 
     def restore_discarded(self):
 
@@ -168,7 +173,7 @@ class DefinitionWindow(QWidget):
         
         del self.dict_tree_view
         
-        self.update_TextEdit()
+        self.update_text_view()
         
         self.dict_tree_view = DictEditorWidget(self.model, parent = self)
         self.dict_tree_view.move(700, 5)
@@ -178,7 +183,7 @@ class DefinitionWindow(QWidget):
     def refresh_text_view(self, index):
         text, address = self.model.get_dict_address(index)
         self.def_obj.update_dict(text, address)
-        self.update_TextEdit()
+        self.update_text_view()
 
     def update_text_view(self):
         defined_html = self.def_obj.re_render_html()
@@ -213,7 +218,7 @@ class DefinitionWindow(QWidget):
 
     def send_to_anki(self):
 
-        _, german_phrase, english_translation, _ = self.get_DefWindow_content()
+        _, german_phrase, english_translation, _ = self.get_def_window_content()
 
         self.def_obj.ankify(german_phrase, english_translation)
 
@@ -222,7 +227,7 @@ class DefinitionWindow(QWidget):
 
         self.switch_highlight_button_action(new_action='highlight')
 
-        custom_html_from_qt, beispiel_de, beispiel_en, tag = self.get_DefWindow_content()
+        custom_html_from_qt, beispiel_de, beispiel_en, tag = self.get_def_window_content()
 
         faulty_examples = quizify_and_save(dict_data_path=DICT_DATA_PATH,
                                             word=self.def_obj.search_word,
@@ -277,13 +282,13 @@ class DefinitionWindow(QWidget):
 
         self.def_obj.add_word_to_hidden_list(selected_text2hide)
 
-        self.update_TextEdit()
+        self.update_text_view()
         
         notification.notify(title='Word added to hidden words',
                             message=selected_text2hide,
                             timeout=5)
 
-    def get_DefWindow_content(self):
+    def get_def_window_content(self):
         beispiel_de = self.beispiel.text()
         beispiel_en = self.beispiel2.text()
         beispiel_de = beispiel_de.replace('- ', '– ')

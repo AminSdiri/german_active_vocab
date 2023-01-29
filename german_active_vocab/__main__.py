@@ -18,36 +18,38 @@ from utils import set_up_logger
 # TODO (2) write unit tests for the different functionalities,
 # DONE (2) find os-agnostic alternative to notify-send for windows and macos
 # TODO (3) .strftime("%d.%m.%y") is a bad idea! losing the time information
-# TODO (1) STRUCT organize now and now_(-3h) 
+# TODO (1) STRUCT organize now and now_(-3h)
 # DONE (2) move theme
 # DONE (0) restruct main
-# TODO (0) STRUCT all to Model, Viewer/controller architecture
+# TODO (1) STRUCT all to Model, Viewer/controller architecture
 # TODO (4) choose theme https://www.youtube.com/watch?v=0kpm10AxiNE&list=PLQVvvaa0QuDdVpDFNq4FwY9APZPGSUyR4&index=11
 # DONE (0) ignore data files :: git update-index --skip-worktree <file> to skip tracking files
 
 logger = set_up_logger(__name__)
 
 def excepthook(exc_type, exc_value, exc_tb):
-    tb = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    #TODO (1) show the right error format in notif
+    traceback_message = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
     print("error catched!:")
-    print("error message:\n", tb)
+    print("error message:\n", traceback_message)
     notification.notify(title='An Error Occured',
-                        message=exc_value.args[0],
+                        message=str(exc_value.args[0]),
                         timeout=10)
-    
-    # show error in Qt MessageBox
+
+    # show error in Qt MessageBox. was working, not anymore
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Critical)
     msg.setText("An Error Occured")
-    msg.setInformativeText(exc_value.args[0])
+    msg.setInformativeText(str(exc_value.args[0]))
     msg.setWindowTitle("Error")
+    msg.exec_()
 
-    QApplication.quit() # or sys.exit(0)? 
+    QApplication.quit() # or sys.exit(0)?
 
 def main() -> int:
     app = QApplication(sys.argv)
     set_theme(app)
-    w = MainWindow()
+    _ = MainWindow()
     exit_code = app.exec_()
     return exit_code
 
