@@ -1,9 +1,9 @@
 import json
-import pandas as pd
 from bs4 import BeautifulSoup as bs
 import ast
 from collections import Counter
-from PyQt5.QtWidgets import QMessageBox
+import pandas as pd
+from PyQt5.QtCore import QMutex
 
 from GetDict.GetData import get_word_from_source
 from GetDict.ParsingJson import construct_dict_from_json
@@ -23,7 +23,8 @@ logger = set_up_logger(__name__)
 # TODO (1) STRUCT BUG dicts saved from duden are not the same as those saved from Pons!! (different outer structure)
 
 def standart_dict(saving_word, translate2fr, translate2en,
-                  get_from_duden, search_word, ignore_cache, ignore_dict):
+                  get_from_duden, search_word, ignore_cache, ignore_dict,
+                  message_box_content_carrier, wait_for_usr):
     
     dict_dict_path = DICT_DATA_PATH / 'dict_dicts' / f'{saving_word}_standerised.json'
 
@@ -64,7 +65,9 @@ def standart_dict(saving_word, translate2fr, translate2en,
                                         _duden_syn_soup,
                                         search_word,
                                         translate,
-                                        _duden_soup)
+                                        _duden_soup,
+                                        message_box_content_carrier,
+                                        wait_for_usr)
         dict_dict['requested'] = 'pons'
 
     elif not translate:
@@ -105,7 +108,8 @@ def _read_dict_from_file(dict_dict_path):
     return dict_cache_found, error_reading_json, dict_dict
 
 def _standart_pons_dict(_pons_json, _duden_syn_soup, word, translate,
-                       _duden_soup):
+                       _duden_soup, message_box_content_carrier,
+                       wait_for_usr):
     '''
     standarize json file and save it before rendering to allow filtering of words, blocks, properties
     in power mode (new mode)
@@ -146,35 +150,27 @@ def _standart_pons_dict(_pons_json, _duden_syn_soup, word, translate,
                       'content': construct_dict_from_json(_pons_json[0]["hits"], translate, word)}
     elif translate and len(_pons_json) == 2:
         # resolve language translation confusion by asking the user
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Question)
-        msg.setText("Confused.. I need you help??")
-        msg.setWindowTitle("Choice of translation")
 
-        languages = [_pons_json[0]["lang"], _pons_json[1]["lang"]]
-        mother_language = languages[0] if languages[0] != 'de' else _pons_json[1]["lang"]
-        if languages[0]=='de':
-            mother_language = 'an english' if languages[1]=='en' else 'a french'
-            zero_to_one_str = 'De -> En' if languages[1]=='en' else 'De -> Fr'
-            one_to_zero_str = 'En -> De' if languages[1]=='en' else 'Fr -> De'
-        else:
-            mother_language = 'an english' if languages[0]=='en' else 'a french'
-            zero_to_one_str = 'De -> En' if languages[0]=='en' else 'De -> Fr'
-            one_to_zero_str = 'En -> De' if languages[0]=='en' else 'Fr -> De'
+        message_box_dict = prepare_message_box_content(_pons_json, word)
+        # open message box from the main thread
+        message_box_content_carrier.emit(message_box_dict)
 
-        msg.setInformativeText(f'"{word}" is both a german and {mother_language} word. Please choose the translation direction')
-        zero_to_one = msg.addButton(zero_to_one_str, QMessageBox.YesRole)
-        one_to_zero = msg.addButton(one_to_zero_str, QMessageBox.NoRole)
-        msg.exec_()
+        # recieve response
+        mutex = QMutex()
+        mutex.lock()
+        wait_for_usr.wait(mutex)
+        mutex.unlock()
+        print('resume code')
+        global CLICKED_BUTTON
 
-        if msg.clickedButton() == zero_to_one:
+        if CLICKED_BUTTON[0]:
             json_data = _pons_json[0]["hits"]
             dict_dict_content = construct_dict_from_json(json_data, translate, word)
             dict_dict = {
                 'lang': _pons_json[0]['lang'],
                 'content': dict_dict_content
                 }
-        elif msg.clickedButton() == one_to_zero:
+        elif CLICKED_BUTTON[1]:
             json_data = _pons_json[1]["hits"]
             dict_dict_content = construct_dict_from_json(json_data, translate, word)
             dict_dict = {
@@ -184,12 +180,34 @@ def _standart_pons_dict(_pons_json, _duden_syn_soup, word, translate,
         else:
             raise RuntimeError('how can this happen')
 
+        del CLICKED_BUTTON
+
     else:
         raise RuntimeError(
             'json API response is expected to be of length 1 '
             'or only for translations 2')
 
     return dict_dict
+
+def prepare_message_box_content(_pons_json, word):
+    languages = [_pons_json[0]["lang"], _pons_json[1]["lang"]]
+    mother_language = languages[0] if languages[0] != 'de' else _pons_json[1]["lang"]
+    if languages[0]=='de':
+        mother_language = 'an english' if languages[1]=='en' else 'a french'
+        zero_to_one_str = 'De -> En' if languages[1]=='en' else 'De -> Fr'
+        one_to_zero_str = 'En -> De' if languages[1]=='en' else 'Fr -> De'
+    else:
+        mother_language = 'an english' if languages[0]=='en' else 'a french'
+        zero_to_one_str = 'De -> En' if languages[0]=='en' else 'De -> Fr'
+        one_to_zero_str = 'En -> De' if languages[0]=='en' else 'Fr -> De'
+
+    message_box_dict = {'text': "Confused.. I need you help??",
+                            'title': "Choice of translation",
+                            'informative_text': f'"{word}" is both a german and {mother_language} word. Please choose the translation direction',
+                            'yes_button_text': zero_to_one_str,
+                            'no_button_text': one_to_zero_str}
+                        
+    return message_box_dict
 
 def _standart_duden_dict(found_in_pons_duden, _duden_soup, _duden_syn_soup, word):
 
@@ -219,9 +237,9 @@ def _extract_custom_examples_from_html(word):
     # TODO (2) run in loop to update dicts and then delete
     old_german_examples = []
     old_englisch_examples = []
-    df = pd.read_csv(DICT_DATA_PATH / 'wordlist.csv')
-    df.set_index('Word', inplace=True)
-    word_is_already_saved = word in df.index
+    wordlist_df = pd.read_csv(DICT_DATA_PATH / 'wordlist.csv')
+    wordlist_df.set_index('Word', inplace=True)
+    word_is_already_saved = word in wordlist_df.index
     if not word_is_already_saved:
         return old_german_examples, old_englisch_examples
 

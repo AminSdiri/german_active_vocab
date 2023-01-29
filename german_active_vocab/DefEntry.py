@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 import re
-import sys
 from datetime import datetime, timedelta
 from argparse import Namespace
+from PyQt5.QtCore import pyqtSignal, QWaitCondition
 
 from bs4.builder import HTML
 from GetDict.GenerateDict import extract_synonymes_in_html_format, get_definitions_from_dict_dict, get_value_from_dict_if_exists, standart_dict
@@ -23,6 +23,8 @@ logger = set_up_logger(__name__)
 class DefEntry():
     input_word: str
     cl_args: Namespace
+    message_box_content_carrier: pyqtSignal
+    wait_for_usr: QWaitCondition
     search_word: str = ''
     saving_word: str = ''
     beispiel_de: str = ''
@@ -37,6 +39,7 @@ class DefEntry():
     dict_dict_path: Path = ''
 
     defined_html: HTML = ''
+
     # duden_synonyms: list = field(default_factory=list)
     # hidden_words_list: list = field(default_factory=list)
 
@@ -48,12 +51,14 @@ class DefEntry():
 
         (self.dict_dict,
          self.dict_dict_path) = standart_dict(self.saving_word,
-                                self.translate2fr,
-                                self.translate2en,
-                                self.get_from_duden,
-                                self.search_word,
-                                self._ignore_cache,
-                                self._ignore_dict)
+                                            self.translate2fr,
+                                            self.translate2en,
+                                            self.get_from_duden,
+                                            self.search_word,
+                                            self._ignore_cache,
+                                            self._ignore_dict,
+                                            self.message_box_content_carrier,
+                                            self.wait_for_usr)
                                 
         if not (self.translate2en or self.translate2fr):
             logger.info(f'Words to hide: {self.dict_dict["hidden_words_list"]}')
@@ -64,6 +69,7 @@ class DefEntry():
         # validate address
         dict_slice = self.dict_dict['content']
         for idx, entry in enumerate(address):
+            # BUG when header is bookmarked then discarded
             try:
                 if idx == len(address)-1:
                     if isinstance(dict_slice[entry], str):

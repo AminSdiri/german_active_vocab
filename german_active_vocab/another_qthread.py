@@ -26,6 +26,7 @@ class WorkerSignals(QObject):
     error = pyqtSignal(tuple)
     result = pyqtSignal(object)
     progress = pyqtSignal(int)
+    message_box_content_carrier = pyqtSignal(dict)
 
 
 class Worker(QRunnable):
@@ -53,6 +54,7 @@ class Worker(QRunnable):
 
         # Add the callback to our kwargs
         # self.kwargs['progress_callback'] = self.signals.progress
+        self.kwargs['message_box_content_carrier'] = self.signals.message_box_content_carrier
 
     @pyqtSlot()
     def run(self):
@@ -63,7 +65,7 @@ class Worker(QRunnable):
         # Retrieve args/kwargs here; and fire processing using them
         try:
             result = self.callable_fn(*self.args, **self.kwargs)
-        except: # BUG No exception type specified
+        except Exception: # FIXED No exception type specified
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))

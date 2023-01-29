@@ -1,9 +1,11 @@
  # import setuptools
 from PyQt5.QtCore import (Qt, QPropertyAnimation,
-                          QRect, QPoint,
-                          QSize, QThreadPool)
+                          QRect, QPoint, QSize,
+                          pyqtSlot, QThreadPool,
+                          QWaitCondition)
 from PyQt5.QtWidgets import (QMainWindow,
                              QShortcut,
+                             QMessageBox,
                              QApplication)
 from PyQt5.QtGui import (QKeySequence,
                          QGuiApplication)
@@ -15,7 +17,7 @@ from HistoryWindow import HistoryWindow, WordlistWindow
 from QuizWindow import QuizWindow
 from DefEntry import DefEntry
 from utils import get_command_line_args, set_up_logger
-from german_active_vocab.another_qthread import Worker
+from another_qthread import Worker
 
 # from autologging import traced
 
@@ -36,6 +38,7 @@ class MainWindow(QMainWindow):
         self.search_form: SearchWindow
         self.centered_pos : QPoint
         self.animation = QPropertyAnimation(self, b'geometry')
+        self.wait_condition = QWaitCondition()
         
         # init QThreads
         self.threadpool = QThreadPool()
@@ -88,7 +91,8 @@ class MainWindow(QMainWindow):
     def launch_definition_window(self, def_obj):
         logger.info("launch definition window")
 
-        self.def_window = DefinitionWindow(parent=self)
+        self.def_window = DefinitionWindow(def_obj=def_obj,
+                                           parent=self)
 
         self.def_window.construct_model(def_obj)
         self.def_window.fill_def_window(def_obj) # BUG (0) thabet fel unpacking thaherli mayhemouch esm el variable
@@ -106,17 +110,39 @@ class MainWindow(QMainWindow):
         
         # Execute
         self.search_form.start_loading_animation()
+        # TODO grey out and setreadonly line edit
         self.threadpool.start(worker)
 
         # connect signals and slots from second thread
         worker.signals.result.connect(self.launch_definition_window)
         worker.signals.finished.connect(self.search_form.stop_loading_animation)
+        worker.signals.message_box_content_carrier.connect(self.launch_message_box)
         # worker.signals.progress.connect(self.progress_fn)
 
-    def get_def_obj(self, cl_args):
+    def get_def_obj(self, cl_args, message_box_content_carrier):
         input_word = cl_args.word if cl_args and cl_args.word else self.search_form.get_filled_search_form()
-        def_obj = DefEntry(input_word=input_word, cl_args=cl_args)
+        def_obj = DefEntry(input_word=input_word, cl_args=cl_args,
+                           message_box_content_carrier=message_box_content_carrier,
+                           wait_for_usr=self.wait_condition) # (0)**** kammel lenna esta3mel wait condition bech tpausi el code mba3ed ki fama signal emitted yes wala no a3mel wait_condition wake all w khouth signal w kammel
         return def_obj
+
+    @pyqtSlot(dict)
+    def launch_message_box(self, message_box_info):
+        "Asks the user about source and traget language for translation on receipt of a signal then signal a bool answer.`"
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Question)
+        msg.setText(message_box_info['text'])
+        msg.setWindowTitle(message_box_info['title'])
+        msg.setInformativeText(message_box_info['informative_text'])
+        yes_button = msg.addButton(message_box_info['yes_button_text'], QMessageBox.YesRole)
+        no_button = msg.addButton(message_box_info['no_button_text'], QMessageBox.NoRole)
+        msg.exec_()
+        
+        # hacky, but didn't find an easy way to intercept button signal after pausing code
+        from GetDict import GenerateDict
+        GenerateDict.CLICKED_BUTTON = [msg.clickedButton() == yes_button,
+                          msg.clickedButton() == no_button]
+        self.wait_condition.wakeAll()
 
     def return_clicked(self):
         self._end_test = True
