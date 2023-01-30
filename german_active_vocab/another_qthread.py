@@ -1,5 +1,4 @@
 import sys
-import traceback
 from PyQt5.QtCore import pyqtSignal, QObject, QRunnable, pyqtSlot
 
 
@@ -23,7 +22,7 @@ class WorkerSignals(QObject):
 
     '''
     finished = pyqtSignal()
-    error = pyqtSignal(tuple)
+    error = pyqtSignal(object, object, object)
     result = pyqtSignal(object)
     progress = pyqtSignal(int)
     message_box_content_carrier = pyqtSignal(dict)
@@ -66,9 +65,8 @@ class Worker(QRunnable):
         try:
             result = self.callable_fn(*self.args, **self.kwargs)
         except Exception: # FIXED No exception type specified
-            traceback.print_exc()
-            exctype, value = sys.exc_info()[:2]
-            self.signals.error.emit((exctype, value, traceback.format_exc()))
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            self.signals.error.emit(exc_type, exc_value, exc_traceback)
         else:
             self.signals.result.emit(result)  # Return the result of the processing
         finally:

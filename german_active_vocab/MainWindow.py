@@ -1,4 +1,6 @@
  # import setuptools
+import traceback
+from plyer import notification
 from PyQt5.QtCore import (Qt, QPropertyAnimation,
                           QRect, QPoint, QSize,
                           pyqtSlot, QThreadPool,
@@ -116,6 +118,7 @@ class MainWindow(QMainWindow):
         # connect signals and slots from second thread
         worker.signals.result.connect(self.launch_definition_window)
         worker.signals.finished.connect(self.search_form.stop_loading_animation)
+        worker.signals.error.connect(excepthook)
         worker.signals.message_box_content_carrier.connect(self.launch_message_box)
         # worker.signals.progress.connect(self.progress_fn)
 
@@ -243,6 +246,26 @@ class MainWindow(QMainWindow):
         self.shortcut_close = QShortcut(QKeySequence('Ctrl+Q'), self)
         self.shortcut_close.activated.connect(QApplication.quit)
 
+@pyqtSlot(object, object, object)
+def excepthook(exc_type, exc_value, exc_tb):
+    #TODO (1) show the right error format in notif
+    # https://docs.python.org/3/library/traceback.html#traceback-examples
+    traceback_message = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+    print("error catched!:")
+    print("error message:\n", traceback_message)
+    notification.notify(title='An Error Occured',
+                        message=str(exc_value.args[0]),
+                        timeout=10)
+
+    # show error in Qt MessageBox. was working, not anymore
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Critical)
+    msg.setText("An Error Occured")
+    msg.setInformativeText(str(exc_value.args[0]))
+    msg.setWindowTitle("Error")
+    msg.exec_()
+
+    QApplication.quit() # or sys.exit(0)?
 
 def set_theme(app):
     # import platform

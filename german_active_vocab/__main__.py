@@ -2,11 +2,9 @@
 # coding = utf-8
 
 import sys
-import traceback
-from plyer import notification
-from PyQt5.QtWidgets import QApplication, QMessageBox
+from PyQt5.QtWidgets import QApplication
 
-from MainWindow import MainWindow, set_theme
+from MainWindow import MainWindow, set_theme, excepthook
 from utils import set_up_logger
 
 
@@ -26,25 +24,6 @@ from utils import set_up_logger
 # DONE (0) ignore data files :: git update-index --skip-worktree <file> to skip tracking files
 
 logger = set_up_logger(__name__)
-
-def excepthook(exc_type, exc_value, exc_tb):
-    #TODO (1) show the right error format in notif
-    traceback_message = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
-    print("error catched!:")
-    print("error message:\n", traceback_message)
-    notification.notify(title='An Error Occured',
-                        message=str(exc_value.args[0]),
-                        timeout=10)
-
-    # show error in Qt MessageBox. was working, not anymore
-    msg = QMessageBox()
-    msg.setIcon(QMessageBox.Critical)
-    msg.setText("An Error Occured")
-    msg.setInformativeText(str(exc_value.args[0]))
-    msg.setWindowTitle("Error")
-    msg.exec_()
-
-    QApplication.quit() # or sys.exit(0)?
 
 def main() -> int:
     app = QApplication(sys.argv)
