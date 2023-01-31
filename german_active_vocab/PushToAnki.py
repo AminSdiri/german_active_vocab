@@ -1,17 +1,14 @@
 import os
 import re
-
+import sys
+import click
 from pathlib import Path
 from plyer import notification
-
 import anki
-import click
-
-import sys
-sys.modules['PyQt6'] = None # prevent names conflict if anki-qt6 app is installed
+sys.modules['PyQt6'] = None # prevent aqt from using PyQt6 to avoid names conflict if anki-qt6 app is installed
 from aqt.profiles import ProfileManager
 
-# TODO (1) baddel el echos lkol lenna des notifications w logger
+# TODO (2) baddel el echos lkol lenna des notifications w logger
 
 class Anki:
     """My Anki collection wrapper class."""
@@ -31,7 +28,7 @@ class Anki:
         self.deck_names = self.deck_name_to_id.keys()
         self.n_decks = len(self.deck_names)
 
-    def _init_load_collection(self, base, profile):
+    def _init_load_collection(self, base, profile) -> None:
         """Load the Anki collection"""
         # Save CWD (because Anki changes it)
         save_cwd = os.getcwd()
@@ -121,6 +118,9 @@ class Anki:
 
         if not note.dupeOrEmpty():
             self.col.addNote(note)
+            notification.notify(title='Anki: Note added.',
+                        message=f'Front: "{list(fields)[0]}".',
+                        timeout=10)
             self.modified = True
         elif note.dupeOrEmpty() ==1:
             click.secho('Empty, note was not added!', fg='red')
@@ -233,10 +233,10 @@ def plain_to_html(plain):
 
     return plain.strip()
 
+
 if __name__ == "__main__":
     # for testing
     from settings import ANKI_CONFIG
     with Anki(**ANKI_CONFIG) as a:
         a.add_notes_single(['a8', 'b8'], tags='', model=None, deck=None)
     print('done')
-
