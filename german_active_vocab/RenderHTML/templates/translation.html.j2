@@ -120,7 +120,7 @@
         {% set ns = namespace(previous_h1_value="")%}
         {% for h1_key,h1_value in big_section.items() %}
         {% if h1_key != 'word_subclass' %}
-        <span class={{h1_key}}>{{h1_value|treat_class(h1_key, ns.previous_h1_key, ns.previous_h1_value)|treat_hidden_words(h1_key, dict_dict['hidden_words_list'])}} </span>
+        <span class={{h1_key}}>{{h1_value|treat_class(h1_key, ns.previous_h1_key, ns.previous_h1_value)|treat_hidden_words(h1_key, dict_dict['hidden_words_list'], dict_dict['secondary_words_to_hide'])}} </span>
         {% endif %}
         {% set ns.previous_h1_key = h1_key %}
         {% set ns.previous_h1_value = h1_value %}
@@ -133,7 +133,7 @@
         {% set ns = namespace(previous_h2_value="")%}
         {% for h2_key,h2_value in small_section.items() %}
         {% if h2_key != 'def_blocks' %}
-        <span class={{h2_key}}>{{h2_value|treat_class(h2_key, ns.previous_h2_key, ns.previous_h2_value)|treat_hidden_words(h2_key, dict_dict['hidden_words_list'])}} </span>
+        <span class={{h2_key}}>{{h2_value|treat_class(h2_key, ns.previous_h2_key, ns.previous_h2_value)|treat_hidden_words(h2_key, dict_dict['hidden_words_list'], dict_dict['secondary_words_to_hide'])}} </span>
         {% endif %}
         {% set ns.previous_h2_key = h2_key %}
         {% set ns.previous_h2_value = h2_value %}
@@ -156,14 +156,14 @@
                         {% if h3_value|is_list%}
                             {% for idx in range(h3_value|length)%}
                             <tr>
-                                <td width="350">{{def_block["source"][idx]|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'])}}</td>
-                                <td width="350">{{def_block["target"][idx]|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'])}}</td>
+                                <td width="350">{{def_block["source"][idx]|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'], dict_dict['secondary_words_to_hide'])}}</td>
+                                <td width="350">{{def_block["target"][idx]|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'], dict_dict['secondary_words_to_hide'])}}</td>
                             </tr>
                             {% endfor %}
                         {% else %}
                         <tr>
-                            <td width="350">{{def_block["source"]|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'])}}</td>
-                            <td width="350">{{def_block["target"]|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'])}}</td>
+                            <td width="350">{{def_block["source"]|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'], dict_dict['secondary_words_to_hide'])}}</td>
+                            <td width="350">{{def_block["target"]|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'], dict_dict['secondary_words_to_hide'])}}</td>
                         </tr>
                         {% endif %}
                         </table>
@@ -173,12 +173,12 @@
                 {% elif h3_value|is_list %}
 
                     {% for h4_value in h3_value %}
-                        <span class={{h3_key}}>{{h4_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'])}} </span>
+                        <span class={{h3_key}}>{{h4_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'], dict_dict['secondary_words_to_hide'])}} </span>
                     {% endfor %}
 
                 {% else %}
 
-                    <span class={{h3_key}}>{{h3_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'])}} </span>
+                    <span class={{h3_key}}>{{h3_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'], dict_dict['secondary_words_to_hide'])}} </span>
 
                 {% endif %}
 

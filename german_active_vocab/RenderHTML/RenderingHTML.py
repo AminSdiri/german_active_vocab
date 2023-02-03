@@ -1,6 +1,7 @@
 import re
 import pandas as pd
 from bs4 import BeautifulSoup as bs
+from typing import Any
 
 from utils import (set_up_logger, write_str_to_file)
 from settings import DICT_DATA_PATH, JINJA_ENVIRONEMENT
@@ -10,7 +11,7 @@ logger = set_up_logger(__name__)
 
 # TODO (2) fama dl, Definition list, Supports the standard block attributes fel PyQT HTML esta3melha le def blocks bech yabdew alignee 3al isar.
 
-def render_html(dict_dict):
+def render_html(dict_dict: dict[str, Any]) -> str:
     # get from duden > found in pons > not translate > else
 
 
@@ -73,7 +74,7 @@ def render_html(dict_dict):
 
     return defined_html
 
-def get_saved_seen_word_info(word):
+def get_saved_seen_word_info(word: str) -> dict[str, Any]:
     df = pd.read_csv(DICT_DATA_PATH / 'wordlist.csv')
     df.set_index('Word', inplace=True)
     word_is_already_saved = word in df.index
@@ -84,7 +85,7 @@ def get_saved_seen_word_info(word):
 
     return word_info
 
-def render_html_from_dict(html_type: str, dict_dict, word_info={}, mode='full'):
+def render_html_from_dict(html_type: str, dict_dict: dict[str, Any], word_info: dict = None, mode='full') -> str:
     # background-color (from pyqt darktheme styling) = #2D2D2D
     color_palette_dict = {
         # Main Primary color
@@ -166,14 +167,14 @@ def render_html_from_dict(html_type: str, dict_dict, word_info={}, mode='full'):
 #     return dict_dict_trans
 
 
-def is_list(value):
+def is_list(value) -> bool:
     return isinstance(value, list)
 
 
 def treat_class_def(value, class_name, previous_class_name,
-                    previous_class_value):
+                    previous_class_value) -> str:
     '''workaround because of css21'''
-    logger.info(f"treating class: {class_name}")
+    logger.debug(f"treating class: {class_name}")
 
     
 
@@ -368,11 +369,11 @@ def treat_class_def(value, class_name, previous_class_name,
 
 
 def treat_class_trans(value, class_name, previous_class_name,
-                      previous_class_value):
+                      previous_class_value) -> str:
     '''workaround because of css21'''
     # TODO (3) wrap target in the same class as source
 
-    logger.info(f"treating class: {class_name}")
+    logger.debug(f"treating class: {class_name}")
 
     # base color: #4ae08c
 
@@ -450,9 +451,10 @@ def treat_class_trans(value, class_name, previous_class_name,
 
 
 def treat_class_du(value, class_name, previous_class_name,
-                   previous_class_value):
+                   previous_class_value) -> str:
     '''workaround because of css21'''
-    logger.info(f"treating class: {class_name}")
+    logger.debug(f"treating class: {class_name}")
+    # TODO (1) all the html formatting shoud be here or in the jinja templates (example <font color=)
 
     # ignore striked values
     if isinstance(value, str):
@@ -573,7 +575,50 @@ def treat_class_du(value, class_name, previous_class_name,
     value = f'<font color="#ffff00">{value}</font>'
     return value
 
-def hide_words_to_hide(value, class_name, words_to_hide):
+def highlight_words_to_hide(value, class_name, words_to_hide: list, secondary_words: dict) -> str:
+    ''' highlight words to hide (subtile color) for full html'''
+    if not value:
+        return value
+
+    # no highlighting in headers and definitions
+    if class_name in ('headword', 'flexion', 'definition', 'sense'):
+        return value
+
+    for word_to_hide in words_to_hide:
+
+        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_hide}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
+        colored_word_to_hide = f'<font color="#ccdcff">{word_to_hide}</font>'
+        try:
+            value_sub = re.sub(hide_pattern, colored_word_to_hide, value)
+            if value_sub != value: # replacement occured, hide secondary_words
+                value = value_sub
+                value = _highlight_secondary_words(secondary_words=secondary_words,
+                                                primary_word=word_to_hide,
+                                                value=value)
+                print('1')
+        except re.error:
+            logger.error(f'error by hiding {word_to_hide}. Word may contains a reserved Regex charactar')
+
+    return value
+
+def _highlight_secondary_words(secondary_words: dict, primary_word: str, value: str):
+    if not secondary_words:
+        return value
+
+    for secondary_word, secondary_word_repl in secondary_words.items():
+        
+        # hide only if secondary word comes before the primary_word
+        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){secondary_word}((?=[^a-zA-ZäöüßÄÖÜẞ])(?=.*{primary_word}))'
+        colored_word_to_hide = secondary_word_repl.replace('(','<font color="#ccdcff">') \
+                                                  .replace(')','</font>')
+        try:
+            value = re.sub(hide_pattern, colored_word_to_hide, value) # flags=re.IGNORECASE will replace also capitalized but with nn capitalized 
+        except re.error:
+            logger.error(f'error by hiding {secondary_word}. Word may contains a reserved Regex charactar')
+
+    return value
+
+def hide_words_to_hide(value, class_name, words_to_hide, secondary_words) -> str:
     ''' hide words to hide (subtile color) for quiz html'''
     if not value:
         return value
@@ -587,34 +632,47 @@ def hide_words_to_hide(value, class_name, words_to_hide):
         return ''
 
     for word_to_hide in words_to_hide:
+        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_hide}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
         word_length = len(word_to_hide)
-
-        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_hide}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
         try:
-            value = re.sub(hide_pattern, word_length*'_', value)
+            value_sub = re.sub(hide_pattern, word_length*'_', value)
+            if value_sub != value: # replacement occured, hide secondary_words
+                value = value_sub
+                value = _hide_secondary_words(secondary_words=secondary_words,
+                                              value=value)
         except re.error:
             logger.error(f'error by hiding {word_to_hide}. '
                         'Word may contains a reserved Regex charactar')
 
     return value
 
-def highlight_words_to_hide(value, class_name, words_to_hide):
-    ''' highlight words to hide (subtile color) for full html'''
-    if not value:
+def _hide_secondary_words(secondary_words: dict, value: str):
+    if not secondary_words:
         return value
 
-    # no replacing in definitions
-    if class_name in ('definition', 'sense'):
-        return value
-
-    for word_to_hide in words_to_hide:
-
-        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_hide}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
+    for secondary_word, secondary_word_repl in secondary_words.items():
+        
+        # hide only if secondary word comes before the primary_word
+        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){secondary_word}((?=[^a-zA-ZäöüßÄÖÜẞ])(?=.*_*))'
+        replacement = hide_between_parenthesis(secondary_word_repl)
         try:
-            colored_word_to_hide = f'<font color="#ccdcff">{word_to_hide}</font>'
-            value = re.sub(hide_pattern, colored_word_to_hide, value)
+            value = re.sub(hide_pattern, replacement, value) # flags=re.IGNORECASE will replace also capitalized but with nn capitalized 
         except re.error:
-            logger.error(f'error by hiding {word_to_hide}. '
-                        'Word may contains a reserved Regex charactar')
+            logger.error(f'error by hiding {secondary_word}. Word may contains a reserved Regex charactar')
 
     return value
+
+def hide_between_parenthesis(secondary_word_repl):
+    '''example :  (das) -> ___
+                  dies(er) -> dies__
+                  ein(e) -> ein__
+                  dein() -> dein__
+    '''
+    text_before = secondary_word_repl.split('(')[0]
+    text_after = secondary_word_repl.split(')')[1]
+    length_text_between_parenthesis = len(secondary_word_repl)-(len(text_before)+len(text_after))
+    underscore_repl = '_' * min(2, length_text_between_parenthesis)
+
+    colored_word_to_hide = text_before + underscore_repl + text_after
+
+    return colored_word_to_hide

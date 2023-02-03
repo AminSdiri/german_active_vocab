@@ -113,7 +113,7 @@
             {% if h1_key != 'requested' %}
             {% if h1_key != 'search_word' %}
             <!-- done apparement lena zeda lezmni n'ignori source  -->
-                <span class={{h1_key}}>{{h1_value|treat_class(h1_key, ns.previous_h1_key, ns.previous_h1_value)|treat_hidden_words(h1_key, du_dict['hidden_words_list'])}} </span>
+                <span class={{h1_key}}>{{h1_value|treat_class(h1_key, ns.previous_h1_key, ns.previous_h1_value)|treat_hidden_words(h1_key, du_dict['hidden_words_list'], du_dict['secondary_words_to_hide'])}} </span>
             {% endif %}
             {% endif %}
             {% endif %}
@@ -134,12 +134,12 @@
             {% for h3_key,h3_value in second_level.items() %}
                 {% if h3_value|is_list %}
                     {% for h4_value in h3_value %}
-                        <span class={{h3_key}}>{{h4_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, du_dict['hidden_words_list'])}} </span>
+                        <span class={{h3_key}}>{{h4_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, du_dict['hidden_words_list'], du_dict['secondary_words_to_hide'])}} </span>
                         {% set ns.previous_h3_key = h3_key %}
                         {% set ns.previous_h3_value = h4_value %}
                     {% endfor %}
                 {% else %}
-                    <span class={{h3_key}}>{{h3_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, du_dict['hidden_words_list'])}} </span>
+                    <span class={{h3_key}}>{{h3_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, du_dict['hidden_words_list'], du_dict['secondary_words_to_hide'])}} </span>
                 {% endif %}
                 {% set ns.previous_h3_key = h3_key %}
                 {% set ns.previous_h3_value = h3_value %}
