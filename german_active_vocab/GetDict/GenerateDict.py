@@ -1,15 +1,17 @@
 import json
+from pathlib import Path
 from bs4 import BeautifulSoup as bs
 import ast
 from collections import Counter
 import pandas as pd
 from PyQt5.QtCore import QMutex
+from typing import Any
+from PyQt5.QtCore import pyqtSignal, QWaitCondition
 
 from GetDict.GetData import get_word_from_source
-from GetDict.ParsingJson import construct_dict_from_json
-from GetDict.ParsingSoup import (create_synonyms_list,
-                                     get_word_freq_from_soup,
-                                     parse_duden_html_to_dict)
+from GetDict.ParsingJson import construct_dict_content_from_json
+from GetDict.ParsingSoup import (construct_dict_content_from_soup, create_synonyms_list,
+                                     get_word_freq_from_soup)
 from GetDict.HiddenWordsList import generate_hidden_words_list
 from utils import fix_html_with_custom_example, remove_html_wrapping
 from utils import (get_cache,
@@ -20,12 +22,13 @@ from settings import DICT_DATA_PATH
 logger = set_up_logger(__name__)
 
 # You can set the python.analysis.diagnosticMode to workspace rather than its default value of openFilesOnly to check for error without opening files
-# TODO (1) STRUCT BUG dicts saved from duden are not the same as those saved from Pons!! (different outer structure)
+# TODO (2) STRUCT convert to class? (OOP vs Functional)
 
-def standart_dict(saving_word, translate2fr, translate2en,
-                  get_from_duden, search_word, ignore_cache, ignore_dict,
-                  message_box_content_carrier, wait_for_usr):
+def standart_dict(saving_word: str, translate2fr: bool, translate2en: bool,
+                  get_from_duden: bool, search_word: str, ignore_cache: bool, ignore_dict: bool,
+                  message_box_content_carrier: pyqtSignal, wait_for_usr: QWaitCondition):
     
+    # BUG (2) too many args
     dict_dict_path = DICT_DATA_PATH / 'dict_dicts' / f'{saving_word}_standerised.json'
 
     if not (ignore_cache or ignore_dict):
@@ -49,7 +52,7 @@ def standart_dict(saving_word, translate2fr, translate2en,
                                             saving_word,
                                             ignore_cache)
 
-    # TODO (1) STRUCT baddalha el fonction tbadel struct dict twalli standarisee
+    # TODO (0)* STRUCT use the same dict structures for both pons and duden
     
     translate = translate2fr or translate2en
 
@@ -89,8 +92,10 @@ def standart_dict(saving_word, translate2fr, translate2en,
 
     return dict_dict, dict_dict_path
 
-def _read_dict_from_file(dict_dict_path):
+def _read_dict_from_file(dict_dict_path: Path):
     logger.debug('Looking for dict cache')
+    dict_dict: dict
+    dict_cache_found: bool
     dict_string, pons_dict_cache_found = get_cache(dict_dict_path)
     if pons_dict_cache_found:
         dict_cache_found = True
@@ -105,11 +110,12 @@ def _read_dict_from_file(dict_dict_path):
         dict_cache_found = False
         error_reading_json = None
         dict_dict = {}
+    
     return dict_cache_found, error_reading_json, dict_dict
 
 def _standart_pons_dict(_pons_json, _duden_syn_soup, word, translate,
-                       _duden_soup, message_box_content_carrier,
-                       wait_for_usr):
+                       _duden_soup, message_box_content_carrier: pyqtSignal,
+                       wait_for_usr: QWaitCondition) -> dict[str, Any]:
     '''
     standarize json file and save it before rendering to allow filtering of words, blocks, properties
     in power mode (new mode)
@@ -129,7 +135,7 @@ def _standart_pons_dict(_pons_json, _duden_syn_soup, word, translate,
     if not translate and len(_pons_json) == 1:
         logger.info(f'language: {_pons_json[0]["lang"]}')
 
-        dict_dict = {'content': construct_dict_from_json(_pons_json[0]["hits"], translate, word),
+        dict_dict = {'content': construct_dict_content_from_json(_pons_json[0]["hits"], translate, word),
                      'synonymes': _add_synonymes_from_duden(_duden_syn_soup),
                      'custom_examples': {
                          'german': [],
@@ -141,13 +147,13 @@ def _standart_pons_dict(_pons_json, _duden_syn_soup, word, translate,
 
         (dict_dict['custom_examples']['german'], 
          dict_dict['custom_examples']['english']) = _extract_custom_examples_from_html(word)
-        dict_dict['hidden_words_list']=generate_hidden_words_list(dict_dict['content'])
+        dict_dict['hidden_words_list'], dict_dict['secondary_words_to_hide']=generate_hidden_words_list(dict_dict['content'])
 
     elif translate and len(_pons_json) == 1:
         logger.info(f'language: {_pons_json[0]["lang"]}')
 
         dict_dict = {'lang': _pons_json[0]["lang"],
-                      'content': construct_dict_from_json(_pons_json[0]["hits"], translate, word)}
+                      'content': construct_dict_content_from_json(_pons_json[0]["hits"], translate, word)}
     elif translate and len(_pons_json) == 2:
         # resolve language translation confusion by asking the user
 
@@ -165,14 +171,14 @@ def _standart_pons_dict(_pons_json, _duden_syn_soup, word, translate,
 
         if CLICKED_BUTTON[0]:
             json_data = _pons_json[0]["hits"]
-            dict_dict_content = construct_dict_from_json(json_data, translate, word)
+            dict_dict_content = construct_dict_content_from_json(json_data, translate, word)
             dict_dict = {
                 'lang': _pons_json[0]['lang'],
                 'content': dict_dict_content
                 }
         elif CLICKED_BUTTON[1]:
             json_data = _pons_json[1]["hits"]
-            dict_dict_content = construct_dict_from_json(json_data, translate, word)
+            dict_dict_content = construct_dict_content_from_json(json_data, translate, word)
             dict_dict = {
                 'lang': _pons_json[1]['lang'],
                 'content': dict_dict_content
@@ -189,17 +195,17 @@ def _standart_pons_dict(_pons_json, _duden_syn_soup, word, translate,
 
     return dict_dict
 
-def prepare_message_box_content(_pons_json, word):
-    languages = [_pons_json[0]["lang"], _pons_json[1]["lang"]]
-    mother_language = languages[0] if languages[0] != 'de' else _pons_json[1]["lang"]
-    if languages[0]=='de':
-        mother_language = 'an english' if languages[1]=='en' else 'a french'
-        zero_to_one_str = 'De -> En' if languages[1]=='en' else 'De -> Fr'
-        one_to_zero_str = 'En -> De' if languages[1]=='en' else 'Fr -> De'
+def prepare_message_box_content(_pons_json, word) -> dict[str, str]:
+    _languages = [_pons_json[0]["lang"], _pons_json[1]["lang"]]
+    mother_language = _languages[0] if _languages[0] != 'de' else _pons_json[1]["lang"]
+    if _languages[0]=='de':
+        mother_language = 'an english' if _languages[1]=='en' else 'a french'
+        zero_to_one_str = 'De -> En' if _languages[1]=='en' else 'De -> Fr'
+        one_to_zero_str = 'En -> De' if _languages[1]=='en' else 'Fr -> De'
     else:
-        mother_language = 'an english' if languages[0]=='en' else 'a french'
-        zero_to_one_str = 'De -> En' if languages[0]=='en' else 'De -> Fr'
-        one_to_zero_str = 'En -> De' if languages[0]=='en' else 'Fr -> De'
+        mother_language = 'an english' if _languages[0]=='en' else 'a french'
+        zero_to_one_str = 'De -> En' if _languages[0]=='en' else 'De -> Fr'
+        one_to_zero_str = 'En -> De' if _languages[0]=='en' else 'Fr -> De'
 
     message_box_dict = {'text': "Confused.. I need you help??",
                             'title': "Choice of translation",
@@ -209,34 +215,37 @@ def prepare_message_box_content(_pons_json, word):
                         
     return message_box_dict
 
-def _standart_duden_dict(found_in_pons_duden, _duden_soup, _duden_syn_soup, word):
+def _standart_duden_dict(found_in_pons_duden, _duden_soup, _duden_syn_soup, word) -> dict[str, Any]:
 
     if found_in_pons_duden[1]:
 
-        duden_dict = parse_duden_html_to_dict(_duden_soup)
-
-        duden_dict["synonymes"] = _add_synonymes_from_duden(_duden_syn_soup)
+        duden_dict = {'custom_examples': {'german': [],
+                                            'english': []},
+                        'content': construct_dict_content_from_soup(_duden_soup),
+                        'synonymes': _add_synonymes_from_duden(_duden_syn_soup),
+                        'hidden_words_list': [],
+                        'secondary_words_to_hide': {},
+                        'source': 'duden',
+                        'word_freq' : get_word_freq_from_soup(_duden_soup)}
 
         (duden_dict['custom_examples']['german'], 
          duden_dict['custom_examples']['english']) = _extract_custom_examples_from_html(word)
 
-        duden_dict['hidden_words_list'] = generate_hidden_words_list(duden_dict)
-
-        duden_dict['source'] = 'duden'
+        duden_dict['hidden_words_list'], duden_dict['secondary_words_to_hide'] = generate_hidden_words_list(duden_dict)
 
     else:
         duden_dict = {}
 
     return duden_dict
     
-def _extract_custom_examples_from_html(word):
+def _extract_custom_examples_from_html(word: str) -> tuple[list[str], list[str]]:
     '''
     Temporary function:
     save custom examples list from the old version html in dict_dict
     '''
     # TODO (2) run in loop to update dicts and then delete
-    old_german_examples = []
-    old_englisch_examples = []
+    old_german_examples: list[str] = []
+    old_englisch_examples: list[str] = []
     wordlist_df = pd.read_csv(DICT_DATA_PATH / 'wordlist.csv')
     wordlist_df.set_index('Word', inplace=True)
     word_is_already_saved = word in wordlist_df.index
@@ -272,7 +281,7 @@ def _extract_custom_examples_from_html(word):
 
     return old_german_examples, old_englisch_examples
 
-def _add_synonymes_from_duden(_duden_syn_soup):
+def _add_synonymes_from_duden(_duden_syn_soup) -> list[list[str]]:
     if not _duden_syn_soup:
         return []
 
@@ -283,8 +292,8 @@ def _add_synonymes_from_duden(_duden_syn_soup):
         # logger.warning('Type Error in create_synonyms_list >> Check it!')
         raise TypeError('Type Error in create_synonyms_list >> Check it!')
 
-def get_definitions_from_dict_dict(dict_dict, info='definition'):
-    definitions_list = []
+def get_definitions_from_dict_dict(dict_dict, info='definition') -> list[str]:
+    definitions_list: list[str] = []
     for big_section in dict_dict['content']:
         if "word_subclass" not in big_section:
             # it's a dict from duden
@@ -306,7 +315,7 @@ def get_definitions_from_dict_dict(dict_dict, info='definition'):
 
     return definitions_list
              
-def extract_synonymes_in_html_format(dict_dict):
+def extract_synonymes_in_html_format(dict_dict) -> str:
     if 'synonymes' in dict_dict:
         synonymes = dict_dict['synonymes']
         syns_list_of_strings = [', '.join(syns) for syns in synonymes]
@@ -362,13 +371,13 @@ def append_new_examples_in_dict_dict(beispiel_de, beispiel_en, dict_dict):
     return dict_dict
 
 
-def create_dict_for_manually_added_words():
+def create_dict_for_manually_added_words() -> dict[str, Any]:
     # dict is not built -> word not found anywhere but html "written" manually
     # BUG (2) this allows only one example to persist for manually written defs 
     # -> TODO if manually added dict already exist append new examples to that dict else create new one like here
-    dict_dict = dict()
+    dict_dict = {}
     dict_dict['source'] = 'manual'
-    dict_dict['custom_examples'] = dict()
+    dict_dict['custom_examples'] = {}
     dict_dict['custom_examples']['german'] = []
     dict_dict['custom_examples']['english'] = []
     dict_dict['hidden_words_list'] = []
@@ -392,7 +401,7 @@ def update_hidden_words_in_dict(selected_text2hide, saving_word):
 
 # most easily readable way to recursivly operate on a nested dict
 # https://stackoverflow.com/questions/55704719/python-replace-values-in-nested-dictionary
-# TODO (2) generalize this function to use here for dict operations
+# TODO (2) generalize this function to use for dict operations
 def dict_replace_value(dict_object):
     new_dict = {}
     for key, value in dict_object.items():
@@ -420,7 +429,7 @@ def list_replace_value(list_object):
         new_list.append(elem)
     return new_list
 
-def get_value_from_dict_if_exists(keys, dictionnary):
+def get_value_from_dict_if_exists(keys, dictionnary) -> str:
     for key in keys:
         if key in dictionnary:
             return dictionnary[key]
