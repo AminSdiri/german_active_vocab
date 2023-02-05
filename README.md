@@ -10,17 +10,17 @@ Through my personal experience using this app, I have found that it effectively 
 
 ## How the App Targets Active Vocabulary
 
-    - Dictionary Lookup: Look up new words in a dictionary and get their definitions, usages, and examples.
-    - Spaced Repetition Quiz Mode: Test yourself on new words by hiding the word from the sentence and quizzing yourself on it using the spaced repetition technique. This helps you to train your active vocabulary by reinforcing your memory of the words in context.
-    - Translation: The dictionary provides translation for words in English and French.
-    - Subtitle Capture: Easily capture subtitles from movies and series for a real-world context of word usage. The app supports hotkey capture for VLC player while watching you favorite show and allows you to choose new words to learn from the subtitles.
+- Dictionary Lookup: Look up new words in a dictionary and get their definitions, usages, and examples.
+- Spaced Repetition Quiz Mode: Test yourself on new words by hiding the word from the sentence and quizzing yourself on it using the spaced repetition technique. This helps you to train your active vocabulary by reinforcing your memory of the words in context.
+- Translation: The dictionary provides translation for words in English and French.
+- Subtitle Capture: Easily capture subtitles from movies and series for a real-world context of word usage. The app supports hotkey capture for VLC player while watching you favorite show and allows you to choose new words to learn from the subtitles.
 
 ## How it Works
 
-    1. Look up new German words in the app's built-in dictionary.
+1. Look up new German words in the app's built-in dictionary.
 
-    2. Save the new words and practice them in the context of German sentences, using spaced repetition to reinforce your memory.
+2. Save the new words and practice them in the context of German sentences, using spaced repetition to reinforce your memory.
 
-    3. Track your progress and see your active vocabulary grow as you use the app regularly.
+3. Track your progress and see your active vocabulary grow as you use the app regularly.
 
 If you've faced similar challenges in learning German, I invite you to try this app and see how it can help you improve your language skills and become more confident in speaking the language.
