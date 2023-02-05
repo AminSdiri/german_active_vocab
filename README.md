@@ -23,4 +23,4 @@ Through my personal experience using this app, I have found that it effectively 
 
 3. Track your progress and see your active vocabulary grow as you use the app regularly.
 
-If you've faced similar challenges in learning German, I invite you to try this app and see how it can help you improve your language skills and become more confident in speaking the language.
+If you've faced similar challenges in learning German, I invite you to try this app and see how it can help you improve your language skills and become more confident in speaking the language. just pip install requirements.txt and launch __main__.py to start the GUI!
