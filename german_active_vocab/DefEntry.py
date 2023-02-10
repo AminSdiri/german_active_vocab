@@ -18,6 +18,68 @@ logger = set_up_logger(__name__)
 # TODO (4) type-hinting in every function
 # TODO (4) positional args vs keyword args
 
+@dataclass
+class WordQuery():
+    input_word: str
+    cl_args: Namespace
+    search_word: str = ''
+    cache_saving_word: str = ''
+    dict_saving_word: str = ''
+    ignore_cache: bool = False
+    ignore_dict: bool = False
+    translate_fr: bool = False
+    translate_en: bool = False
+    get_from_duden: bool = False
+
+    def process_input(self) -> None:
+        if ' new_dict' in self.input_word:
+            self.ignore_dict = True
+            self.input_word = self.input_word.replace(' new_dict', '')
+        else:
+            self.ignore_dict = False
+
+        if ' new_cache' in self.input_word:
+            self.ignore_cache = True
+            self.input_word = self.input_word.replace(' new_cache', '')
+        else:
+            self.ignore_cache = False
+
+        # search_word and translate-info
+        if ' fr' in self.input_word:
+            self.translate_fr = True
+            self.search_word = self.input_word.replace(' fr', '')
+        elif ' en' in self.input_word:
+            self.translate_en = True
+            self.search_word = self.input_word.replace(' en', '')
+        elif ' du' in self.input_word:
+            self.get_from_duden = True
+            self.search_word = self.input_word.replace(' du', '')
+        else:
+            self.search_word = self.input_word
+        self.search_word = self.search_word.lower().strip()
+        self.dict_saving_word = sanitize_word(self.search_word)
+
+        # saving word
+        if self.translate_fr:
+            self.cache_saving_word = self.search_word + '_fr'
+        elif self.translate_en:
+            self.cache_saving_word = self.search_word + '_en'
+        elif self.get_from_duden:
+            self.cache_saving_word = self.search_word + '_du'
+        else:
+            self.cache_saving_word = self.search_word
+        self.cache_saving_word = sanitize_word(self.cache_saving_word)
+        
+        if not self.cl_args or not self.cl_args.ger:
+            self.beispiel_de = ''
+            self.beispiel_en = ''
+        else:
+            self.beispiel_de = self.cl_args.ger.replace(
+                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"').strip()
+                
+        if self.cl_args and self.cl_args.eng :
+            self.beispiel_en = self.cl_args.eng.replace(
+                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"').strip()
 
 @dataclass
 class DefEntry():
@@ -25,15 +87,9 @@ class DefEntry():
     cl_args: Namespace
     message_box_content_carrier: pyqtSignal
     wait_for_usr: QWaitCondition
-    search_word: str = ''
-    saving_word: str = ''
     beispiel_de: str = ''
     beispiel_en: str = ''
-    _ignore_cache: bool = False
-    _ignore_dict: bool = False
-    translate2fr: bool = False
-    translate2en: bool = False
-    get_from_duden: bool = False
+
 
     dict_dict: dict = field(default_factory=dict)
     dict_dict_path: Path = ''
@@ -43,29 +99,24 @@ class DefEntry():
     # duden_synonyms: list = field(default_factory=list)
     # hidden_words_list: list = field(default_factory=list)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
 
-        self._process_input()
+        word_query = WordQuery(input_word=self.input_word,
+                               cl_args=self.cl_args)
+        word_query.process_input()
 
         self._log_word_in_wordlist_history()
 
-        (self.dict_dict,
-         self.dict_dict_path) = standart_dict(self.saving_word,
-                                            self.translate2fr,
-                                            self.translate2en,
-                                            self.get_from_duden,
-                                            self.search_word,
-                                            self._ignore_cache,
-                                            self._ignore_dict,
-                                            self.message_box_content_carrier,
-                                            self.wait_for_usr)
+        self.dict_dict = standart_dict(word_query,
+                                        self.message_box_content_carrier,
+                                        self.wait_for_usr)
                                 
-        if not (self.translate2en or self.translate2fr):
+        if not (word_query.translate_en or word_query.translate_fr):
             logger.info(f'Words to hide: {self.dict_dict["hidden_words_list"]}')
  
         self.defined_html = render_html(dict_dict=self.dict_dict)
     
-    def get_dict_slice_from_adress(self, address: list):
+    def get_dict_slice_from_adress(self, address: list) -> dict | list:
         # validate address
         dict_slice = self.dict_dict['content']
         for idx, entry in enumerate(address):
@@ -83,7 +134,7 @@ class DefEntry():
             except TypeError: 
                 raise TypeError('list indices must be integers or slices, not str')
 
-    def extract_definition_and_examples(self, address):
+    def extract_definition_and_examples(self, address) -> tuple[str, str]:
         if self.dict_dict['source'] == 'pons':
             bookmarked_address = address[:(address.index('def_blocks')+1+1)]
         elif self.dict_dict['source'] == 'duden':
@@ -97,78 +148,30 @@ class DefEntry():
                 bookmarked_def_block[address[-2]] = bookmarked_def_block[address[-2]][address[-1]]
             definition = get_value_from_dict_if_exists(keys=['definition', 'sense'],
                                                        dictionnary=bookmarked_def_block)
-            # TODO (2) change after standerising dicts
-            example = get_value_from_dict_if_exists(keys=['example', 'Beispiel', 'Beispiele'],
-                                                    dictionnary=bookmarked_def_block)
+            # DONE (2) change after standerising dicts
+            example = bookmarked_def_block.get('example', '')
             return definition, example
         else:
             raise RuntimeError('Case not taken into account')
 
-    def update_dict(self, text, address: list):
+    def update_dict(self, text, address: list) -> None:
         dict_slice = self.get_dict_slice_from_adress(address)
         if isinstance(dict_slice[address[-1]], str):
             dict_slice[address[-1]] = text
         else:
             raise RuntimeError('dict elemt is not str')
 
-    def re_render_html(self):
+    def re_render_html(self) -> str:
         self.defined_html = render_html(dict_dict=self.dict_dict)
         return self.defined_html
 
-    def _process_input(self):
-        if ' new_dict' in self.input_word:
-            self._ignore_dict = True
-            self.input_word = self.input_word.replace(' new_dict', '')
-        else:
-            self._ignore_dict = False
 
-        if ' new_cache' in self.input_word:
-            self._ignore_cache = True
-            self.input_word = self.input_word.replace(' new_cache', '')
-        else:
-            self._ignore_cache = False
-
-        # search_word and translate-info
-        if ' fr' in self.input_word:
-            self.translate2fr = True
-            self.search_word = self.input_word.replace(' fr', '')
-        elif ' en' in self.input_word:
-            self.translate2en = True
-            self.search_word = self.input_word.replace(' en', '')
-        elif ' du' in self.input_word:
-            self.get_from_duden = True
-            self.search_word = self.input_word.replace(' du', '')
-        else:
-            self.search_word = self.input_word
-        self.search_word = self.search_word.lower().strip()
-
-        # saving word
-        if self.translate2fr:
-            self.saving_word = self.search_word + '_fr'
-        elif self.translate2en:
-            self.saving_word = self.search_word + '_en'
-        elif self.get_from_duden:
-            self.saving_word = self.search_word + '_du'
-        else:
-            self.saving_word = self.search_word
-        self.saving_word = sanitize_word(self.saving_word)
-        
-        if not self.cl_args or not self.cl_args.ger:
-            self.beispiel_de = ''
-            self.beispiel_en = ''
-        else:
-            self.beispiel_de = self.cl_args.ger.replace(
-                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"').strip()
-                
-        if self.cl_args and self.cl_args.eng :
-            self.beispiel_en = self.cl_args.eng.replace(
-                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"').strip()
-
-    def _log_word_in_wordlist_history(self):
+    def _log_word_in_wordlist_history(self) -> None:
         # TODO (1) update to with open
         now = datetime.now() - timedelta(hours=3)
 
         logger.info("log_word_in_wordlist_history")
+        # TODO (2) Pylint: Using open without explicitly specifying an encoding
         f = open(DICT_DATA_PATH / 'Wordlist.txt', "a+")
         fileend = f.tell()
         f.seek(0)
@@ -180,7 +183,7 @@ class DefEntry():
         f.write(f'\n{self.input_word}, {str(word_count)}, {now.strftime("%d.%m.%y")}')
         f.close()
 
-    def wrap_words_to_learn_in_clozes(self, german_phrase):
+    def wrap_words_to_learn_in_clozes(self, german_phrase: str) -> str:
         logger.info("wrap_words_to_learn_in_clozes")
         
         hidden_words_list = self.dict_dict['hidden_words_list']
@@ -194,7 +197,7 @@ class DefEntry():
 
         return front_with_cloze_wrapping
 
-    def _wrap_in_clozes(self, text, word_to_wrap):
+    def _wrap_in_clozes(self, text: str, word_to_wrap: str) -> str:
         ' wrap word_to_wrap between {{c1:: and }} '
         logger.info("wrap_in_clozes")
 
@@ -209,7 +212,7 @@ class DefEntry():
 
         return quiz_text
 
-    def ankify(self, german_phrase, english_translation='', definitions_html=None):
+    def ankify(self, german_phrase: str, english_translation: str = '', definitions_html=None) -> None:
         front_with_cloze_wrapping = self.wrap_words_to_learn_in_clozes(german_phrase)
 
         if definitions_html is None:
@@ -229,7 +232,7 @@ class DefEntry():
                                 deck=ANKI_CONFIG['deck'],
                                 overwrite_notes=ANKI_CONFIG['overwrite'])
 
-    def add_word_to_hidden_list(self, selected_text2hide):
+    def add_word_to_hidden_list(self, selected_text2hide) -> None:
         if selected_text2hide in self.dict_dict['hidden_words_list']:
             logger.warning('selected word is already in hidden words list, choose another one')
         self.dict_dict['hidden_words_list'].append(selected_text2hide)
