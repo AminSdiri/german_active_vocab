@@ -29,6 +29,7 @@ if [ 0 -eq $? ]; then
 	# get current script path
 	SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 	echo $vlc_filename, $timecode >> $SCRIPT_DIR/VLC_saved_times.txt
+	echo $SCRIPT_DIR/LearnFromSubtitles.py "$vlc_filename" "$timecode"
 	$SCRIPT_DIR/LearnFromSubtitles.py "$vlc_filename" "$timecode"
 else
 	echo "no data from vlc"

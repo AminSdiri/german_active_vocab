@@ -46,7 +46,7 @@ from TreatSubtitles import clean_subtitle, fetch_subs_from_timestamp, format_exa
 
 # videos_path = Path('/media/mani/50 jdida') / 'Videos' / 'Shows'
 videos_path = Path.home() / 'Videos'
-script_path = Path().absolute() / 'german_active_vocab'
+script_path = Path(__file__).parent.parent.resolve() / 'german_active_vocab'
         
 class BigWindow(QWidget):
     def __init__(self, parent=None):
@@ -159,10 +159,14 @@ class MainWindow(QMainWindow):
         # find srt files
         if "S0" in self.file_name:
             name_show, number_episode = self.file_name.split()
+            # name_show = name_show.decode("utf8")
             search_pattern = f'{name_show}*{number_episode}*{lang}*.srt'
             search_path = videos_path / name_show / search_pattern
         else:
-            search_path = videos_path / f'{self.file_name}*{lang}*.srt'
+            name_show = self.file_name
+            # TODO add support for ' char in title (exp: before the devil knows you're dead)
+            # name_show = name_show.decode("utf8")
+            search_path = videos_path / f'{name_show}*{lang}*.srt'
         
         for file in glob.glob(str(search_path)):
             srt_file_path = file
