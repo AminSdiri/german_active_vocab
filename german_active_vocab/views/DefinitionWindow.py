@@ -1,4 +1,5 @@
 import sys
+from typing import Literal
 from plyer import notification
 
 from PyQt5.QtWidgets import (QPushButton, QWidget, QLineEdit, QTextEdit, QCheckBox, QMessageBox)
@@ -8,13 +9,14 @@ from PyQt5.QtGui import (QTextCharFormat,
 from SavingToQuiz import quizify_and_save
 from EditDictModelView import DictEditorWidget, TreeModel
 from GetDict.GenerateDict import dict_replace_value
+from RenderHTML.RenderingHTML import get_dict_content
 from utils import set_up_logger, format_html
 from settings import (DICT_DATA_PATH,
                       NORMAL_FONT)
 
 logger = set_up_logger(__name__)
 
-# TODO (1) * separate Def-Obj Model operations from View 
+# TODO (1) separate Def-Obj Model operations from View 
 # custom example li savitou mel pons dict zeda mawjoud fel kelma me duden (prolet).
 # 7aja zaboura 3alekher ama fama risque mta3 conflit
 
@@ -38,7 +40,7 @@ class DefinitionWindow(QWidget):
         self.base_width = 700
         self.extended_width = 1400
         
-        self.def_obj = def_obj
+        self.def_obj: 'DefEntry' = def_obj
         self.model: TreeModel = None
 
         self.dict_tree_view = DictEditorWidget(self.model, parent = self)
@@ -106,8 +108,9 @@ class DefinitionWindow(QWidget):
 
     def construct_model(self, def_obj):
         self.def_obj = def_obj
+        dict_content = get_dict_content(def_obj.dict_dict)
         self.model = TreeModel(headers=["Type", "Content"],
-                               data=self.def_obj.dict_dict['content'])
+                               data=dict_content)
         self.model.dataChanged.connect(self.refresh_text_view)
         self.dict_tree_view.setModel(self.model)
 
@@ -127,7 +130,7 @@ class DefinitionWindow(QWidget):
             self._end_test = False
             self.return_button.clicked.connect(self.parent().return_clicked)
 
-    def format_selection(self, operation: str):
+    def format_selection(self, operation: str) -> None:
         for index in self.dict_tree_view.selectedIndexes():
             if not index.data() or not index.column():
                 # ignore if it's in front of a branche or it's a key
@@ -141,7 +144,7 @@ class DefinitionWindow(QWidget):
                 if not isinstance(example, list):
                     # write a better algo that parse the dict to find focused elem? can  be used in focus section
                     self.def_obj.ankify(german_phrase=example,
-                                    definitions_html=definition)
+                                        definitions_html=definition)
                 # TODO (2) khouth l'adress mta3 lblock w khalih 3la jnab li tal9a kifeh structure mta3 el focus ejdida
             self.def_obj.update_dict(text, address)
 
@@ -150,7 +153,7 @@ class DefinitionWindow(QWidget):
             self.model.dataChanged.emit(index, index)
         self.update_text_view()
 
-    def restore_discarded(self):
+    def restore_discarded(self) -> None:
 
         self.def_obj.dict_dict = dict_replace_value(self.def_obj.dict_dict)
 
@@ -180,24 +183,24 @@ class DefinitionWindow(QWidget):
         self.dict_tree_view.resize(690, 635)
         self.dict_tree_view.show()
 
-    def refresh_text_view(self, index):
+    def refresh_text_view(self, index) -> None:
         text, address = self.model.get_dict_address(index)
         self.def_obj.update_dict(text, address)
         self.update_text_view()
 
-    def update_text_view(self):
+    def update_text_view(self) -> None:
         defined_html = self.def_obj.re_render_html()
         self.txt_cont.clear()
         self.txt_cont.insertHtml(defined_html)
         self.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
         self.show()
 
-    def expend_window_to_edit_dict(self):
+    def expend_window_to_edit_dict(self) -> None:
         self.parent().expand_definition_window_animation()
         self.dict_tree_view.expandAll()
         self.dict_tree_view.show()
 
-    def fill_def_window(self, def_obj):
+    def fill_def_window(self, def_obj) -> None:
         if def_obj.beispiel_de:
             self.beispiel.insert(def_obj.beispiel_de)
 
@@ -208,7 +211,7 @@ class DefinitionWindow(QWidget):
         self.txt_cont.insertHtml(def_obj.defined_html)
         self.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
 
-    def highlight_selection(self):
+    def highlight_selection(self) -> None:
         logger.info("highlight_selection")
         color_format = QTextCharFormat()
         color = QColor(3, 155, 224)
@@ -216,13 +219,13 @@ class DefinitionWindow(QWidget):
         color_format.setForeground(color)
         self.txt_cont.textCursor().mergeCharFormat(color_format)
 
-    def send_to_anki(self):
+    def send_to_anki(self) -> None:
 
         _, german_phrase, english_translation, _ = self.get_def_window_content()
 
         self.def_obj.ankify(german_phrase, english_translation)
 
-    def save_definition(self):
+    def save_definition(self) -> None:
         logger.info("save_definition")
 
         self.switch_highlight_button_action(new_action='highlight')
@@ -232,7 +235,7 @@ class DefinitionWindow(QWidget):
         faulty_examples = quizify_and_save(dict_data_path=DICT_DATA_PATH,
                                             word=self.def_obj.search_word,
                                             dict_dict=self.def_obj.dict_dict,
-                                            dict_dict_path=self.def_obj.dict_dict_path,
+                                            dict_saving_word=self.def_obj.dict_saving_word,
                                             qt_html_content=custom_html_from_qt,
                                             beispiel_de=beispiel_de,
                                             beispiel_en=beispiel_en,
@@ -241,7 +244,7 @@ class DefinitionWindow(QWidget):
         if faulty_examples:
             self.launch_no_hidden_words_in_beispiel_de_dialog(faulty_examples)
 
-    def launch_no_hidden_words_in_beispiel_de_dialog(self, faulty_examples):
+    def launch_no_hidden_words_in_beispiel_de_dialog(self, faulty_examples) -> None:
         faulty_examples = [str(x+1) for x in faulty_examples]
         faulty_examples = ', '.join(faulty_examples)
         logger.info("launch_no_hidden_words_in_beispiel_de_dialog")
@@ -253,7 +256,7 @@ class DefinitionWindow(QWidget):
         if choice == QMessageBox.Ok:
             self.switch_highlight_button_action(new_action='hide')
 
-    def switch_highlight_button_action(self, new_action):
+    def switch_highlight_button_action(self, new_action) -> None:
         if new_action=='hide':
             if self.highlight_button.text() != 'Force Hide':
                 self.highlight_button.setText('Force Hide')
@@ -273,7 +276,7 @@ class DefinitionWindow(QWidget):
         else: 
             raise RuntimeError(f'Keyword {new_action} not recognized')
     
-    def force_hide(self):
+    def force_hide(self) -> None:
         '''add selected word to  hidden words in dict file'''
         # TODO (1) desactivate button if no selection
         logger.info("force_hide")
@@ -288,7 +291,7 @@ class DefinitionWindow(QWidget):
                             message=selected_text2hide,
                             timeout=5)
 
-    def get_def_window_content(self):
+    def get_def_window_content(self) -> tuple[str, str, str, Literal['Studium', '']]:
         beispiel_de = self.beispiel.text()
         beispiel_en = self.beispiel2.text()
         beispiel_de = beispiel_de.replace('- ', '– ')
@@ -301,7 +304,7 @@ class DefinitionWindow(QWidget):
 class LineEdit(QLineEdit):
     # workaround to keep selection in focus for force_hide method
     # but we've lost the blinking cursor, no big deal
-    def focusOutEvent(self, e):
+    def focusOutEvent(self, e) -> None:
         start = self.selectionStart()
         length = self.selectionLength()
         super().focusOutEvent(e)

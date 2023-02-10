@@ -105,11 +105,9 @@
     <h1 style="text-align:center">{{dict_dict["lang"]}}</h1>
     {% endif %} #}
     
-    {% set dict_dict = dict_dict["content"]%}
-
     {% set ns = namespace(is_first_big_section = true) %}
 
-    {% for big_section in dict_dict %}
+    {% for big_section in dict_content %}
     {% if not ns.is_first_big_section %}
     <hr>
     {% endif %}

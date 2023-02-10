@@ -9,7 +9,7 @@ logger = set_up_logger(__name__)
     duden dict structure:
     {
         'headword': '',
-        'wortart': '',  # verb/adjektiv/name/adverb
+        'wordclass': '',  # verb/adjektiv/name/adverb
         'häufigkeit': '----',  # von '-' bis '-----'
         'genus': '',  # der/die/das
         ...
@@ -38,6 +38,7 @@ logger = set_up_logger(__name__)
     }
 '''
 
+#TODO (1) unwrap Wendungen_Redensarten_Sprichwoerter
 
 def construct_dict_content_from_soup(_duden_soup):
     (headword,
@@ -56,7 +57,8 @@ def construct_dict_content_from_soup(_duden_soup):
     dict_content[0] = {}
     rom_level_dict = dict_content[0]
 
-    rom_level_dict["headword"] = headword # TODO (0)* add headword and other stuff here
+    rom_level_dict["headword"] = headword 
+    rom_level_dict["wordclass"] = wortart # TODO (0)* get genus from here and (flexions from pons?) 
 
     try:
         fst_lvl_li_children = [x for x in bedeutung_soup.ol.contents

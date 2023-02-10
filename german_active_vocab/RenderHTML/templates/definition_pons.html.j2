@@ -15,7 +15,7 @@
 
 
         :root{
-            /* here only for visualisation, doesn't work for pyqt, using junja instead for filling color vars  */
+            /* here only for visualisation, doesn't work for pyqt, using jinja instead for filling color vars  */
             /* Main Primary color */
             var-color-primary-0: #DCFABC;
             var-color-primary-1: #F2FEE5;
@@ -97,11 +97,7 @@
         }
 
         
-        .definition {
-            font-weight: bold;
-        }
-
-        .sense{
+        .definition, .sense, .Wendungen_Redensarten_Sprichwoerter {
             font-weight: bold;
         }
 
@@ -146,7 +142,7 @@
 <body>
     {% set ns = namespace() %}
     {% set ns.is_first_big_section = true %}
-    {% for big_section in dict_dict["content"] %}
+    {% for big_section in dict_content %}
         {% if not ns.is_first_big_section %}
         <hr>
         {% endif %}
@@ -187,11 +183,12 @@
                     {% if h3_value|is_list %}
                         {% for h4_value in h3_value %}
                             <span class={{h3_key}}>{{h4_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'], dict_dict['secondary_words_to_hide'])}} </span>
+                            {% set ns.previous_h3_key = h3_key %}
                         {% endfor %}
                     {% else %}
                         <span class={{h3_key}}>{{h3_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, dict_dict['hidden_words_list'], dict_dict['secondary_words_to_hide'])}} </span>
+                        {% set ns.previous_h3_key = h3_key %}
                     {% endif %}
-                    {% set ns.previous_h3_key = h3_key %}
                     {% set ns.previous_h3_value = h3_value %}
                 {% endfor %}
                 </p>

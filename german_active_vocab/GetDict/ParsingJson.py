@@ -18,12 +18,11 @@ logger = set_up_logger(__name__)
                             'wordclass': '',  # verb/adjektiv/name/adverb
                             'flexion': '',  # [present, präteritum, perfekt]
                             'genus': '',  # der/die/das
-                            ...
                             'word_subclass':  # ARAB LEVEL list[dict]
                                             [
                                                 {
                                                     'verbclass': '',  # with_obj/without_obj
-                                                    ...
+                                                    ... sometimes style amd rethoric are also here (should it stay here?)
                                                     'def_blocks':  # BLOCKS list[dict]
                                                                     [
                                                                         {
@@ -53,14 +52,14 @@ logger = set_up_logger(__name__)
     }
 '''
 
-def construct_dict_content_from_json(json_data, translate, word) -> list[dict[str,Any]]:
+def construct_dict_content_from_json(json_data, search_word: str, translate: bool = False) -> list[dict[str,Any]]:
 
-    dict_dict = [None] * len(json_data)
+    dict_content = [None] * len(json_data)
 
     for rom_idx, rom_level_json in enumerate(json_data):
         if "roms" in rom_level_json:
-            dict_dict[rom_idx] = {}
-            rom_level_dict = dict_dict[rom_idx]
+            dict_content[rom_idx] = {}
+            rom_level_dict = dict_content[rom_idx]
             rom_level_dict["word_subclass"] = [None] * len(rom_level_json["roms"])
             for arab_idx, arab_level_json in enumerate(rom_level_json["roms"]):
                 rom_level_dict["word_subclass"][arab_idx] = {}
@@ -88,9 +87,9 @@ def construct_dict_content_from_json(json_data, translate, word) -> list[dict[st
             def_idx = 0
             data_corpus = rom_level_json["source"]
 
-            dict_dict[rom_idx] = {}
-            rom_level_dict = dict_dict[rom_idx]
-            rom_level_dict["headword"] = word
+            dict_content[rom_idx] = {}
+            rom_level_dict = dict_content[rom_idx]
+            rom_level_dict["headword"] = search_word
             rom_level_dict["word_subclass"] = [None]
             arab_idx = 0
             rom_level_dict["word_subclass"][arab_idx] = {}
@@ -122,7 +121,7 @@ def construct_dict_content_from_json(json_data, translate, word) -> list[dict[st
         else:
             raise KeyError('"roms" or (in the worst case) "source" key is expected"')
 
-    return dict_dict
+    return dict_content
 
 def populate_def_blocks(translate: bool, json_definition_blocks: list[dict]) -> list[dict[str, Any]]:
     def_blocks = []
@@ -172,7 +171,7 @@ def populate_def_blocks(translate: bool, json_definition_blocks: list[dict]) -> 
         def_idx += 1
     return def_blocks
 
-def clean_up_header_number(def_block_dict, block_number):
+def clean_up_header_number(def_block_dict: dict[str, Any], block_number: str) -> tuple[dict[str, Any], bool]:
     '''header_number sometime contains other elements (style..)
         putting those in sibling entries'''
     
@@ -216,7 +215,9 @@ def _process_def_block_separation(previous_class: str,
 
     return previous_class, gra_was_in_block, go_next
 
-def _update_dict_w_appending(def_block_dict, class_name, class_content):
+def _update_dict_w_appending(def_block_dict: dict[str, str|list[str]],
+                             class_name: str,
+                             class_content: str) -> dict[str, str | list[str]]:
     # if entry already exist, make it a list and append
     if class_name in def_block_dict:
         # raise Exception(f'{key_class} element cannot be overwritten')
@@ -228,7 +229,7 @@ def _update_dict_w_appending(def_block_dict, class_name, class_content):
 
     return def_block_dict
 
-def _update_dict_w_ignoring(rom_level_dict, key, value):
+def _update_dict_w_ignoring(rom_level_dict: dict[str, Any], key: str, value: str) -> dict[str, Any]:
     # only replace entry if content is ''
     if key in rom_level_dict:
         logger.debug(f'Key: {key}\n'
