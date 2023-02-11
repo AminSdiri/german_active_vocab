@@ -1,6 +1,7 @@
 from typing import Any
 
 from GetDict.ParsingSoup import extract_classes_names_and_content
+from .HiddenWordsList import generate_hidden_words_list
 from utils import (remove_from_str,
                    set_up_logger)
 
@@ -18,6 +19,8 @@ logger = set_up_logger(__name__)
                             'wordclass': '',  # verb/adjektiv/name/adverb
                             'flexion': '',  # [present, präteritum, perfekt]
                             'genus': '',  # der/die/das
+                            'hidden_words_list': []
+                            'secondary_words_to_hide': {}
                             'word_subclass':  # ARAB LEVEL list[dict]
                                             [
                                                 {
@@ -120,6 +123,8 @@ def construct_dict_content_from_json(json_data, search_word: str, translate: boo
                 def_block_dict = _update_dict_w_appending(def_block_dict, class_name, class_content)
         else:
             raise KeyError('"roms" or (in the worst case) "source" key is expected"')
+
+    dict_content = generate_hidden_words_list(dict_content)
 
     return dict_content
 

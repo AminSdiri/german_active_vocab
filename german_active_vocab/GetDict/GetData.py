@@ -8,7 +8,6 @@ from http.client import InvalidURL
 
 from utils import (get_cache,
                    read_str_from_file,
-                   remove_from_str,
                    replace_umlauts_2,
                    set_up_logger,
                    write_str_to_file)

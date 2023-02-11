@@ -2,18 +2,16 @@ from utils import set_up_logger
 
 logger = set_up_logger(__name__)
 
-def generate_hidden_words_list(dict_dict_content) -> tuple[list, dict[str, str]]:
+def generate_hidden_words_list(dict_dict_content: list) -> tuple[list, dict[str, str]]:
     # TODO (3) clean up
     logger.info("extract_hidden_words_list")
-    all_word_variants = []
-    all_secondary_words = {}
 
-    # TODO (1) every rom (header) should have a separate hidden_words list (example: for "Tisch", "auf" would be hidden because of "auftischen")
-    for rom_idx in range(len(dict_dict_content)):
-        headword = _get_prop_from_dict(dict_dict_content, rom_idx, looking_for='headword')
-        wordclass = _get_prop_from_dict(dict_dict_content, rom_idx, looking_for='wordclass')
-        genus = _get_prop_from_dict(dict_dict_content, rom_idx, looking_for='genus')
-        flexions_str = _get_prop_from_dict(dict_dict_content, rom_idx, looking_for='flexion')
+    # TODO (1)* every rom (header) should have a separate hidden_words list (example: for "Tisch", "auf" would be hidden because of "auftischen")
+    for rom_level_dict in dict_dict_content:
+        headword = _get_prop_from_dict(rom_level_dict, looking_for='headword')
+        wordclass = _get_prop_from_dict(rom_level_dict, looking_for='wordclass')
+        genus = _get_prop_from_dict(rom_level_dict, looking_for='genus')
+        flexions_str = _get_prop_from_dict(rom_level_dict, looking_for='flexion')
         flexions_str = flexions_str.replace('<', '').replace('>', '').replace('[', '').replace(']', '')
         if flexions_str:
             flexions = flexions_str.split(', ')
@@ -40,33 +38,44 @@ def generate_hidden_words_list(dict_dict_content) -> tuple[list, dict[str, str]]
         capitalized_word_variants = [x.capitalize() for x in word_variants]
         word_variants += capitalized_word_variants
 
+        # remove duplicates
+        word_variants = list(set(word_variants))
+
         # capitalize from 2nd char if first char is (
         capitalized_secondary_words = {k.capitalize(): v.capitalize() if v[0]!='(' else '('+v[1:].capitalize() for k,v in secondary_words.items()}
         secondary_words.update(capitalized_secondary_words)
-
-        # append to persistant list, this keep a commun list for all headwords (not the best but easier)
-        all_word_variants += word_variants
-        all_secondary_words.update(secondary_words)
+        
+        # put them in dict_content
+        rom_level_dict['hidden_words_list'] = word_variants
+        rom_level_dict['secondary_words_to_hide'] = secondary_words
 
         logger.debug(f'Word variants:\n{word_variants}')
-    
+
+    return dict_dict_content
+
+def get_all_hidden_words(dict_dict_content: list) -> tuple[list, dict[str, str]]:
+    # TODO (3) clean up
+    logger.info("extract_hidden_words_list")
+
+    all_word_variants = []
+    all_secondary_words = {}
+
+    for rom_level_dict in dict_dict_content:
+        all_word_variants += rom_level_dict['hidden_words_list']
+        all_secondary_words.update(rom_level_dict['secondary_words_to_hide'])
+
     # remove duplicates
     all_word_variants = list(set(all_word_variants))
 
     return all_word_variants, all_secondary_words
 
-def _get_prop_from_dict(dict_dict_content: list, rom_idx: int, looking_for: str) -> str:
-    if isinstance(dict_dict_content, dict):
-        # dict from duden case (temporary)
-        dict_level = dict_dict_content
-    else:
-        dict_level = dict_dict_content[rom_idx]
-    if looking_for in dict_level:
+def _get_prop_from_dict(rom_level_dict: dict, looking_for: str) -> str:
+    if looking_for in rom_level_dict:
         # temporary to fix flexion in saved dicts
         if looking_for == 'flexion':
-            dict_level[looking_for] = dict_level[looking_for].replace('<', '[').replace('>', ']')
+            rom_level_dict[looking_for] = rom_level_dict[looking_for].replace('<', '[').replace('>', ']')
         # end temporary
-        prop = dict_level[looking_for]
+        prop = rom_level_dict[looking_for]
     else:
         prop = ''
     return prop

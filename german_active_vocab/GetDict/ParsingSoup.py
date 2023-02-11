@@ -1,5 +1,6 @@
 from typing import Any
 from bs4 import BeautifulSoup as bs
+from .HiddenWordsList import generate_hidden_words_list
 
 from utils import set_up_logger
 
@@ -82,6 +83,9 @@ def construct_dict_content_from_soup(_duden_soup):
         # fill def block
         def_block['header_num'] = ''
         def_block = parse_child(bedeutung_soup, def_block)
+
+        dict_content = generate_hidden_words_list(dict_content)
+        
         return dict_content
 
     # TODO (4) use recursive function like recursivly_extract?
@@ -102,6 +106,9 @@ def construct_dict_content_from_soup(_duden_soup):
         # fill def block
         def_block['header_num'] = ''
         def_block = parse_child(bedeutung_soup, def_block)
+
+        dict_content = generate_hidden_words_list(dict_content)
+
         return dict_content
 
 
@@ -148,6 +155,8 @@ def construct_dict_content_from_soup(_duden_soup):
                                                         len_letters=len(snd_lvl_li_children))
                 def_block = parse_child(snd_lvl_child, def_block)
 
+    dict_content = generate_hidden_words_list(dict_content)
+    
     return dict_content
 
 

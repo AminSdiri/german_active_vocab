@@ -10,7 +10,6 @@ from GetDict.GetData import get_duden_soup, get_json_from_pons_api
 from GetDict.ParsingJson import construct_dict_content_from_json
 from GetDict.ParsingSoup import (construct_dict_content_from_soup, create_synonyms_list,
                                      get_word_freq_from_soup)
-from GetDict.HiddenWordsList import generate_hidden_words_list
 from utils import fix_html_with_custom_example, remove_from_str, remove_html_wrapping
 from utils import (get_cache,
                    read_str_from_file,
@@ -37,8 +36,8 @@ def standart_dict(word_query,
       - content_en/en-de/de-en
       - word_freq
       - synonymes
-      - hidden_words_list
-      - secondary_words_to_hide
+      - forced_hidden_words
+      - forced_hidden_secondary_words
     
     standarize json file and save it before rendering to allow
     filtering of words, blocks, properties in power mode (new mode)
@@ -228,15 +227,6 @@ def _add_dict_content(dict_dict, cache_saving_word, ignore_cache, message_box_co
         dict_dict['custom_examples'] = _update_dict_without_overwriting(dict_dict['custom_examples'],
                                                                         key='english',
                                                                         value=english_examples)
-        
-        hidden_words_list, secondary_words_to_hide = generate_hidden_words_list(dict_dict['content_pons'])
-        dict_dict = _update_dict_without_overwriting(dict_dict,
-                                                    key='hidden_words_list',
-                                                    value=hidden_words_list)
-        
-        dict_dict = _update_dict_without_overwriting(dict_dict,
-                                                    key='secondary_words_to_hide',
-                                                    value=secondary_words_to_hide)
 
         dict_dict['requested'] = source
 
@@ -246,16 +236,35 @@ def _update_files(dict_dict, dict_saving_word):
     ''' temporary function
     Moving away from using html files and put everything in one dict file (json format).'''
     if 'updated' not in dict_dict:
-        del dict_dict['content']
-        dict_dict['updated'] = True
+        try:
+            del dict_dict['content']
+        except KeyError:
+            pass
+        dict_dict['updated'] = 'unified dicts 09.02'
         dict_dict_path = DICT_DATA_PATH / 'dict_dicts' / f'{dict_saving_word}_dict.json'
         write_str_to_file(dict_dict_path, json.dumps(dict_dict), overwrite=True)
         dict_dict_path = DICT_DATA_PATH / 'dict_dicts' / f'{dict_saving_word}_standerised.json'
-        os.remove(dict_dict_path)
+        try:
+            os.remove(dict_dict_path)
+        except FileNotFoundError:
+            pass
         old_html_path = DICT_DATA_PATH / 'html' / f'{dict_saving_word}.html'
-        os.remove(old_html_path)
+        try:
+            os.remove(old_html_path)
+        except FileNotFoundError:
+            pass
         old_html_path = DICT_DATA_PATH / 'html' / f'{dict_saving_word}.quiz.html'
-        os.remove(old_html_path)
+        try:
+            os.remove(old_html_path)
+        except FileNotFoundError:
+            pass
+
+    if 'hidden_words_list' in dict_dict:
+        del dict_dict['hidden_words_list']
+        del dict_dict['secondary_words_to_hide']
+        dict_dict['updated'] = 'split hidden words 11.02'
+        dict_dict_path = DICT_DATA_PATH / 'dict_dicts' / f'{dict_saving_word}_dict.json'
+        write_str_to_file(dict_dict_path, json.dumps(dict_dict), overwrite=True)
     else:
         dict_dict_path = DICT_DATA_PATH / 'dict_dicts' / f'{dict_saving_word}_dict.json'
         write_str_to_file(dict_dict_path, json.dumps(dict_dict), overwrite=True)
@@ -363,7 +372,10 @@ def _extract_custom_examples_from_html(word: str) -> tuple[list[str], list[str]]
         return old_german_examples, old_englisch_examples
 
     old_html_path = DICT_DATA_PATH / 'html' / f'{word}.html'
-    old_html_str = read_str_from_file(old_html_path)
+    try:
+        old_html_str = read_str_from_file(old_html_path)
+    except FileNotFoundError:
+        return old_german_examples, old_englisch_examples
     old_html_str = fix_html_with_custom_example(old_html_str)
     old_html_soup = bs(old_html_str, 'lxml')
 
@@ -411,7 +423,7 @@ def create_dict_for_manually_added_words() -> dict[str, Any]:
     dict_dict['custom_examples'] = {}
     dict_dict['custom_examples']['german'] = []
     dict_dict['custom_examples']['english'] = []
-    dict_dict['hidden_words_list'] = []
+    dict_dict['forced_hidden_words'] = []
 
     return dict_dict
 
@@ -420,9 +432,9 @@ def update_hidden_words_in_dict(selected_text2hide, saving_word) -> None:
     dict_dict_path = DICT_DATA_PATH / 'dict_dicts' / f'{saving_word}_standerised.json'
     dict_cache_found, _, dict_dict = _read_dict_from_file(saving_word)
     if dict_cache_found:
-        if selected_text2hide in dict_dict['hidden_words_list']:
+        if selected_text2hide in dict_dict['forced_hidden_words']:
             raise RuntimeError('selected word is already in hidden words list')
-        dict_dict['hidden_words_list'].append(selected_text2hide)
+        dict_dict['forced_hidden_words'].append(selected_text2hide)
         write_str_to_file(dict_dict_path, json.dumps(dict_dict), overwrite=True)
     else:
         raise RuntimeError('dict for quized word not found')
