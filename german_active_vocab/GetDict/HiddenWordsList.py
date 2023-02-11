@@ -1,5 +1,7 @@
 from utils import set_up_logger
 
+# TODO (1) write a better algorithm for hiding words
+
 logger = set_up_logger(__name__)
 
 def generate_hidden_words_list(dict_dict_content: list) -> tuple[list, dict[str, str]]:

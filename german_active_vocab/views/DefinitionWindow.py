@@ -27,7 +27,6 @@ logger = set_up_logger(__name__)
 # DONE Subtle color for all words that are supposed to be hidden.
 # DONE Subtle color for all words that are supposed to be hidden in custom examples.
 # This will help detect if no word will be hidden in the custom examples and 
-# TODO (1) write a better algorithm for hiding words
 
 
 class DefinitionWindow(QWidget):
@@ -137,13 +136,13 @@ class DefinitionWindow(QWidget):
             text, address = self.model.get_dict_address(index)
             text = format_html(text, operation)
             if operation == 'bookmark':
-                # 'buggy code
+                # add to anki
                 definition, example = self.def_obj.dict_dict.extract_definition_and_examples(address)
                 if not isinstance(example, list):
-                    # write a better algo that parse the dict to find focused elem? can  be used in focus section
+                    # write a better algo that parse the dict to find focused elem? can be used in focus section
                     self.def_obj.ankify(german_phrase=example,
                                         definitions_html=definition)
-                # TODO (2) khouth l'adress mta3 lblock w khalih 3la jnab li tal9a kifeh structure mta3 el focus ejdida
+                # TODO (3) khouth l'address mta3 lblock w khalih 3la jnab li tal9a kifeh structure mta3 el focus ejdida
             self.def_obj.dict_dict.update_dict(text, address)
 
             # update_model
@@ -152,8 +151,6 @@ class DefinitionWindow(QWidget):
         self.update_text_view()
 
     def restore_discarded(self) -> None:
-        
-        # FIXED (0) this overwrite the dictdict obj- that's why we can't call get_dict_content afterward
         operation = lambda elem: remove_html_wrapping(elem, unwrap='red_strikthrough')
         self.def_obj.dict_dict.recursivly_operate_on_last_lvl(operation)
 
