@@ -18,7 +18,7 @@ logger = set_up_logger(__name__)
 
 # TODO (4) type-hinting in every function
 # TODO (4) positional args vs keyword args
-# TODO (0)* create dict_dict class that inherit form dict and have all dict operations
+# DONE (0)* create dict_dict class that inherit form dict and have all dict operations
 # TODO (0)* rename dict_dict to word_dict
 
 class DictDict(dict):    
@@ -50,13 +50,6 @@ class DictDict(dict):
             except TypeError: 
                 raise TypeError('list indices must be integers or slices, not str')
 
-    def get_value_from_dict_if_exists(self, keys, dictionnary) -> str:
-        # BUG (0)* it only return 1st found value
-        for key in keys:
-            if key in dictionnary:
-                return dictionnary[key]
-        return ''
-
     def update_dict(self, text, address: list) -> None:
         dict_slice = self.get_dict_slice_from_adress(address)
         if isinstance(dict_slice[address[-1]], str):
@@ -70,10 +63,15 @@ class DictDict(dict):
         bookmarked_def_block = bookmarked_def_block.copy() # we're not modifing dict_dict
         if isinstance(bookmarked_def_block, dict):
             if isinstance(address[-1], int):
-                # case of only one example is bookmarked
+                # case of only one example is bookmarked in a list of examples
                 bookmarked_def_block[address[-2]] = bookmarked_def_block[address[-2]][address[-1]]
-            definition = self.get_value_from_dict_if_exists(keys=['definition', 'sense'],
-                                                       dictionnary=bookmarked_def_block)
+
+            definition_1 = bookmarked_def_block.get('definition', '')
+            definition_2 = bookmarked_def_block.get('sense', '')
+            if definition_1 and definition_2:
+                logger.warning('Loss of Information! Both a definition and sense found, only one will be sent to Anki!!')
+            definition = definition_1 or definition_2
+
             # DONE (2) change after standerising dicts
             example = bookmarked_def_block.get('example', '')
             return definition, example
@@ -169,35 +167,35 @@ class DictDict(dict):
         # most easily readable way to recursivly operate on a nested dict
         # https://stackoverflow.com/questions/55704719/python-replace-values-in-nested-dictionary
         # TODO (2) generalize this function to use for dict operations
-        # TODO (0)* integrate this properly in word_dict
+        # DONE (0)* integrate this properly in word_dict
         
-        def dict_replace_value(dict_object, operation):
+        def operate_on_dict(dict_object, operation: callable):
             new_dict = {}
             for key, value in dict_object.items():
                 if isinstance(value, dict):
-                    value = dict_replace_value(value, operation)
+                    value = operate_on_dict(value, operation)
                 elif isinstance(value, list):
-                    value = list_replace_value(value, operation)
+                    value = operate_on_list(value, operation)
                 elif isinstance(value, str):
                     value = operation(value)
                 new_dict[key] = value
             return new_dict
 
 
-        def list_replace_value(list_object, operation: callable):
+        def operate_on_list(list_object, operation: callable):
             new_list = []
             for elem in list_object:
                 if isinstance(elem, list):
-                    elem = list_replace_value(elem, operation)
+                    elem = operate_on_list(elem, operation)
                 elif isinstance(elem, dict):
-                    elem = dict_replace_value(elem, operation)
+                    elem = operate_on_dict(elem, operation)
                 elif isinstance(elem, str):
                     elem = operation(elem)
                 new_list.append(elem)
             return new_list
         
         word_dict =  self.copy()
-        word_dict = dict_replace_value(word_dict, operation)
+        word_dict = operate_on_dict(word_dict, operation)
         self.clear()
         self.update(word_dict)
 
@@ -277,9 +275,6 @@ class DefEntry():
 
     defined_html: HTML = ''
 
-    # duden_synonyms: list = field(default_factory=list)
-    # hidden_words_list: list = field(default_factory=list)
-
     def __post_init__(self) -> None:
 
         self._log_word_in_wordlist_history()
@@ -289,9 +284,6 @@ class DefEntry():
                                 self.wait_for_usr)
         
         self.dict_dict = DictDict(dict_dict)
-
-        if not (self.word_query.translate_en or self.word_query.translate_fr):
-            logger.info(f'Words to hide: {self.dict_dict["hidden_words_list"]}')
  
         self.defined_html = render_html(dict_dict=self.dict_dict)
     
@@ -319,6 +311,7 @@ class DefEntry():
         f.close()
 
     def wrap_words_to_learn_in_clozes(self, german_phrase: str) -> str:
+        # TODO (0) update
         logger.info("wrap_words_to_learn_in_clozes")
         
         hidden_words_list = self.dict_dict['hidden_words_list']
@@ -354,7 +347,7 @@ class DefEntry():
             definitions_list = self.dict_dict.get_definitions_from_dict_dict(info='definition')
             definitions_html = '<ul>' + ''.join([f'<li>{elem}</li>' for elem in definitions_list]) + '</ul>'
 
-        synonymes_html = self.dict_dict.extract_synonymes_in_html_format(self.dict_dict)
+        synonymes_html = self.dict_dict.extract_synonymes_in_html_format()
 
         with Anki(base=ANKI_CONFIG['base'], profile=ANKI_CONFIG['profile']) as a:
             a.add_notes_single(cloze=front_with_cloze_wrapping,
@@ -368,8 +361,9 @@ class DefEntry():
                                 overwrite_notes=ANKI_CONFIG['overwrite'])
 
     def add_word_to_hidden_list(self, selected_text2hide) -> None:
-        if selected_text2hide in self.dict_dict['hidden_words_list']:
-            logger.warning('selected word is already in hidden words list, choose another one')
-        self.dict_dict['hidden_words_list'].append(selected_text2hide)
+        if 'forced_hidden_words' in self.dict_dict:
+            self.dict_dict['forced_hidden_words'].append(selected_text2hide)
+        else:
+            self.dict_dict['forced_hidden_words']= [selected_text2hide]
 
-        logger.debug(f'word2hide: {selected_text2hide}')
+        logger.debug(f'forced word2hide: {selected_text2hide}')
