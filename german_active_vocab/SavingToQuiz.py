@@ -4,18 +4,22 @@ import re
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 
-from GetDict.GenerateDict import append_new_examples_in_dict_dict, create_dict_for_manually_added_words
+from GetDict.GenerateDict import create_dict_for_manually_added_words
+from RenderHTML.RenderingHTML import get_saved_seen_word_info
+from GetDict.HiddenWordsList import get_all_hidden_words
 from utils import set_up_logger, write_str_to_file
 from settings import JINJA_ENVIRONEMENT
 
 logger = set_up_logger(__name__)
 
-# TODO (1) hide der, die, das, den, dem .. before nouns
+# DONE (0) hide der, die, das, den, dem .. before nouns
 
-def quizify_and_save(dict_data_path, word, qt_html_content, beispiel_de,
+def quizify_and_save(dict_data_path, qt_html_content, beispiel_de,
                       beispiel_en, tag, dict_dict,
-                      dict_dict_path):
+                      dict_saving_word):
+    # TODO (1) fix this function
     '''
+    Now we have a unified dict that the user can change directly! 
     Dielemma: if customising html in QtTextEdit Window is allowed,
     we cant use dict_dict to generate quiz file without "übertragung"
     of changes from html to dict_dict so quiz file is generated from the html.
@@ -52,16 +56,20 @@ def quizify_and_save(dict_data_path, word, qt_html_content, beispiel_de,
 
     # TODO (3) look at qdatawidgetmapper
 
+    word = dict_dict['search_word']
     words_df = pd.read_csv(dict_data_path / 'wordlist.csv')
     words_df.set_index('Word', inplace=True)
     word_is_already_saved = word in words_df.index
+
+    word_info = get_saved_seen_word_info(dict_dict['search_word'])
     
+    ####  old code ####
     # removing '\n' elements
-    qt_html_content = "".join(line.strip() for line in qt_html_content.split("\n"))
-    qt_html_content_soup = bs(qt_html_content, 'lxml')
-    if word_is_already_saved:
-        qt_html_content_soup = _remove_custom_section_from_html(qt_html_content_soup)
-        qt_html_content_soup = _remove_word_last_seen_section(qt_html_content_soup)
+    # qt_html_content = "".join(line.strip() for line in qt_html_content.split("\n"))
+    # qt_html_content_soup = bs(qt_html_content, 'lxml')
+    # if word_is_already_saved:
+    #     qt_html_content_soup = _remove_custom_section_from_html(qt_html_content_soup)
+    #     qt_html_content_soup = _remove_word_last_seen_section(qt_html_content_soup)
 
     if not word_is_already_saved:
         _add_word_to_words_df(dict_data_path, word, tag, words_df)
@@ -72,27 +80,28 @@ def quizify_and_save(dict_data_path, word, qt_html_content, beispiel_de,
     if not dict_dict:
         dict_dict = create_dict_for_manually_added_words()
 
-    dict_dict = append_new_examples_in_dict_dict(beispiel_de, beispiel_en, dict_dict)
+    dict_dict = dict_dict.append_new_examples_in_dict_dict(beispiel_de, beispiel_en)
 
     # TODO (2) when it's not ok to overwrite?
+    dict_dict_path = dict_data_path / 'dict_dicts' / f'{dict_saving_word}_dict.json'
     write_str_to_file(dict_dict_path, json.dumps(dict_dict), overwrite=True)
 
-    if dict_dict['custom_examples']['german']:
-        custom_section_soup = _create_custom_section(dict_dict)
-        qt_html_content_soup.body.insert(len(qt_html_content_soup.body.contents), custom_section_soup.body.p)
+    # if dict_dict['custom_examples']['german']:
+    #     custom_section_soup = _create_custom_section(dict_dict)
+    #     qt_html_content_soup.body.insert(len(qt_html_content_soup.body.contents), custom_section_soup.body.p)
 
-    qt_html_content = str(qt_html_content_soup)
+    # qt_html_content = str(qt_html_content_soup)
 
     # TODO (3) after mirroring the changes made in the html to dict_dict,
     # create_quiz_html will create a quiz_dict instead from dict_dict and
     # render the html from it
 
-    quiz_html = _create_quiz_html(qt_html_content, dict_dict['hidden_words_list'])
-
     # check if one of the words will get hidden in the custom german examples -> otherwise ask the user manually to select it
     # DONE (-1) kamel 3al old custom examples
-    no_hidden_words_in_example = _check_for_hidden_words_presence_in_custom_examples(examples=dict_dict['custom_examples']['german'],
-                                                                                     hidden_words=dict_dict['hidden_words_list'])
+    if 'custom_examples' in dict_dict:
+        all_word_variants, _ = get_all_hidden_words(dict_dict_content)
+        no_hidden_words_in_example = _check_for_hidden_words_presence_in_custom_examples(examples=dict_dict['custom_examples']['german'],
+                                                                                        hidden_words=dict_dict['hidden_words_list'])
 
     # insert custom examples properly
     # TODO (1) when do I need fix_html_with_custom_example?
@@ -100,14 +109,6 @@ def quizify_and_save(dict_data_path, word, qt_html_content, beispiel_de,
     # custom_qt_html = fix_html_with_custom_example(custom_qt_html)
     # clean_html = fix_html_with_custom_example(clean_html)
 
-    # TODO (0) Be careful not to overwrite any old examples or modified dicts
-    write_str_to_file(path=dict_data_path / 'html' / f'{word}.html',
-                      string=qt_html_content,
-                      overwrite=True,
-                      notification_list=[f'{word} gespeichert!'])
-    write_str_to_file(path=dict_data_path / 'html' / f'{word}.quiz.html',
-                      string=quiz_html,
-                      overwrite=True)
     logger.info(f'{word} gespeichert')
 
     return no_hidden_words_in_example
@@ -174,14 +175,14 @@ def _definitions_lock(clean_html_soup, action):
     for elem in bold_elements:
         if elem.string:
             if action == 'lock':
-                elem.string.replace_with('.:.'.join([c for c in elem.string]))
+                elem.string.replace_with('.:.'.join(list(elem.string)))
             elif action == 'unlock':
                 elem.string.replace_with(elem.string.replace('.:.', ''))
         else:
             for e in elem:
                 if e.string:
                     if action == 'lock':
-                        e.string.replace_with('.:.'.join([c for c in e.string]))
+                        e.string.replace_with('.:.'.join(list(e.string)))
                     elif action == 'unlock':
                         e.string.replace_with(e.string.replace('.:.', ''))
 

@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import logging
+from logging import Logger
 import os
 from pathlib import Path
 import string
@@ -7,14 +8,13 @@ import pandas as pd
 from bs4 import BeautifulSoup as bs
 from plyer import notification
 import argparse
-import traceback
 
 # from autologging import TRACE
 
 from settings import DICT_DATA_PATH
 
 
-def set_up_logger(logger_name, level=logging.INFO):
+def set_up_logger(logger_name, level=logging.INFO) -> Logger:
 
     # TODO (5) remove to reset level to INFO
     # Levels: debug, info, warning, error, critical
@@ -22,18 +22,18 @@ def set_up_logger(logger_name, level=logging.INFO):
     # level = logging.DEBUG
     level = logging.INFO
 
-    logger = logging.getLogger(logger_name)
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(level)
+    logger_obj = logging.getLogger(logger_name)
+    logger_obj.addHandler(logging.StreamHandler())
+    logger_obj.setLevel(level)
     formatter = logging.Formatter(
         '%(levelname)8s -- %(asctime)s -- %(name)-15s.%(funcName)-40s line %(lineno)-4s: %(message)s')
-    logger.handlers[0].setFormatter(formatter)
-    return logger
+    logger_obj.handlers[0].setFormatter(formatter)
+    return logger_obj
 
 
 logger = set_up_logger(__name__)
 
-def get_command_line_args():
+def get_command_line_args() -> "Namespace":
     parser = argparse.ArgumentParser()
     parser.add_argument('-w', '--word')
     parser.add_argument('-g', '--ger')
@@ -42,33 +42,33 @@ def get_command_line_args():
     return args
 
 # TODO (2) auto-logging 
-def wrap(pre, post):
-	""" Wrapper """
-	def decorate(func):
-		""" Decorator """
-		def call(*args, **kwargs):
-			""" Actual wrapping """
-			pre(func)
-			result = func(*args, **kwargs)
-			post(func)
-			return result
-		return call
-	return decorate
+# def wrap(pre, post):
+# 	""" Wrapper """
+# 	def decorate(func):
+# 		""" Decorator """
+# 		def call(*args, **kwargs):
+# 			""" Actual wrapping """
+# 			pre(func)
+# 			result = func(*args, **kwargs)
+# 			post(func)
+# 			return result
+# 		return call
+# 	return decorate
 
-def entering(func):
-	""" Pre function logging """
-	logger.debug("Entered %s", func.__name__)
+# def entering(func):
+# 	""" Pre function logging """
+# 	logger.debug("Entered %s", func.__name__)
 
-def exiting(func):
-	""" Post function logging """
-	logger.debug("Exited  %s", func.__name__)
+# def exiting(func):
+# 	""" Post function logging """
+# 	logger.debug("Exited  %s", func.__name__)
 
 # @wrap(entering, exiting)
 
 # or @traced(logger)
 
 
-def get_cache(cache_path):
+def get_cache(cache_path) -> tuple[str, bool]:
     try:
         cache_file_content = read_str_from_file(cache_path)
         cache_found = True
@@ -88,7 +88,7 @@ def sanitize_word(word: str) -> str:
     """
     allowed_chars = string.ascii_letters + "_"
 
-    def sanitize_char(char):
+    def sanitize_char(char: str) -> str:
         if char in allowed_chars:
             return char
         return "-u" + str(ord(char)) + "-"
@@ -96,7 +96,7 @@ def sanitize_word(word: str) -> str:
     return "".join(sanitize_char(char) for char in word)
 
 
-def replace_umlauts_2(word: str):
+def replace_umlauts_2(word: str) -> str:
     """for duden links
 
     Args:
@@ -111,12 +111,12 @@ def replace_umlauts_2(word: str):
                         .replace("ß", "sz")
     return normalized_word
 
-def ignore_headers(quiz_text):
+def ignore_headers(quiz_text: str) -> tuple[list[int], int]:
     logger.info("create_ignore_list")
     quiz_list = bs(quiz_text, "lxml").find_all('p')
     nb_parts = len(quiz_list)
     ignore_list = [1]*len(quiz_list)
-    for index in range(0, len(quiz_list)):
+    for index, _ in enumerate(quiz_list):
         quiz_list_lvl2 = quiz_list[index].find_all('span')
         for item in quiz_list_lvl2:
             contain_example = 'italic' in item['style']
@@ -128,14 +128,14 @@ def ignore_headers(quiz_text):
     # logger.debug('Indexes to Ignore', ignore_list)
     return ignore_list, nb_parts
 
-def remove_from_str(string: str, substrings: list):
+def remove_from_str(text: str, substrings: list):
     # DONE (1) use with long replace chains
-    string = string.encode(encoding='UTF-8', errors='strict')
+    text = text.encode(encoding='UTF-8', errors='strict')
     for substring in substrings:
-        string = string.replace(substring, b'')
-    return string.decode('utf-8')
+        text = text.replace(substring, b'')
+    return text.decode('utf-8')
 
-def read_dataframe_from_file(parts=False):
+def read_dataframe_from_file(parts=False) -> pd.DataFrame:
     filename = 'wordlist.csv' if not parts else 'wordpart_list.csv'
     df = pd.read_csv(DICT_DATA_PATH / filename)
     indexname = 'Word' if not parts else 'Wordpart'
@@ -145,7 +145,7 @@ def read_dataframe_from_file(parts=False):
     df['Previous_date'] = pd.to_datetime(df['Previous_date'])
     return df
 
-def update_dataframe_file(word, quiz_text, full_text):
+def update_dataframe_file(word, quiz_text, full_text) -> None:
     logger.info("update dataframe file")
 
     quiz_parts = bs(quiz_text, "lxml").find_all('p')
@@ -183,7 +183,7 @@ def update_dataframe_file(word, quiz_text, full_text):
                             timeout=2)
     logger.info(f'{word} switched to Focus Mode')
 
-def fix_html_with_custom_example(html_text):
+def fix_html_with_custom_example(html_text: str) -> str:
     # TODO (5) Vorübergehend, delete after all htmls are updated
     # TODO (2) run in loop and then delete here
     logger.info("fix_html_with_custom_example")
@@ -198,7 +198,7 @@ def fix_html_with_custom_example(html_text):
 
     return html_text
 
-def read_text_from_files(word):
+def read_text_from_files(word: str) -> tuple[str, str]:
     quiz_file_path = DICT_DATA_PATH / 'html' / f'{word}.quiz.html'
     quiz_text = read_str_from_file(quiz_file_path)
 
@@ -213,12 +213,12 @@ def read_text_from_files(word):
 
     return full_text, quiz_text
 
-def read_str_from_file(path: Path):
+def read_str_from_file(path: Path) -> str:
     # word (path.stem) is sanitized before therefore not needed
     # path_str = sanitize_word(str(path))
     # path = Path(path_str)
     # try:
-    with open(path, 'r') as file:
+    with open(path, 'r', encoding="utf8") as file:
         file_string = file.read()
     # clashes with cache reading
     # except FileNotFoundError:
@@ -228,7 +228,7 @@ def read_str_from_file(path: Path):
     return file_string
 
 
-def write_str_to_file(path: Path, string: str, overwrite=False, notification_list=[]):
+def write_str_to_file(path: Path, content: str, overwrite=False, notification_list: list = None) -> None:
     # TODO (3) Overwrite files?, in which case I want to do that
     # in which case I want to reset DF entries
     # path_str = str(path)
@@ -242,7 +242,7 @@ def write_str_to_file(path: Path, string: str, overwrite=False, notification_lis
         raise RuntimeError(f'Path "{path}" exists and overwriting is not allowed')
 
     with open(path, 'w', encoding='utf-8') as f:
-        f.write(string)
+        f.write(content)
     if notification_list:
         notification.notify(title=notification_list[0],
                             message='\n'.join(notification_list[1:]),
@@ -257,37 +257,48 @@ def write_str_to_file(path: Path, string: str, overwrite=False, notification_lis
     #     # notify
     #     pass
 
-def format_html(text, operation: str):
+def format_html(text: str, operation) -> str:
     if text.startswith('<s') and operation == 'discard':
         return text
-    elif text.startswith('<s') and operation == 'bookmark':
+    
+    if text.startswith('<s') and operation == 'bookmark':
         text = remove_html_wrapping(text, unwrap= 'red_strikthrough')
         text = wrap_html(text, style='lime')
         return text
-    elif text.startswith('<font') and operation == 'discard':
+    
+    if text.startswith('<font') and operation == 'discard':
         text = remove_html_wrapping(text, unwrap= 'lime')
         text = wrap_html(text, style='red_strikthrough')
         return text
-    elif text.startswith('<font') and operation == 'bookmark':
+    
+    if text.startswith('<font') and operation == 'bookmark':
         return text
-    elif operation == 'discard':
+    
+    if operation == 'discard':
         text = wrap_html(text, style='red_strikthrough')
         return text
-    elif operation == 'bookmark':
+    
+    if operation == 'bookmark':
         text = wrap_html(text, style='lime')
         return text
+    
     raise RuntimeError(f'wrap to {operation} not executed')
 
-def wrap_html(text, style :str):
+def wrap_html(text: str, style :str) -> str:
     if style == 'red_strikthrough':
         text=f'<s style="color:Tomato;">{text}</s>'
         return text
-    elif style == 'lime':
+    
+    if style == 'lime':
         text=f'<font color="Lime">{text}</font>'
         return text
+    
     raise RuntimeError(f'wrap to {style} not executed')
 
-def remove_html_wrapping(text, unwrap: str):
+def remove_html_wrapping(text: str, unwrap: str) -> str:
+    if not text.startswith('<s'):
+        return text
+        
     if unwrap == 'red_strikthrough':
         return text.replace('<s style="color:Tomato;">','').replace('</s>', '') 
     if unwrap == 'lime':

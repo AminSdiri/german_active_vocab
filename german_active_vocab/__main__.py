@@ -19,7 +19,7 @@ from utils import set_up_logger
 # TODO (1) STRUCT organize now and now_(-3h)
 # DONE (2) move theme
 # DONE (0) restruct main
-# TODO (1) STRUCT all to Model, Viewer/controller architecture
+# TODO (2) STRUCT all to Model, Viewer/controller architecture
 # TODO (4) choose theme https://www.youtube.com/watch?v=0kpm10AxiNE&list=PLQVvvaa0QuDdVpDFNq4FwY9APZPGSUyR4&index=11
 # DONE (0) ignore data files :: git update-index --skip-worktree <file> to skip tracking files
 
@@ -31,6 +31,7 @@ def main() -> int:
     _ = MainWindow()
     exit_code = app.exec_()
     return exit_code
+
 
 if __name__ == '__main__':
     sys.excepthook = excepthook  # show errors as system notifications

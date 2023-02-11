@@ -12,7 +12,7 @@ from utils import read_str_from_file, read_text_from_files, sanitize_word, set_u
 logger = set_up_logger(__name__)
 
 # TODO (1) add ability to delete enteries from history window
-# TODO (1) use database to save everything
+# DISCARDED (1) use a proper database (the use of SQL is counterproductive in my case)
 
 class WordlistWindow(QWidget):
     def __init__(self, parent=None):
@@ -36,7 +36,7 @@ class WordlistWindow(QWidget):
 
 
 class HistoryWindow(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, index, parent=None):
         super().__init__(parent)
         logger.info("init defHistory")
 
@@ -57,8 +57,7 @@ class HistoryWindow(QWidget):
         self.txt_cont.resize(690, 640)
         self.txt_cont.setReadOnly(True)
 
-        index = parent.wordlist_window.returned_index
-        self.history_entry = index if type(index) is str else index.text()
+        self.history_entry = index if isinstance(index, str) else index.text()
         history_entry_path = DICT_DATA_PATH / 'html' / f'{self.history_entry}.html'
         text = read_str_from_file(history_entry_path)
 
@@ -76,7 +75,7 @@ class HistoryWindow(QWidget):
         word = self.history_entry.replace('.quiz', '')
         full_text, quiz_text = read_text_from_files(word)
 
-        update_dataframe_file(word, full_text, quiz_text)
+        update_dataframe_file(word, quiz_text, full_text)
 
     def hide_word_manually_from_history_window(self):
         logger.info("hide_word_manually")

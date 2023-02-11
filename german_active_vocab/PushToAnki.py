@@ -99,6 +99,7 @@ class Anki:
         return model
 
     def add_notes_single(self, cloze, hint1='', hint2='', hint3='', answer_extra='', tags='', model=None, deck=None, overwrite_notes=False):
+        # TODO (1)* add card ID to word_dict to be able to replace it after a change without resetting review data
         """Add new note to collection"""
         if model is not None:
             self.set_model(model)
@@ -131,7 +132,7 @@ class Anki:
                         timeout=10)
         elif note.dupeOrEmpty() ==2:
             if overwrite_notes:
-                # TODO (1) only change note contents without changing review time and meta-informations
+                # TODO (1) add ability to only change note contents without changing review time and meta-informations
                 self.col.addNote(note)
                 self.modified = True
             else:

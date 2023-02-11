@@ -9,7 +9,7 @@ logger = set_up_logger(__name__)
 # DONE (0) use Qthread to prevent gui from freezing when waiting for the word data to be fetched 
 
 class SearchWindow(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
         logger.info("init Search_win")
 
@@ -86,16 +86,16 @@ class SearchWindow(QWidget):
         # layout.addLayout(buttons, 1, 7, 1, 3)
         # self.setLayout(layout)
 
-    def start_loading_animation(self):
+    def start_loading_animation(self) -> None:
         self.label.show()
         self.loading_animation.start()
         self.label.raise_()
 
-    def stop_loading_animation(self):
+    def stop_loading_animation(self) -> None:
         self.label.hide()
         self.loading_animation.stop()
 
-    def search_window_button_actions(self):
+    def search_window_button_actions(self) -> None:
         self.line.returnPressed.connect(self.parent().process_data_in_thread)
         self.history_button.clicked.connect(self.parent().launch_history_list_window)
         self.quiz_button.clicked.connect(self.parent().launch_quiz_window)
@@ -103,7 +103,7 @@ class SearchWindow(QWidget):
         self.expand_btn.clicked.connect(self.parent().expand_search_window_animation)
 
 
-    def get_filled_search_form(self):
+    def get_filled_search_form(self) -> str:
         logger.info("return search form inputs")
         
         word = self.line.text()

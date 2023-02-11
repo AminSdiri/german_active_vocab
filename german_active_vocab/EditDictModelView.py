@@ -5,10 +5,10 @@ from PyQt5.QtWidgets import QTreeView, QStyledItemDelegate, QStyleOptionViewItem
 from PyQt5.QtCore import Qt, QAbstractItemModel, QModelIndex, QRectF, QSize, QItemSelectionModel
 from PyQt5.QtGui import QTextDocument, QAbstractTextDocumentLayout
 
-# TODO (0) allow modifing custom examples in TreeView
+# TODO (1) allow modifing custom examples in TreeView
 
 class DictEditorWidget(QTreeView):
-    def __init__(self, model, parent=None):
+    def __init__(self, model, parent=None) -> None:
         """ Dict Editor Widget """
         super().__init__(parent=parent)
         
@@ -20,8 +20,8 @@ class DictEditorWidget(QTreeView):
 
         self.clicked.connect(self.onTreeViewClicked)
 
-        delegate = HTMLDelegate();
-        self.setItemDelegate(delegate);
+        delegate = HTMLDelegate()
+        self.setItemDelegate(delegate)
 
         # TODO (5) add x button beside every item
         # x_button = QPushButton('x', self)
@@ -30,34 +30,34 @@ class DictEditorWidget(QTreeView):
         #     idx = self.model().index(i, 2)
         #     self.setIndexWidget(idx, x_button)
 
-    def onTreeViewClicked(self, index):
+    def onTreeViewClicked(self, index) -> None:
         nb_children = index.internalPointer().childCount()
         if nb_children == 0:
             return
         for r in range(nb_children):
-            childIndex = self.model().index(r,0,index);
+            childIndex = self.model().index(r,0,index)
             self.selectionModel().select(childIndex, QItemSelectionModel.Select)
             self.onTreeViewClicked(childIndex)
-            childIndex = self.model().index(r,1,index);
+            childIndex = self.model().index(r,1,index)
             self.selectionModel().select(childIndex, QItemSelectionModel.Select)
             self.onTreeViewClicked(childIndex)
 
 
 class TreeModel(QAbstractItemModel):
-    def __init__(self, headers, data, parent=None):
+    """ subclassing the standard interface item models must use and 
+            implementing index(), parent(), rowCount(), columnCount(), and data()."""
+    def __init__(self, headers, data, parent=None) -> None:
         super(TreeModel, self).__init__(parent)
-        """ subclassing the standard interface item models must use and 
-                implementing index(), parent(), rowCount(), columnCount(), and data()."""
 
-        rootData = [header for header in headers]
+        rootData = list(headers)
         self.rootItem = TreeNode(rootData)
         indent = -1
         self.parents = [self.rootItem]
         self.indentations = [0]
         self.createData(data, indent)
 
-    def createData(self, data, indent=-1):
-        if type(data) == dict:
+    def createData(self, data, indent=-1) -> None:
+        if isinstance(data, dict):
             indent += 1
             position = 4 * indent
             for dict_keys, dict_values in data.items():
@@ -79,7 +79,7 @@ class TreeModel(QAbstractItemModel):
                     if 'header_num' in dict_values:
                         parent.child(parent.childCount() - 1).setData(0, dict_values['header_num'])
                 self.createData(dict_values, indent)
-        elif type(data) == list:
+        elif isinstance(data, list):
             indent += 1
             position = 4 * indent
             for values in data:
@@ -101,7 +101,7 @@ class TreeModel(QAbstractItemModel):
                         parent.child(parent.childCount() - 1).setData(0, values['header_num'])
                 self.createData(values, indent)
 
-    def index(self, row, column, index=QModelIndex()):
+    def index(self, row, column, index=QModelIndex()) -> QModelIndex:
         """ Returns the index of the item in the model specified by the given row, column and parent index """
 
         if not self.hasIndex(row, column, index):
@@ -117,7 +117,7 @@ class TreeModel(QAbstractItemModel):
             return self.createIndex(row, column, child)
         return QModelIndex()
 
-    def parent(self, index):
+    def parent(self, index) -> QModelIndex:
         """ Returns the parent of the model item with the given index
                 If the item has no parent, an invalid QModelIndex is returned """
 
@@ -133,7 +133,7 @@ class TreeModel(QAbstractItemModel):
         else:
             return self.createIndex(parent.childNumber(), 0, parent)
 
-    def rowCount(self, index=QModelIndex()):
+    def rowCount(self, index=QModelIndex()) -> int:
         """ Returns the number of rows under the given parent
                 When the parent is valid it means that rowCount is returning the number of children of parent """
 
@@ -143,7 +143,7 @@ class TreeModel(QAbstractItemModel):
             parent = self.rootItem
         return parent.childCount()
 
-    def columnCount(self, index=QModelIndex()):
+    def columnCount(self, index=QModelIndex()) -> int:
         """ Returns the number of columns for the children of the given parent """
 
         return self.rootItem.columnCount()
@@ -185,7 +185,7 @@ class TreeModel(QAbstractItemModel):
     # def flags(self, index):
     #     return Qt.ItemIsSelectable|Qt.ItemIsEnabled|Qt.ItemIsEditable
 
-    def setData(self, index, value, role=Qt.EditRole):
+    def setData(self, index, value, role=Qt.EditRole) -> bool:
         if role != Qt.EditRole:
             return False
 
@@ -205,7 +205,7 @@ class TreeModel(QAbstractItemModel):
 
         return self.rootItem
 
-    def get_dict_address(self, index):
+    def get_dict_address(self, index) -> tuple[str, list[str|int]]:
         text = self.data(index)
         last_index = index
         address = []
@@ -216,8 +216,7 @@ class TreeModel(QAbstractItemModel):
             if column == 0:
                 last_index_content = last_index.data()
                 if last_index_content:
-                    if (last_index_content[0].isdigit()
-                        or last_index_content=='Phrases:'):
+                    if (last_index_content[0].isdigit() or last_index_content=='Phrases:'):
                         #special case for header_num
                         address.append(row)
                     else:
@@ -257,32 +256,32 @@ class TreeModel(QAbstractItemModel):
     #             self.statusBar().showMessage("Position: (%d,%d) in top level" % (row, column))    
 
 
-class TreeNode(object):
-    def __init__(self, data, parent=None):
+class TreeNode():
+    def __init__(self, data, parent=None) -> None:
         self.parent_item = parent
         self.item_data = data
-        self.children = []
+        self.children: list = []
 
     def child(self, row):
         return self.children[row]
 
-    def childCount(self):
+    def childCount(self) -> int:
         return len(self.children)
 
     def childNumber(self):
         if self.parent_item is not None:
             return self.parent_item.children.index(self)
 
-    def columnCount(self):
+    def columnCount(self) -> int:
         return len(self.item_data)
 
     def data(self, column):
         return self.item_data[column]
 
-    def insertChildren(self, position, count, columns):
+    def insertChildren(self, position: int, count, columns) -> bool:
         if position < 0 or position > len(self.children):
             return False
-        for row in range(count):
+        for _ in range(count):
             data = [None] * columns
             item = TreeNode(data, self)
             self.children.insert(position, item)
@@ -293,7 +292,7 @@ class TreeNode(object):
         if position < 0 or position + count > len(self.children):
             return False
 
-        for row in range(count):
+        for _ in range(count):
             self.children.pop(position)
 
         return True
@@ -302,10 +301,10 @@ class TreeNode(object):
         if position < 0 or position + columns > len(self.item_data):
             return False
 
-        for column in range(columns):
+        for _ in range(columns):
             self.item_data.pop(position)
 
-        for child in self.child_items:
+        for child in self.children:
             child.remove_columns(position, columns)
 
         return True
@@ -313,20 +312,20 @@ class TreeNode(object):
     def parent(self):
         return self.parent_item
 
-    def setData(self, column, value):
+    def setData(self, column, value) -> bool:
         if column < 0 or column >= len(self.item_data):
             return False
         self.item_data[column] = value
         return True
 
 class HTMLDelegate( QStyledItemDelegate ):
-    def __init__( self ):
+    def __init__( self ) -> None:
         super().__init__()
         # probably better not to create new QTextDocuments every ms
         self.doc = QTextDocument()
         self.doc.setDefaultStyleSheet("background: rgba(0,0,0,0)")
 
-    def paint(self, painter, option, index):
+    def paint(self, painter, option, index) -> None:
         if index.column() == 1:
             options = QStyleOptionViewItem(option)
             self.initStyleOption(options, index)
@@ -346,7 +345,7 @@ class HTMLDelegate( QStyledItemDelegate ):
         else:
             QStyledItemDelegate.paint(self, painter, option, index)
 
-    def sizeHint( self, option, index ):
+    def sizeHint( self, option, index ) -> QSize:
         options = QStyleOptionViewItem(option)
         self.initStyleOption(option, index)
         self.doc.setHtml(option.text)

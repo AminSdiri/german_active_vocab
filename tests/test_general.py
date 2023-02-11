@@ -10,8 +10,8 @@ from german_active_vocab.MainWindow import MainWindow
 
 # SOLVED multiple tests are not possible, PyQt doesn't immediatly close event loop after w.close
 # CANCELED (0) add pre-commit hooks in vscode # not possible now
-# TODO (1) test new_cache keyword
-# TODO (1) test new_dict keyword
+# DONE (1) test new_cache keyword
+# DONE (1) test new_dict keyword
 # DONE configure testing in vscode
 # https://code.visualstudio.com/docs/python/testing
 

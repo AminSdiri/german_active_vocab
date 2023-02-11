@@ -4,10 +4,9 @@ from settings import DICT_SRC_PATH, DICT_DATA_PATH, ANKI_CONFIG
 from utils import read_str_from_file
 import ast
 from PushToAnki import Anki
-from SavingToQuiz import wrap_words_to_learn_in_clozes
 from itertools import zip_longest
 
-# TODO (1) mark words added to anki as added to anki in dict_dict and/or wordlist.csv
+# TODO (1) mark words added to anki as added to anki in dict_dict and/or wordlist.csv, database..
 # DONE add manually hidden words to dict_dict hidden_words_list
 
 
@@ -25,7 +24,7 @@ if __name__ == '__main__':
         print('opening ', word)
         dict_str = read_str_from_file(file_path)
         dict_dict = ast.literal_eval(dict_str)
-
+        
         try:
             german_phrases = dict_dict['custom_examples']['german']
         except TypeError:
@@ -63,4 +62,4 @@ if __name__ == '__main__':
                     print(f'reached {k} from {amount}')
                     if '{{c1::' not in front_with_cloze_wrapping:
                         print(dict_dict['hidden_words_list'])
-                    subprocess.Popen(command)
+                    subprocess.Popen(command) # TODO (2) Consider using 'with' for resource-allocating operations

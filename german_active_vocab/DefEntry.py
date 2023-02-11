@@ -19,9 +19,9 @@ logger = set_up_logger(__name__)
 # TODO (4) type-hinting in every function
 # TODO (4) positional args vs keyword args
 # DONE (0)* create dict_dict class that inherit form dict and have all dict operations
-# TODO (0)* rename dict_dict to word_dict
+# TODO (0) rename dict_dict to word_dict
 
-class DictDict(dict):    
+class WordDict(dict):    
     def get_dict_content(self):
         translate = 'translate' in self['requested']
         if translate:
@@ -283,7 +283,7 @@ class DefEntry():
                                 self.message_box_content_carrier,
                                 self.wait_for_usr)
         
-        self.dict_dict = DictDict(dict_dict)
+        self.dict_dict = WordDict(dict_dict)
  
         self.defined_html = render_html(dict_dict=self.dict_dict)
     
@@ -311,7 +311,7 @@ class DefEntry():
         f.close()
 
     def wrap_words_to_learn_in_clozes(self, german_phrase: str) -> str:
-        # TODO (0) update
+        # TODO (0)* update
         logger.info("wrap_words_to_learn_in_clozes")
         
         hidden_words_list = self.dict_dict['hidden_words_list']

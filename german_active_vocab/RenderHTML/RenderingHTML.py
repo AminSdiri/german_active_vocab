@@ -91,7 +91,7 @@ def render_html(dict_dict: dict[str, Any], mode='full') -> str:
     if dict_content:
         JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_def
         tmpl = JINJA_ENVIRONEMENT.get_template('definition_pons.html.j2')
-        # TODO (1)* make the rendering faster (it takes 2.2s for machen pons to render!)
+        # DONE (1)* make the rendering faster (it takes 2.2s for machen pons to render!)
         # probably because of the big list of words to hide
         start = time.time()
         defined_html = tmpl.render(dict_dict=dict_dict,
