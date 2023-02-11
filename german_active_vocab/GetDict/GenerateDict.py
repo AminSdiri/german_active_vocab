@@ -261,7 +261,10 @@ def _update_files(dict_dict, dict_saving_word):
 
     if 'hidden_words_list' in dict_dict:
         del dict_dict['hidden_words_list']
-        del dict_dict['secondary_words_to_hide']
+        try:
+            del dict_dict['secondary_words_to_hide']
+        except KeyError:
+            pass
         dict_dict['updated'] = 'split hidden words 11.02'
         dict_dict_path = DICT_DATA_PATH / 'dict_dicts' / f'{dict_saving_word}_dict.json'
         write_str_to_file(dict_dict_path, json.dumps(dict_dict), overwrite=True)
