@@ -117,7 +117,7 @@
         {% set ns = namespace(previous_h1_key="")%}
         {% set ns = namespace(previous_h1_value="")%}
         {% for h1_key,h1_value in big_section.items() %}
-        {% if h1_key != 'word_subclass' %}
+        {% if h1_key not in ('word_subclass', 'hidden_words_list', 'secondary_words_to_hide') %}
         <span class={{h1_key}}>{{h1_value|treat_class(h1_key, ns.previous_h1_key, ns.previous_h1_value)}} </span>
         {% endif %}
         {% set ns.previous_h1_key = h1_key %}
