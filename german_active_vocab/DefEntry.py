@@ -61,22 +61,23 @@ class WordDict(dict):
         bookmarked_address = address[:(address.index('def_blocks')+1+1)]
         bookmarked_def_block = self.get_dict_slice_from_adress(bookmarked_address)
         bookmarked_def_block = bookmarked_def_block.copy() # we're not modifing dict_dict
-        if isinstance(bookmarked_def_block, dict):
-            if isinstance(address[-1], int):
-                # case of only one example is bookmarked in a list of examples
-                bookmarked_def_block[address[-2]] = bookmarked_def_block[address[-2]][address[-1]]
 
-            definition_1 = bookmarked_def_block.get('definition', '')
-            definition_2 = bookmarked_def_block.get('sense', '')
-            if definition_1 and definition_2:
-                logger.warning('Loss of Information! Both a definition and sense found, only one will be sent to Anki!!')
-            definition = definition_1 or definition_2
-
-            # DONE (2) change after standerising dicts
-            example = bookmarked_def_block.get('example', '')
-            return definition, example
-        else:
+        if not isinstance(bookmarked_def_block, dict):
             raise RuntimeError('Case not taken into account')
+
+        if isinstance(address[-1], int):
+            # case of only one example is bookmarked in a list of examples
+            bookmarked_def_block[address[-2]] = bookmarked_def_block[address[-2]][address[-1]]
+
+        definition_1 = bookmarked_def_block.get('definition', '')
+        definition_2 = bookmarked_def_block.get('sense', '')
+        if definition_1 and definition_2:
+            logger.warning('Loss of Information! Both a definition and sense found, only one will be sent to Anki!!')
+        definition = definition_1 or definition_2
+
+        example = bookmarked_def_block.get('example', '')
+        
+        return definition, example
 
     def get_definitions_from_dict_dict(self, info='definition') -> list[str]:
         definitions_list: list[str] = []
