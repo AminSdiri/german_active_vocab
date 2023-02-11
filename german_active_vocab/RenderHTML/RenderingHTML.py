@@ -1,4 +1,6 @@
 import re
+import time
+from jinja2 import UndefinedError
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 from typing import Any
@@ -12,52 +14,10 @@ logger = set_up_logger(__name__)
 # TODO (2) LOOK&FEEL fama dl, Definition list, Supports the standard block attributes fel PyQT HTML esta3melha le def blocks bech yabdew alignee 3al isar.
 # https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl?retiredLocale=de
 
-def render_html(dict_dict: dict[str, Any]) -> str:
+def render_html(dict_dict: dict[str, Any], mode='full') -> str:
     # get from duden > found in pons > not translate > else
-
-
     # DONE (1) STRUCT use one unified decision tree for all functions
-    word_info = get_saved_seen_word_info(dict_dict['search_word'])
 
-    dict_content = get_dict_content(dict_dict)
-
-    if 'translate' in dict_dict['requested']:
-        if dict_content:
-            defined_html = render_html_from_dict('translation', dict_content, dict_dict)
-        else:
-            tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_translation.html.j2')
-            defined_html = tmpl.render(word=word_info["word"])
-        return defined_html
-
-    if dict_content:
-        defined_html = render_html_from_dict('pons', dict_content, dict_dict, word_info)
-    else:
-        tmpl = JINJA_ENVIRONEMENT.get_template('not_found.html.j2')
-        defined_html = tmpl.render(word=word_info["word"], source=dict_dict['requested'].capitalize())
-    return defined_html
-
-def get_dict_content(dict_dict):
-    translate = 'translate' in dict_dict['requested']
-    if translate:
-        dict_content = dict_dict[f'content_{dict_dict["requested"].replace("translate_", "")}']
-    elif dict_dict['requested'] == 'duden':
-        dict_content = dict_dict['content_du']
-    elif dict_dict['requested'] == 'pons':
-        dict_content = dict_dict['content_pons']
-    return dict_content
-
-def get_saved_seen_word_info(word: str) -> dict[str, Any]:
-    df = pd.read_csv(DICT_DATA_PATH / 'wordlist.csv')
-    df.set_index('Word', inplace=True)
-    word_is_already_saved = word in df.index
-    word_info = {'word': word}
-    if word_is_already_saved:
-        word_info["Previous_date"] = df.loc[word, "Previous_date"]
-        word_info["Next_date"] = df.loc[word, "Next_date"]
-
-    return word_info
-
-def render_html_from_dict(html_type: str, dict_content, dict_dict: dict[str, Any], word_info: dict = None, mode='full') -> str:
     # background-color (from pyqt darktheme styling) = #2D2D2D
 
     # color_palette_dict = {
@@ -111,28 +71,42 @@ def render_html_from_dict(html_type: str, dict_content, dict_dict: dict[str, Any
         JINJA_ENVIRONEMENT.filters["treat_hidden_words"] = hide_words_to_hide
     else:
         raise RuntimeError
-    
-    if html_type == 'pons':
+        
+    word_info = get_saved_seen_word_info(dict_dict['search_word'])
+
+    dict_content = dict_dict.get_dict_content()
+
+    if 'translate' in dict_dict['requested']:
+        if dict_content:
+            JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_trans
+            tmpl = JINJA_ENVIRONEMENT.get_template('translation.html.j2')
+            defined_html = tmpl.render(dict_content=dict_content, 
+                                    dict_dict=dict_dict,
+                                    mode=mode)
+        else:
+            tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_translation.html.j2')
+            defined_html = tmpl.render(word=word_info["word"])
+        return defined_html
+
+    if dict_content:
         JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_def
         tmpl = JINJA_ENVIRONEMENT.get_template('definition_pons.html.j2')
+        # TODO (1)* make the rendering faster (it takes 2.2s for machen pons to render!)
+        # probably because of the big list of words to hide
+        start = time.time()
         defined_html = tmpl.render(dict_dict=dict_dict,
                                    dict_content=dict_content,
                                    word_info=word_info,
                                    col_pal=color_palette_dict,
                                    mode=mode)
-    elif html_type == 'translation':
-        JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_trans
-        tmpl = JINJA_ENVIRONEMENT.get_template('translation.html.j2')
-        defined_html = tmpl.render(dict_content=dict_content, 
-                                   dict_dict=dict_dict,
-                                   mode=mode)
+        print('The rendering ran for', time.time() - start)
+    else:
+        tmpl = JINJA_ENVIRONEMENT.get_template('not_found.html.j2')
+        defined_html = tmpl.render(word=word_info["word"], source=dict_dict['requested'].capitalize())
 
     # trim_vlocks and lstrip_blocks are not enoughs?
     defined_html = "".join(line.strip()
                            for line in defined_html.split("\n"))
-
-    # write_str_to_file(
-    #     DICT_DATA_PATH / 'rendered_html_b4_qt.html', defined_html, overwrite=True)
 
     # classes = [value for element in
     #            bs(defined_html, "html.parser").find_all(class_=True)
@@ -141,6 +115,17 @@ def render_html_from_dict(html_type: str, dict_content, dict_dict: dict[str, Any
     # print('classes: ', set(classes))
 
     return defined_html
+
+def get_saved_seen_word_info(word: str) -> dict[str, Any]:
+    df = pd.read_csv(DICT_DATA_PATH / 'wordlist.csv')
+    df.set_index('Word', inplace=True)
+    word_is_already_saved = word in df.index
+    word_info = {'word': word}
+    if word_is_already_saved:
+        word_info["Previous_date"] = df.loc[word, "Previous_date"]
+        word_info["Next_date"] = df.loc[word, "Next_date"]
+
+    return word_info
 
 def is_list(value) -> bool:
     return isinstance(value, list)
@@ -557,7 +542,7 @@ def treat_class_du(value, class_name, previous_class_name,
     value = f'<font color="#ffff00">{value}</font>'
     return value
 
-def highlight_words_to_hide(value, class_name, words_to_hide: list, secondary_words: dict) -> str:
+def highlight_words_to_hide(value, class_name, words_to_hide: list, secondary_words: dict, forced_word_to_hide: list) -> str:
     ''' highlight words to hide (subtile color) for full html'''
     if not value:
         return value
@@ -565,6 +550,12 @@ def highlight_words_to_hide(value, class_name, words_to_hide: list, secondary_wo
     # no highlighting in headers and definitions
     if class_name in ('headword', 'flexion', 'definition', 'sense'):
         return value
+
+    # combine user words to hide with automaticaly generated words to hide
+    try:
+        words_to_hide = list(set(words_to_hide + forced_word_to_hide))
+    except UndefinedError: # 'DefEntry.DictDict object' has no attribute 'forced_hidden_words'
+        pass
 
     for word_to_hide in words_to_hide:
 
@@ -585,7 +576,7 @@ def highlight_words_to_hide(value, class_name, words_to_hide: list, secondary_wo
 def _highlight_secondary_words(secondary_words: dict, primary_word: str, value: str):
     if not secondary_words:
         return value
-
+    
     for secondary_word, secondary_word_repl in secondary_words.items():
         
         # hide only if secondary word comes before the primary_word
@@ -599,8 +590,9 @@ def _highlight_secondary_words(secondary_words: dict, primary_word: str, value: 
 
     return value
 
-def hide_words_to_hide(value, class_name, words_to_hide, secondary_words) -> str:
+def hide_words_to_hide(value, class_name, words_to_hide, secondary_words, forced_word_to_hide: list) -> str:
     ''' hide words to hide (subtile color) for quiz html'''
+
     if not value:
         return value
 
@@ -611,6 +603,9 @@ def hide_words_to_hide(value, class_name, words_to_hide, secondary_words) -> str
     # Remove triangles (search word in another wordclass, noun from verb for example)
     if '▶' in value:
         return ''
+
+    # combine user words to hide with automaticaly generated words to hide
+    words_to_hide = list(set(words_to_hide + forced_word_to_hide))
 
     for word_to_hide in words_to_hide:
         hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_hide}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
@@ -670,7 +665,7 @@ def hide_between_parenthesis(secondary_word_repl):
 
     # if dict_dict['requested'] == 'duden':
     #     if dict_dict['source'] == 'duden':
-    #         # TODO (0)* get ride of this after standarizing dicts
+    #         # todo (0)* get ride of this after standarizing dicts
     #         defined_html = render_html_from_dict('pons', dict_dict, word_info)
     #     else:
     #         tmpl = JINJA_ENVIRONEMENT.get_template('not_found_duden.html.j2')
