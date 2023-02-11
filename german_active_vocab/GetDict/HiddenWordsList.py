@@ -26,7 +26,7 @@ def generate_hidden_words_list(dict_dict_content: list) -> tuple[list, dict[str,
         if wordclass == 'verb':
             word_variants = _get_verb_flexions(headword, flexions)
             secondary_words = {}
-        elif wordclass == 'noun':
+        elif wordclass == 'noun' and genus:
             # TODO (1) make it also work for duden (wortart: substantiv, maskulin), standarize dict structs
             word_variants, secondary_words = _get_noun_flexions(headword, flexions, genus)
         else:

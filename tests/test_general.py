@@ -47,6 +47,11 @@ def test_translate_en(qapp):
     run_app(qapp)
 
 @pytest.mark.dependency(depends=["test_simple_search_from_search_box"])
+@patch('sys.argv', ['main', '--word', 'treat en'])
+def test_treat_en(qapp):
+    run_app(qapp)
+
+@pytest.mark.dependency(depends=["test_simple_search_from_search_box"])
 @patch('sys.argv', ['main', '--word', 'machen new_cache'])
 def test_no_cache_pons(qapp):
     run_app(qapp)
