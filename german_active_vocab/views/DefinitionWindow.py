@@ -8,9 +8,7 @@ from PyQt5.QtGui import (QTextCharFormat,
                          QColor)
 from SavingToQuiz import quizify_and_save
 from EditDictModelView import DictEditorWidget, TreeModel
-from GetDict.GenerateDict import dict_replace_value
-from RenderHTML.RenderingHTML import get_dict_content
-from utils import set_up_logger, format_html
+from utils import remove_html_wrapping, set_up_logger, format_html
 from settings import (DICT_DATA_PATH,
                       NORMAL_FONT)
 
@@ -108,10 +106,10 @@ class DefinitionWindow(QWidget):
 
     def construct_model(self, def_obj):
         self.def_obj = def_obj
-        dict_content = get_dict_content(def_obj.dict_dict)
+        dict_content = def_obj.dict_dict.get_dict_content()
         self.model = TreeModel(headers=["Type", "Content"],
                                data=dict_content)
-        self.model.dataChanged.connect(self.refresh_text_view)
+        self.model.dataChanged.connect(self.refresh_dict)
         self.dict_tree_view.setModel(self.model)
 
     def def_window_connect_buttons(self):
@@ -134,28 +132,30 @@ class DefinitionWindow(QWidget):
         for index in self.dict_tree_view.selectedIndexes():
             if not index.data() or not index.column():
                 # ignore if it's in front of a branche or it's a key
-                print(f'formatting {index.data()}')
                 continue
+            print(f'formatting {index.data()}')
             text, address = self.model.get_dict_address(index)
             text = format_html(text, operation)
             if operation == 'bookmark':
                 # 'buggy code
-                definition, example = self.def_obj.extract_definition_and_examples(address)
+                definition, example = self.def_obj.dict_dict.extract_definition_and_examples(address)
                 if not isinstance(example, list):
                     # write a better algo that parse the dict to find focused elem? can  be used in focus section
                     self.def_obj.ankify(german_phrase=example,
                                         definitions_html=definition)
                 # TODO (2) khouth l'adress mta3 lblock w khalih 3la jnab li tal9a kifeh structure mta3 el focus ejdida
-            self.def_obj.update_dict(text, address)
+            self.def_obj.dict_dict.update_dict(text, address)
 
             # update_model
             self.model.setData(index, text)
-            self.model.dataChanged.emit(index, index)
+            # self.model.dataChanged.emit(index, index) # signal already emmited in setData 
         self.update_text_view()
 
     def restore_discarded(self) -> None:
-
-        self.def_obj.dict_dict = dict_replace_value(self.def_obj.dict_dict)
+        
+        # FIXED (0) this overwrite the dictdict obj- that's why we can't call get_dict_content afterward
+        operation = lambda elem: remove_html_wrapping(elem, unwrap='red_strikthrough')
+        self.def_obj.dict_dict.recursivly_operate_on_last_lvl(operation)
 
         # update whole model
         # NOT WORKING
@@ -169,10 +169,13 @@ class DefinitionWindow(QWidget):
         # self.dict_tree_view.update()
         # self.dict_tree_view.expandAll()
 
+        # TODO reuse construct_model method?
         self.dict_tree_view.deleteLater() # lets Qt knows it needs to delete this widget from the GUI
         
         headers = ["Type", "Content"]
-        self.model = TreeModel(headers, self.def_obj.dict_dict['content'])
+        dict_content = self.def_obj.dict_dict.get_dict_content()
+        self.model = TreeModel(headers=headers,
+                               data=dict_content)
         
         del self.dict_tree_view
         
@@ -183,10 +186,9 @@ class DefinitionWindow(QWidget):
         self.dict_tree_view.resize(690, 635)
         self.dict_tree_view.show()
 
-    def refresh_text_view(self, index) -> None:
+    def refresh_dict(self, index) -> None:
         text, address = self.model.get_dict_address(index)
-        self.def_obj.update_dict(text, address)
-        self.update_text_view()
+        self.def_obj.dict_dict.update_dict(text, address)
 
     def update_text_view(self) -> None:
         defined_html = self.def_obj.re_render_html()
@@ -201,11 +203,11 @@ class DefinitionWindow(QWidget):
         self.dict_tree_view.show()
 
     def fill_def_window(self, def_obj) -> None:
-        if def_obj.beispiel_de:
-            self.beispiel.insert(def_obj.beispiel_de)
+        if def_obj.word_query.beispiel_de:
+            self.beispiel.insert(def_obj.word_query.beispiel_de)
 
-        if def_obj.beispiel_en:
-            self.beispiel2.insert(def_obj.beispiel_en)
+        if def_obj.word_query.beispiel_en:
+            self.beispiel2.insert(def_obj.word_query.beispiel_en)
 
         self.txt_cont.setFont(NORMAL_FONT)
         self.txt_cont.insertHtml(def_obj.defined_html)
@@ -228,14 +230,14 @@ class DefinitionWindow(QWidget):
     def save_definition(self) -> None:
         logger.info("save_definition")
 
-        self.switch_highlight_button_action(new_action='highlight')
+        # Force hide is the only button function we need now
+        # self.switch_highlight_button_action(new_action='highlight')
 
         custom_html_from_qt, beispiel_de, beispiel_en, tag = self.get_def_window_content()
 
         faulty_examples = quizify_and_save(dict_data_path=DICT_DATA_PATH,
-                                            word=self.def_obj.search_word,
                                             dict_dict=self.def_obj.dict_dict,
-                                            dict_saving_word=self.def_obj.dict_saving_word,
+                                            dict_saving_word=self.def_obj.word_query.dict_saving_word,
                                             qt_html_content=custom_html_from_qt,
                                             beispiel_de=beispiel_de,
                                             beispiel_en=beispiel_en,
@@ -250,31 +252,33 @@ class DefinitionWindow(QWidget):
         logger.info("launch_no_hidden_words_in_beispiel_de_dialog")
         choice = QMessageBox.information(self, "Attention a la vache",
                                     f"none of the words to hide are detected in your custom german example(s) {faulty_examples}. \n"
-                                    "Please highlight the word you want to hide in quiz mode manually, hit Force Hide and save again",
+                                    "Please select the word you want to hide in quiz mode manually, hit Force Hide and save again",
                                     QMessageBox.Ok)
         
-        if choice == QMessageBox.Ok:
-            self.switch_highlight_button_action(new_action='hide')
+        # Force hide is the only button function we need now
+        # if choice == QMessageBox.Ok:
+        #     self.switch_highlight_button_action(new_action='hide')
 
-    def switch_highlight_button_action(self, new_action) -> None:
-        if new_action=='hide':
-            if self.highlight_button.text() != 'Force Hide':
-                self.highlight_button.setText('Force Hide')
-                try:
-                    # button not connected to anything on the first run
-                    self.highlight_button.clicked.disconnect()
-                except TypeError:
-                    pass
-                self.highlight_button.clicked.connect(self.force_hide)
-                self.show()
-        elif new_action=='highlight':
-            if self.highlight_button.text() != 'Highlight':
-                self.highlight_button.setText('Highlight')
-                self.highlight_button.clicked.disconnect()
-                self.highlight_button.clicked.connect(self.highlight_selection)
-                self.show()
-        else: 
-            raise RuntimeError(f'Keyword {new_action} not recognized')
+    # Force hide is the only button function we need now
+    # def switch_highlight_button_action(self, new_action) -> None:
+    #     if new_action=='hide':
+    #         if self.highlight_button.text() != 'Force Hide':
+    #             self.highlight_button.setText('Force Hide')
+    #             try:
+    #                 # button not connected to anything on the first run
+    #                 self.highlight_button.clicked.disconnect()
+    #             except TypeError:
+    #                 pass
+    #             self.highlight_button.clicked.connect(self.force_hide)
+    #             self.show()
+    #     elif new_action=='highlight':
+    #         if self.highlight_button.text() != 'Highlight':
+    #             self.highlight_button.setText('Highlight')
+    #             self.highlight_button.clicked.disconnect()
+    #             self.highlight_button.clicked.connect(self.highlight_selection)
+    #             self.show()
+    #     else: 
+    #         raise RuntimeError(f'Keyword {new_action} not recognized')
     
     def force_hide(self) -> None:
         '''add selected word to  hidden words in dict file'''

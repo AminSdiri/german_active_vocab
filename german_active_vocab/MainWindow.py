@@ -17,7 +17,7 @@ from views.SearchWindow import SearchWindow
 from FocusWindow import FocusWindow
 from HistoryWindow import HistoryWindow, WordlistWindow
 from QuizWindow import QuizWindow
-from DefEntry import DefEntry
+from DefEntry import DefEntry, WordQuery
 from utils import get_command_line_args, set_up_logger
 from another_qthread import Worker
 from settings import DICT_SRC_PATH
@@ -130,7 +130,9 @@ class MainWindow(QMainWindow):
 
     def get_def_obj(self, cl_args, message_box_content_carrier) -> DefEntry:
         input_word = cl_args.word if cl_args and cl_args.word else self.search_form.get_filled_search_form()
-        def_obj = DefEntry(input_word=input_word, cl_args=cl_args,
+        word_query = WordQuery(input_word=input_word,
+                               cl_args=cl_args)
+        def_obj = DefEntry(word_query=word_query,
                            message_box_content_carrier=message_box_content_carrier,
                            wait_for_usr=self.wait_condition)
         return def_obj
@@ -286,7 +288,7 @@ def excepthook(exc_type, exc_value, exc_tb) -> None:
     msg.setWindowTitle("Error")
     msg.exec_()
 
-    QApplication.quit() # or sys.exit(0)?
+    # QApplication.quit() # or sys.exit(0)?   # temporarly descativated to keep working on code in case of error 
 
 def set_theme(app) -> None:
     # import platform

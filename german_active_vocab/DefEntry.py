@@ -3,10 +3,11 @@ from pathlib import Path
 import re
 from datetime import datetime, timedelta
 from argparse import Namespace
+from collections import Counter
 from PyQt5.QtCore import pyqtSignal, QWaitCondition
 
 from bs4.builder import HTML
-from GetDict.GenerateDict import extract_synonymes_in_html_format, get_definitions_from_dict_dict, get_value_from_dict_if_exists, standart_dict
+from GetDict.GenerateDict import standart_dict
 from RenderHTML.RenderingHTML import render_html
 from PushToAnki import Anki
 from settings import ANKI_CONFIG, DICT_DATA_PATH
@@ -17,6 +18,189 @@ logger = set_up_logger(__name__)
 
 # TODO (4) type-hinting in every function
 # TODO (4) positional args vs keyword args
+# TODO (0)* create dict_dict class that inherit form dict and have all dict operations
+# TODO (0)* rename dict_dict to word_dict
+
+class DictDict(dict):    
+    def get_dict_content(self):
+        translate = 'translate' in self['requested']
+        if translate:
+            dict_content = self[f'content_{self["requested"].replace("translate_", "")}']
+        elif self['requested'] == 'duden':
+            dict_content = self['content_du']
+        elif self['requested'] == 'pons':
+            dict_content = self['content_pons']
+        return dict_content
+
+    def get_dict_slice_from_adress(self, address: list) -> dict | list:
+        # validate address
+        dict_slice = self.get_dict_content()
+        for idx, entry in enumerate(address):
+            # BUG when header is bookmarked then discarded
+            try:
+                if idx == len(address)-1:
+                    if isinstance(dict_slice[entry], str):
+                        return dict_slice
+                    else:
+                        return dict_slice[entry]
+                else:
+                    dict_slice = dict_slice[entry]
+            except KeyError:
+                raise KeyError(f"{entry} not in dict. Invalid Address: {address}")
+            except TypeError: 
+                raise TypeError('list indices must be integers or slices, not str')
+
+    def get_value_from_dict_if_exists(self, keys, dictionnary) -> str:
+        # BUG (0)* it only return 1st found value
+        for key in keys:
+            if key in dictionnary:
+                return dictionnary[key]
+        return ''
+
+    def update_dict(self, text, address: list) -> None:
+        dict_slice = self.get_dict_slice_from_adress(address)
+        if isinstance(dict_slice[address[-1]], str):
+            dict_slice[address[-1]] = text
+        else:
+            raise RuntimeError('dict elemt is not str')
+
+    def extract_definition_and_examples(self, address) -> tuple[str, str]:
+        bookmarked_address = address[:(address.index('def_blocks')+1+1)]
+        bookmarked_def_block = self.get_dict_slice_from_adress(bookmarked_address)
+        bookmarked_def_block = bookmarked_def_block.copy() # we're not modifing dict_dict
+        if isinstance(bookmarked_def_block, dict):
+            if isinstance(address[-1], int):
+                # case of only one example is bookmarked
+                bookmarked_def_block[address[-2]] = bookmarked_def_block[address[-2]][address[-1]]
+            definition = self.get_value_from_dict_if_exists(keys=['definition', 'sense'],
+                                                       dictionnary=bookmarked_def_block)
+            # DONE (2) change after standerising dicts
+            example = bookmarked_def_block.get('example', '')
+            return definition, example
+        else:
+            raise RuntimeError('Case not taken into account')
+
+    def get_definitions_from_dict_dict(self, info='definition') -> list[str]:
+        definitions_list: list[str] = []
+        for big_section in self['content']:
+            if "word_subclass" not in big_section:
+                # it's a dict from duden
+                continue
+            for small_section in big_section["word_subclass"]:
+                # lenna fama style(umg..), grammatical use, 
+
+                for def_block in small_section["def_blocks"]:
+                    # lenna fama definitions w examples
+
+                    for h3_key,h3_value in def_block.items():
+                        if h3_key == info:
+                            if isinstance(h3_value, list):
+                                definitions_list += h3_value
+                            else:
+                                definitions_list.append(h3_value)
+                        else:
+                            print(f'Hint: you can also get {h3_key} from the dict')
+
+        return definitions_list
+
+    def extract_synonymes_in_html_format(self) -> str:
+        if 'synonymes' in self:
+            synonymes = self['synonymes']
+            syns_list_of_strings = [', '.join(syns) for syns in synonymes]
+            synonymes = '<ul>' + ''.join([f'<li>{elem}</li>' for elem in syns_list_of_strings]) + '</ul>'
+        else:
+            synonymes = ''
+        return synonymes
+
+    def append_new_examples_in_dict_dict(self, beispiel_de, beispiel_en):
+        if beispiel_de:
+            if 'custom_examples' in self:
+                # update custom examples list in dict_dict
+                self['custom_examples']['german'].append(beispiel_de)
+                if not beispiel_en:
+                    beispiel_en = '#'*len(beispiel_de)
+                self['custom_examples']['english'].append(beispiel_en)
+
+                _ = self._prevent_duplicating_examples()
+            else:
+                # create custom examples list in dict_dict
+                self['custom_examples'] = {}
+                self['custom_examples']['german'] = [beispiel_de]
+                if not beispiel_en:
+                    beispiel_en = '#'*len(beispiel_de)
+                self['custom_examples']['english'] = [beispiel_en]
+        
+        return self
+
+    def _prevent_duplicating_examples(self):
+        '''get duplicated elements indexes in german examples.
+        delete the elements having this index in both german and english examples
+        (supposing they are parallels)'''
+        # TODO (4) change custom example entery to be dict of translations (key=german_example, value = english_translation) to avoid this non-sense
+
+
+        # only values that appears more than once
+        german_examples = self['custom_examples']['german']
+        duplicates_list = Counter(german_examples) - Counter(set(german_examples))
+
+        res = {}
+        for index, elem in enumerate(german_examples):
+            if elem in duplicates_list:
+                item = res.get(elem)
+                if item:
+                    item.append(index)
+                else:
+                    res[elem] = [index]
+
+        # keep first occurence
+        indexes_to_delete = []
+        for _, values in res.items():
+            indexes_to_delete += values[1:]
+
+        indexes_to_delete.sort(reverse=True)
+
+        for index in indexes_to_delete:
+            del self['custom_examples']['german'][index]
+            del self['custom_examples']['english'][index]
+        
+        return self
+    
+    def recursivly_operate_on_last_lvl(self, operation: callable):
+        # most easily readable way to recursivly operate on a nested dict
+        # https://stackoverflow.com/questions/55704719/python-replace-values-in-nested-dictionary
+        # TODO (2) generalize this function to use for dict operations
+        # TODO (0)* integrate this properly in word_dict
+        
+        def dict_replace_value(dict_object, operation):
+            new_dict = {}
+            for key, value in dict_object.items():
+                if isinstance(value, dict):
+                    value = dict_replace_value(value, operation)
+                elif isinstance(value, list):
+                    value = list_replace_value(value, operation)
+                elif isinstance(value, str):
+                    value = operation(value)
+                new_dict[key] = value
+            return new_dict
+
+
+        def list_replace_value(list_object, operation: callable):
+            new_list = []
+            for elem in list_object:
+                if isinstance(elem, list):
+                    elem = list_replace_value(elem, operation)
+                elif isinstance(elem, dict):
+                    elem = dict_replace_value(elem, operation)
+                elif isinstance(elem, str):
+                    elem = operation(elem)
+                new_list.append(elem)
+            return new_list
+        
+        word_dict =  self.copy()
+        word_dict = dict_replace_value(word_dict, operation)
+        self.clear()
+        self.update(word_dict)
+
 
 @dataclass
 class WordQuery():
@@ -31,7 +215,11 @@ class WordQuery():
     translate_en: bool = False
     get_from_duden: bool = False
 
-    def process_input(self) -> None:
+    beispiel_de: str = ''
+    beispiel_en: str = ''
+
+    def __post_init__(self) -> None:
+        '''process input'''
         if ' new_dict' in self.input_word:
             self.ignore_dict = True
             self.input_word = self.input_word.replace(' new_dict', '')
@@ -70,26 +258,19 @@ class WordQuery():
             self.cache_saving_word = self.search_word
         self.cache_saving_word = sanitize_word(self.cache_saving_word)
         
-        if not self.cl_args or not self.cl_args.ger:
-            self.beispiel_de = ''
-            self.beispiel_en = ''
-        else:
-            self.beispiel_de = self.cl_args.ger.replace(
-                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"').strip()
+        if self.cl_args and self.cl_args.ger:
+            self.beispiel_de = self.cl_args.ger.replace("//QUOTE", "'").replace("//DOUBLEQUOTE", '"').strip()
                 
         if self.cl_args and self.cl_args.eng :
-            self.beispiel_en = self.cl_args.eng.replace(
-                "//QUOTE", "'").replace("//DOUBLEQUOTE", '"').strip()
+            self.beispiel_en = self.cl_args.eng.replace("//QUOTE", "'").replace("//DOUBLEQUOTE", '"').strip()
 
 @dataclass
 class DefEntry():
-    input_word: str
-    cl_args: Namespace
+    word_query: WordQuery
     message_box_content_carrier: pyqtSignal
     wait_for_usr: QWaitCondition
     beispiel_de: str = ''
     beispiel_en: str = ''
-
 
     dict_dict: dict = field(default_factory=dict)
     dict_dict_path: Path = ''
@@ -101,65 +282,19 @@ class DefEntry():
 
     def __post_init__(self) -> None:
 
-        word_query = WordQuery(input_word=self.input_word,
-                               cl_args=self.cl_args)
-        word_query.process_input()
-
         self._log_word_in_wordlist_history()
 
-        self.dict_dict = standart_dict(word_query,
-                                        self.message_box_content_carrier,
-                                        self.wait_for_usr)
-                                
-        if not (word_query.translate_en or word_query.translate_fr):
+        dict_dict = standart_dict(self.word_query,
+                                self.message_box_content_carrier,
+                                self.wait_for_usr)
+        
+        self.dict_dict = DictDict(dict_dict)
+
+        if not (self.word_query.translate_en or self.word_query.translate_fr):
             logger.info(f'Words to hide: {self.dict_dict["hidden_words_list"]}')
  
         self.defined_html = render_html(dict_dict=self.dict_dict)
     
-    def get_dict_slice_from_adress(self, address: list) -> dict | list:
-        # validate address
-        dict_slice = self.dict_dict['content']
-        for idx, entry in enumerate(address):
-            # BUG when header is bookmarked then discarded
-            try:
-                if idx == len(address)-1:
-                    if isinstance(dict_slice[entry], str):
-                        return dict_slice
-                    else:
-                        return dict_slice[entry]
-                else:
-                    dict_slice = dict_slice[entry]
-            except KeyError:
-                raise KeyError(f"{entry} not in dict. Invalid Address: {address}")
-            except TypeError: 
-                raise TypeError('list indices must be integers or slices, not str')
-
-    def extract_definition_and_examples(self, address) -> tuple[str, str]:
-        if self.dict_dict['source'] == 'pons':
-            bookmarked_address = address[:(address.index('def_blocks')+1+1)]
-        elif self.dict_dict['source'] == 'duden':
-            # TODO (2) change after standerising dicts
-            bookmarked_address = address[:2]
-        bookmarked_def_block = self.get_dict_slice_from_adress(bookmarked_address)
-        bookmarked_def_block = bookmarked_def_block.copy() # we're not modifing dict_dict
-        if isinstance(bookmarked_def_block, dict):
-            if isinstance(address[-1], int):
-                # case of only one example is bookmarked
-                bookmarked_def_block[address[-2]] = bookmarked_def_block[address[-2]][address[-1]]
-            definition = get_value_from_dict_if_exists(keys=['definition', 'sense'],
-                                                       dictionnary=bookmarked_def_block)
-            # DONE (2) change after standerising dicts
-            example = bookmarked_def_block.get('example', '')
-            return definition, example
-        else:
-            raise RuntimeError('Case not taken into account')
-
-    def update_dict(self, text, address: list) -> None:
-        dict_slice = self.get_dict_slice_from_adress(address)
-        if isinstance(dict_slice[address[-1]], str):
-            dict_slice[address[-1]] = text
-        else:
-            raise RuntimeError('dict elemt is not str')
 
     def re_render_html(self) -> str:
         self.defined_html = render_html(dict_dict=self.dict_dict)
@@ -177,10 +312,10 @@ class DefEntry():
         f.seek(0)
         historyfile = f.read()
         f.seek(fileend)
-        word_count = (historyfile.count('\n'+self.input_word+', ')
-                    + historyfile.count('\n'+self.input_word+' ')
-                    + historyfile.count('\n'+self.input_word+'\n'))
-        f.write(f'\n{self.input_word}, {str(word_count)}, {now.strftime("%d.%m.%y")}')
+        word_count = (historyfile.count('\n'+self.word_query.search_word+', ')
+                    + historyfile.count('\n'+self.word_query.search_word+' ')
+                    + historyfile.count('\n'+self.word_query.search_word+'\n'))
+        f.write(f'\n{self.word_query.search_word}, {str(word_count)}, {now.strftime("%d.%m.%y")}')
         f.close()
 
     def wrap_words_to_learn_in_clozes(self, german_phrase: str) -> str:
@@ -216,10 +351,10 @@ class DefEntry():
         front_with_cloze_wrapping = self.wrap_words_to_learn_in_clozes(german_phrase)
 
         if definitions_html is None:
-            definitions_list = get_definitions_from_dict_dict(self.dict_dict, info='definition')
+            definitions_list = self.dict_dict.get_definitions_from_dict_dict(info='definition')
             definitions_html = '<ul>' + ''.join([f'<li>{elem}</li>' for elem in definitions_list]) + '</ul>'
 
-        synonymes_html = extract_synonymes_in_html_format(self.dict_dict)
+        synonymes_html = self.dict_dict.extract_synonymes_in_html_format(self.dict_dict)
 
         with Anki(base=ANKI_CONFIG['base'], profile=ANKI_CONFIG['profile']) as a:
             a.add_notes_single(cloze=front_with_cloze_wrapping,
