@@ -1,3 +1,4 @@
+import re
 from utils import set_up_logger
 
 # TODO (1) write a better algorithm for hiding words
@@ -277,3 +278,65 @@ def _get_verb_flexions(headword: str, conjugations: list) -> list:
         word_variants.append('ge'+base_word[:-1]+'t')
     
     return word_variants
+
+def treat_words_to_hide(value, words_to_hide, secondary_words, treatement):
+    for word_to_hide in words_to_hide:
+        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_hide}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
+
+        if treatement=='highlight':
+            replacement = f'<font color="#ccdcff">{word_to_hide}</font>'
+        if treatement=='hide':
+            replacement = len(word_to_hide)*'_'
+        if treatement=='cloze':
+            replacement = f'{{{{c1::{word_to_hide}}}}}'
+        try:
+            value_sub = re.sub(hide_pattern, replacement, value)
+            if value_sub != value: # replacement occured, hide secondary_words
+                value = value_sub
+                value = _treat_secondary_words(secondary_words=secondary_words,
+                                                primary_word=word_to_hide,
+                                                value=value,
+                                                treatement=treatement)
+        except re.error:
+            logger.error(f'error by hiding {word_to_hide}. Word may contains a reserved Regex charactar')
+
+    return value
+
+def _treat_secondary_words(secondary_words: dict, primary_word: str, value: str, treatement: str):
+    if not secondary_words:
+        return value
+    
+    for secondary_word, secondary_word_repl in secondary_words.items():
+        
+        # hide only if secondary word comes before the primary_word
+        if treatement == 'highlight':
+            hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){secondary_word}((?=[^a-zA-ZäöüßÄÖÜẞ])(?=.*{primary_word}))'
+            replacement = secondary_word_repl.replace('(','<font color="#ccdcff">') \
+                                             .replace(')','</font>')
+        if treatement == 'hide':
+            hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){secondary_word}((?=[^a-zA-ZäöüßÄÖÜẞ])(?=.*_*))'
+            replacement = hide_between_parenthesis(secondary_word_repl)
+        if treatement=='cloze':
+            hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){secondary_word}((?=[^a-zA-ZäöüßÄÖÜẞ])(?=.*{primary_word}))'
+            replacement = f'{{{{c1::{secondary_word}}}}}'
+        try:
+            value = re.sub(hide_pattern, replacement, value) # flags=re.IGNORECASE will replace also capitalized but with nn capitalized 
+        except re.error:
+            logger.error(f'error by hiding {secondary_word}. Word may contains a reserved Regex charactar')
+    
+    return value
+
+def hide_between_parenthesis(secondary_word_repl):
+    '''example :  (das) -> ___
+                  dies(er) -> dies__
+                  ein(e) -> ein__
+                  dein() -> dein__
+    '''
+    text_before = secondary_word_repl.split('(')[0]
+    text_after = secondary_word_repl.split(')')[1]
+    length_text_between_parenthesis = len(secondary_word_repl)-(len(text_before)+len(text_after))
+    underscore_repl = '_' * min(2, length_text_between_parenthesis)
+
+    colored_word_to_hide = text_before + underscore_repl + text_after
+
+    return colored_word_to_hide

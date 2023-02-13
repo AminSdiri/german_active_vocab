@@ -98,7 +98,7 @@ class Anki:
         self.col.models.set_current(model)
         return model
 
-    def add_notes_single(self, cloze, hint1='', hint2='', hint3='', answer_extra='', tags='', model=None, deck=None, overwrite_notes=False):
+    def add_notes_single(self, note_content, tags='', model=None, deck=None, overwrite_notes=False):
         # TODO (1)* add card ID to word_dict to be able to replace it after a change without resetting review data
         """Add new note to collection"""
         if model is not None:
@@ -110,7 +110,13 @@ class Anki:
         if deck is not None:
             note.note_type()['did'] = self.deck_name_to_id[deck]
 
-        fields = [cloze, hint1, hint2, hint3, answer_extra]
+        fields = [
+            note_content['cloze'],
+            note_content['hint1'],
+            note_content['hint2'],
+            note_content['hint3'],
+            note_content['answer_extra']
+            ]
         note.fields = [plain_to_html(x) for x in fields]
 
         tags = tags.strip().split()

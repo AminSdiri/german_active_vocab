@@ -10,6 +10,7 @@ from bs4.builder import HTML
 from GetDict.GenerateDict import standart_dict
 from RenderHTML.RenderingHTML import render_html
 from PushToAnki import Anki
+from GetDict.HiddenWordsList import treat_words_to_hide
 from settings import ANKI_CONFIG, DICT_DATA_PATH
 
 from utils import (sanitize_word, set_up_logger)
@@ -57,7 +58,7 @@ class WordDict(dict):
         else:
             raise RuntimeError('dict elemt is not str')
 
-    def extract_definition_and_examples(self, address) -> tuple[str, str]:
+    def get_block_from_address(self, address) -> tuple[str, str]:
         bookmarked_address = address[:(address.index('def_blocks')+1+1)]
         bookmarked_def_block = self.get_dict_slice_from_adress(bookmarked_address)
         bookmarked_def_block = bookmarked_def_block.copy() # we're not modifing dict_dict
@@ -69,15 +70,22 @@ class WordDict(dict):
             # case of only one example is bookmarked in a list of examples
             bookmarked_def_block[address[-2]] = bookmarked_def_block[address[-2]][address[-1]]
 
-        definition_1 = bookmarked_def_block.get('definition', '')
-        definition_2 = bookmarked_def_block.get('sense', '')
-        if definition_1 and definition_2:
-            logger.warning('Loss of Information! Both a definition and sense found, only one will be sent to Anki!!')
-        definition = definition_1 or definition_2
-
-        example = bookmarked_def_block.get('example', '')
+        # get other propreties in dict higher levels
+        other_properties = {}
+        dict_slice = self.get_dict_content()
+        for entry in bookmarked_address:
+            dict_slice = dict_slice[entry]
+            if entry == 'def_blocks':
+                break
+            if not isinstance(dict_slice, dict):
+                continue
+            other_properties.update({key: value for key, value in dict_slice.items() 
+                                    if isinstance(value, str|list|int) and key not in ('word_subclass', 'def_blocks')})
+        if 'forced_hidden_words' in self.dict_dict:
+            other_properties['hidden_words_list'] = list(set(other_properties['hidden_words_list'] + self.dict_dict['forced_hidden_words']))
         
-        return definition, example
+        bookmarked_def_block.update(other_properties)
+        return bookmarked_def_block
 
     def get_definitions_from_dict_dict(self, info='definition') -> list[str]:
         definitions_list: list[str] = []
@@ -311,51 +319,40 @@ class DefEntry():
         f.write(f'\n{self.word_query.search_word}, {str(word_count)}, {now.strftime("%d.%m.%y")}')
         f.close()
 
-    def wrap_words_to_learn_in_clozes(self, german_phrase: str) -> str:
-        # TODO (0)* update
-        logger.info("wrap_words_to_learn_in_clozes")
-        
-        hidden_words_list = self.dict_dict['hidden_words_list']
-        # TODO (1) STRUCT before saving dict and maybe after adding hidden words manually
-        hidden_words_list = list(set(hidden_words_list))
+    def ankify(self, german_phrase : str = '', english_translation: str = '', def_block=None) -> None:
+        '''2 modes, if user wants to capture the custom examples than he should only provide the german phrase
+        and optionally it's english translation, all the definitions and synonymes will be automaticly extracted.
+        If the user capture an example from the word_dict, only the corresponding definition will be extracted, 
+        and the words_to_hide for it's rom level'''
 
-        front_with_cloze_wrapping = german_phrase
-
-        for w in hidden_words_list:
-            front_with_cloze_wrapping = self._wrap_in_clozes(front_with_cloze_wrapping, w)
-
-        return front_with_cloze_wrapping
-
-    def _wrap_in_clozes(self, text: str, word_to_wrap: str) -> str:
-        ' wrap word_to_wrap between {{c1:: and }} '
-        logger.info("wrap_in_clozes")
-
-        # DONE (1) salla7ha zeda fel blassa lokhra
-        word_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_wrap}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
-        try:
-            quiz_text = re.sub(word_pattern, f'{{{{c1::{word_to_wrap}}}}}', text)
-        except re.error:
-            quiz_text = text
-            logger.error(f'error by hiding {word_to_wrap}. '
-                        'Word may contains reserved Regex charactar')
-
-        return quiz_text
-
-    def ankify(self, german_phrase: str, english_translation: str = '', definitions_html=None) -> None:
-        front_with_cloze_wrapping = self.wrap_words_to_learn_in_clozes(german_phrase)
-
-        if definitions_html is None:
+        if def_block is None:
             definitions_list = self.dict_dict.get_definitions_from_dict_dict(info='definition')
             definitions_html = '<ul>' + ''.join([f'<li>{elem}</li>' for elem in definitions_list]) + '</ul>'
+            words_to_hide, secondary_words = self.get_all_hidden_words()
+        else:
+            definition_1 = def_block.get('definition', '')
+            definition_2 = def_block.get('sense', '')
+            if definition_1 and definition_2:
+                logger.error('Loss of Information! Both a definition and sense found, only one will be sent to Anki!!')
+            definitions_html = definition_1 or definition_2
+
+            german_phrase = def_block.get('example', '')
+
+            words_to_hide = def_block.get('words_to_hide', {})
+            secondary_words = def_block.get('secondary_words', {})
 
         synonymes_html = self.dict_dict.extract_synonymes_in_html_format()
 
+        front_with_cloze_wrapping = treat_words_to_hide(german_phrase, words_to_hide, secondary_words, treatement='cloze')
+
+        note_content = {'cloze': front_with_cloze_wrapping,
+                        'hint1': synonymes_html,
+                        'hint2': english_translation,
+                        'hint3': definitions_html,
+                        'answer_extra': self.dict_dict['search_word']}
+
         with Anki(base=ANKI_CONFIG['base'], profile=ANKI_CONFIG['profile']) as a:
-            a.add_notes_single(cloze=front_with_cloze_wrapping,
-                                hint1=synonymes_html,
-                                hint2=english_translation,
-                                hint3=definitions_html,
-                                answer_extra=self.search_word,
+            a.add_notes_single(note_content,
                                 tags='',
                                 model=ANKI_CONFIG['model'],
                                 deck=ANKI_CONFIG['deck'],

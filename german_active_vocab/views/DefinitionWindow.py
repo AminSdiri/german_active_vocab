@@ -14,6 +14,8 @@ from settings import (DICT_DATA_PATH,
 
 logger = set_up_logger(__name__)
 
+# plemplem, herumwirbeln 3tatek error
+
 # TODO (1) separate Def-Obj Model operations from View 
 # custom example li savitou mel pons dict zeda mawjoud fel kelma me duden (prolet).
 # 7aja zaboura 3alekher ama fama risque mta3 conflit
@@ -135,14 +137,12 @@ class DefinitionWindow(QWidget):
             print(f'formatting {index.data()}')
             text, address = self.model.get_dict_address(index)
             text = format_html(text, operation)
+            # add to anki
             if operation == 'bookmark':
-                # add to anki
-                definition, example = self.def_obj.dict_dict.extract_definition_and_examples(address)
-                if not isinstance(example, list):
-                    # write a better algo that parse the dict to find focused elem? can be used in focus section
-                    self.def_obj.ankify(german_phrase=example,
-                                        definitions_html=definition)
-                # TODO (3) khouth l'address mta3 lblock w khalih 3la jnab li tal9a kifeh structure mta3 el focus ejdida
+                # create a simple dict that holds the def block
+                bookmarked_def_block = self.def_obj.dict_dict.get_block_from_address(address)
+                self.def_obj.ankify(def_block=bookmarked_def_block)
+                
             self.def_obj.dict_dict.update_dict(text, address)
 
             # update_model

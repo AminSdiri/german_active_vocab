@@ -1,9 +1,9 @@
-import re
 import time
 from jinja2 import UndefinedError
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 from typing import Any
+from GetDict.HiddenWordsList import treat_words_to_hide
 
 from utils import set_up_logger
 from settings import DICT_DATA_PATH, JINJA_ENVIRONEMENT
@@ -556,42 +556,13 @@ def highlight_words_to_hide(value, class_name, words_to_hide: list, secondary_wo
         words_to_hide = list(set(words_to_hide + forced_word_to_hide))
     except UndefinedError: # 'DefEntry.DictDict object' has no attribute 'forced_hidden_words'
         pass
-
-    for word_to_hide in words_to_hide:
-
-        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_hide}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
-        colored_word_to_hide = f'<font color="#ccdcff">{word_to_hide}</font>'
-        try:
-            value_sub = re.sub(hide_pattern, colored_word_to_hide, value)
-            if value_sub != value: # replacement occured, hide secondary_words
-                value = value_sub
-                value = _highlight_secondary_words(secondary_words=secondary_words,
-                                                primary_word=word_to_hide,
-                                                value=value)
-        except re.error:
-            logger.error(f'error by hiding {word_to_hide}. Word may contains a reserved Regex charactar')
-
-    return value
-
-def _highlight_secondary_words(secondary_words: dict, primary_word: str, value: str):
-    if not secondary_words:
-        return value
     
-    for secondary_word, secondary_word_repl in secondary_words.items():
-        
-        # hide only if secondary word comes before the primary_word
-        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){secondary_word}((?=[^a-zA-ZäöüßÄÖÜẞ])(?=.*{primary_word}))'
-        colored_word_to_hide = secondary_word_repl.replace('(','<font color="#ccdcff">') \
-                                                  .replace(')','</font>')
-        try:
-            value = re.sub(hide_pattern, colored_word_to_hide, value) # flags=re.IGNORECASE will replace also capitalized but with nn capitalized 
-        except re.error:
-            logger.error(f'error by hiding {secondary_word}. Word may contains a reserved Regex charactar')
+    value = treat_words_to_hide(value, words_to_hide, secondary_words, treatement='highlight')
 
     return value
 
 def hide_words_to_hide(value, class_name, words_to_hide, secondary_words, forced_word_to_hide: list) -> str:
-    ''' hide words to hide (subtile color) for quiz html'''
+    ''' hide words to hide for quiz html'''
 
     if not value:
         return value
@@ -605,55 +576,17 @@ def hide_words_to_hide(value, class_name, words_to_hide, secondary_words, forced
         return ''
 
     # combine user words to hide with automaticaly generated words to hide
-    words_to_hide = list(set(words_to_hide + forced_word_to_hide))
+    try:
+        words_to_hide = list(set(words_to_hide + forced_word_to_hide))
+    except UndefinedError: # 'DefEntry.DictDict object' has no attribute 'forced_hidden_words'
+        pass
 
-    for word_to_hide in words_to_hide:
-        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){word_to_hide}((?=[^a-zA-ZäöüßÄÖÜẞ])|($))'
-        word_length = len(word_to_hide)
-        try:
-            value_sub = re.sub(hide_pattern, word_length*'_', value)
-            if value_sub != value: # replacement occured, hide secondary_words
-                value = value_sub
-                value = _hide_secondary_words(secondary_words=secondary_words,
-                                              value=value)
-        except re.error:
-            logger.error(f'error by hiding {word_to_hide}. '
-                        'Word may contains a reserved Regex charactar')
+    value = treat_words_to_hide(value, words_to_hide, secondary_words, treatement='hide')
 
     return value
 
-def _hide_secondary_words(secondary_words: dict, value: str):
-    if not secondary_words:
-        return value
 
-    for secondary_word, secondary_word_repl in secondary_words.items():
-        
-        # hide only if secondary word comes before the primary_word
-        hide_pattern = f'((^)|(?<=[^a-zA-ZäöüßÄÖÜẞ])){secondary_word}((?=[^a-zA-ZäöüßÄÖÜẞ])(?=.*_*))'
-        replacement = hide_between_parenthesis(secondary_word_repl)
-        try:
-            value = re.sub(hide_pattern, replacement, value) # flags=re.IGNORECASE will replace also capitalized but with nn capitalized 
-        except re.error:
-            logger.error(f'error by hiding {secondary_word}. Word may contains a reserved Regex charactar')
-
-    return value
-
-def hide_between_parenthesis(secondary_word_repl):
-    '''example :  (das) -> ___
-                  dies(er) -> dies__
-                  ein(e) -> ein__
-                  dein() -> dein__
-    '''
-    text_before = secondary_word_repl.split('(')[0]
-    text_after = secondary_word_repl.split(')')[1]
-    length_text_between_parenthesis = len(secondary_word_repl)-(len(text_before)+len(text_after))
-    underscore_repl = '_' * min(2, length_text_between_parenthesis)
-
-    colored_word_to_hide = text_before + underscore_repl + text_after
-
-    return colored_word_to_hide
-
-    # # Lookup decision tree #
+# # Lookup decision tree #
     #     if translate:
     #     dict_content = dict_dict[f'content_{dict_dict["requested"].replace("translate_", "")}']
     #     if dict_dict:
