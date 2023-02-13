@@ -98,8 +98,12 @@ class Anki:
         self.col.models.set_current(model)
         return model
 
-    def add_notes_single(self, note_content, tags='', model=None, deck=None, overwrite_notes=False):
-        # TODO (1)* add card ID to word_dict to be able to replace it after a change without resetting review data
+    def add_notes_single(self, note_content, tags='', model=None, deck=None, overwrite_notes=False, note_id=None):
+        # TODO (0)* add card ID to word_dict to be able to replace it after a change without resetting review data
+        # note = self.col.get_note(1672861066580) (vorladen)
+        # from Note.__init__:
+        # if model and id:
+        #    raise Exception("only model or id should be provided")
         """Add new note to collection"""
         if model is not None:
             self.set_model(model)
@@ -123,11 +127,14 @@ class Anki:
         for tag in tags:
             note.add_tag(tag)
 
+        note_id = 0
         if not note.dupeOrEmpty():
             self.col.addNote(note)
             notification.notify(title='Anki: Note added.',
                         message=f'Front: "{list(fields)[0]}".',
                         timeout=10)
+            # TODO save note_id in word_dict to be able to update note later after changes
+            note_id = note.id
             self.modified = True
         elif note.dupeOrEmpty() ==1:
             click.secho('Empty, note was not added!', fg='red')
@@ -156,7 +163,7 @@ class Anki:
                         message=f'Front {list(fields)[0]} is invalid. note was not added!',
                         timeout=10)
 
-        return note.dupeOrEmpty()
+        return note_id
 
 
     def sync(self):
