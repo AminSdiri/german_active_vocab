@@ -81,8 +81,8 @@ class WordDict(dict):
                 continue
             other_properties.update({key: value for key, value in dict_slice.items() 
                                     if isinstance(value, str|list|int) and key not in ('word_subclass', 'def_blocks')})
-        if 'forced_hidden_words' in self.dict_dict:
-            other_properties['hidden_words_list'] = list(set(other_properties['hidden_words_list'] + self.dict_dict['forced_hidden_words']))
+        if 'forced_hidden_words' in self:
+            other_properties['hidden_words_list'] = list(set(other_properties['hidden_words_list'] + self['forced_hidden_words']))
         
         bookmarked_def_block.update(other_properties)
         return bookmarked_def_block
@@ -338,7 +338,7 @@ class DefEntry():
 
             german_phrase = def_block.get('example', '')
 
-            words_to_hide = def_block.get('words_to_hide', {})
+            words_to_hide = def_block.get('hidden_words_list', {})
             secondary_words = def_block.get('secondary_words', {})
 
         synonymes_html = self.dict_dict.extract_synonymes_in_html_format()

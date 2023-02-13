@@ -203,9 +203,10 @@ def _add_dict_content(dict_dict, cache_saving_word, ignore_cache, message_box_co
                                             'synonymes')
         
         # TODO only run function if key does not exist
+        json_data = pons_json[0]["hits"] if pons_json else ''
         dict_dict = _update_dict_without_overwriting(dict_dict,
                                                     key='content_pons',
-                                                    value=construct_dict_content_from_json(pons_json[0]["hits"],
+                                                    value=construct_dict_content_from_json(json_data,
                                                                                             search_word=dict_dict['search_word']))
         dict_dict = _update_dict_without_overwriting(dict_dict,
                                                     key='content_du',

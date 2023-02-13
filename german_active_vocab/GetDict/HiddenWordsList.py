@@ -9,7 +9,7 @@ def generate_hidden_words_list(dict_dict_content: list) -> tuple[list, dict[str,
     # TODO (3) clean up
     logger.info("extract_hidden_words_list")
 
-    # TODO (1)* every rom (header) should have a separate hidden_words list (example: for "Tisch", "auf" would be hidden because of "auftischen")
+    # DONE (1) every rom (header) should have a separate hidden_words list (example: for "Tisch", "auf" would be hidden because of "auftischen")
     for rom_level_dict in dict_dict_content:
         headword = _get_prop_from_dict(rom_level_dict, looking_for='headword')
         wordclass = _get_prop_from_dict(rom_level_dict, looking_for='wordclass')

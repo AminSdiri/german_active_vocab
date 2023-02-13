@@ -57,6 +57,10 @@ logger = set_up_logger(__name__)
 
 def construct_dict_content_from_json(json_data, search_word: str, translate: bool = False) -> list[dict[str,Any]]:
 
+    if not json_data:
+        # not found in pons
+        return []
+
     dict_content = [None] * len(json_data)
 
     for rom_idx, rom_level_json in enumerate(json_data):
