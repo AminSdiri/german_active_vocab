@@ -1,16 +1,17 @@
 import re
+from typing import Any
 from utils import set_up_logger
 
 # TODO (1) write a better algorithm for hiding words
 
 logger = set_up_logger(__name__)
 
-def generate_hidden_words_list(dict_dict_content: list) -> tuple[list, dict[str, str]]:
+def generate_hidden_words_list(word_dict_content: list[dict[str,Any]]) -> list[dict[str,Any]]:
     # TODO (3) clean up
     logger.info("extract_hidden_words_list")
 
     # DONE (1) every rom (header) should have a separate hidden_words list (example: for "Tisch", "auf" would be hidden because of "auftischen")
-    for rom_level_dict in dict_dict_content:
+    for rom_level_dict in word_dict_content:
         headword = _get_prop_from_dict(rom_level_dict, looking_for='headword')
         wordclass = _get_prop_from_dict(rom_level_dict, looking_for='wordclass')
         genus = _get_prop_from_dict(rom_level_dict, looking_for='genus')
@@ -54,23 +55,7 @@ def generate_hidden_words_list(dict_dict_content: list) -> tuple[list, dict[str,
 
         logger.debug(f'Word variants:\n{word_variants}')
 
-    return dict_dict_content
-
-def get_all_hidden_words(dict_dict_content: list) -> tuple[list, dict[str, str]]:
-    # TODO (3) clean up
-    logger.info("extract_hidden_words_list")
-
-    all_word_variants = []
-    all_secondary_words = {}
-
-    for rom_level_dict in dict_dict_content:
-        all_word_variants += rom_level_dict['hidden_words_list']
-        all_secondary_words.update(rom_level_dict['secondary_words_to_hide'])
-
-    # remove duplicates
-    all_word_variants = list(set(all_word_variants))
-
-    return all_word_variants, all_secondary_words
+    return word_dict_content
 
 def _get_prop_from_dict(rom_level_dict: dict, looking_for: str) -> str:
     if looking_for in rom_level_dict:
