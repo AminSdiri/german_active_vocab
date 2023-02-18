@@ -10,12 +10,12 @@ from settings import DICT_DATA_PATH, JINJA_ENVIRONEMENT
 
 logger = set_up_logger(__name__)
 
-
+# DONE (1) color words to hide and secondary words also in custom examples
 # TODO (2) LOOK&FEEL fama dl, Definition list, Supports the standard block attributes fel PyQT HTML esta3melha le def blocks bech yabdew alignee 3al isar.
 # https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl?retiredLocale=de
 
 def render_html(word_dict: dict[str, Any], mode='full') -> str:
-    # get from duden > found in pons > not translate > else
+    # translate > get from duden > found in pons > found in duden > not found
     # DONE (1) STRUCT use one unified decision tree for all functions
 
     # background-color (from pyqt darktheme styling) = #2D2D2D
@@ -75,6 +75,7 @@ def render_html(word_dict: dict[str, Any], mode='full') -> str:
     word_info = get_saved_seen_word_info(word_dict['search_word'])
 
     dict_content = word_dict.get_dict_content()
+    all_words_to_hide, all_secondary_words = word_dict.get_all_hidden_words()
 
     if 'translate' in word_dict['requested']:
         if dict_content:
@@ -82,6 +83,8 @@ def render_html(word_dict: dict[str, Any], mode='full') -> str:
             tmpl = JINJA_ENVIRONEMENT.get_template('translation.html.j2')
             defined_html = tmpl.render(dict_content=dict_content, 
                                     word_dict=word_dict,
+                                    all_words_to_hide=all_words_to_hide,
+                                    all_secondary_words=all_secondary_words,
                                     mode=mode)
         else:
             tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_translation.html.j2')
@@ -96,6 +99,8 @@ def render_html(word_dict: dict[str, Any], mode='full') -> str:
         start = time.time()
         defined_html = tmpl.render(word_dict=word_dict,
                                    dict_content=dict_content,
+                                   all_words_to_hide=all_words_to_hide,
+                                   all_secondary_words=all_secondary_words,
                                    word_info=word_info,
                                    col_pal=color_palette_dict,
                                    mode=mode)

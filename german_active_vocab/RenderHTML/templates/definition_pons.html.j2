@@ -219,7 +219,7 @@
             <b>Eigenes Beispiel:</b>
             <br>
             {% for beispiel_de in word_dict["custom_examples"]["german"] %}
-                <i>&nbsp;&nbsp;&nbsp;&nbsp;{{beispiel_de}}</i>
+                <i>&nbsp;&nbsp;&nbsp;&nbsp;{{beispiel_de|treat_hidden_words('custom_examples', all_words_to_hide, all_secondary_words, [])}}</i>
                 <br>
             {% endfor %}
             {% if word_dict["custom_examples"]["english"]|length %}

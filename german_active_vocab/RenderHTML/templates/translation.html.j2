@@ -192,6 +192,27 @@
     {% endfor %}
 
     {# {% endfor %} #}
+    {# Adding custom examples section #}
+    <!-- hr border-top='1px dotted' -->
+    <!-- hr border-top="1px dashed" width="120%  experimenti chouf enehi li talsa7-->
+    {% if word_dict["custom_examples"]["german"]|length %}
+        <hr>
+        <p class='custom_examples'>
+            <b>Eigenes Beispiel:</b>
+            <br>
+            {% for beispiel_de in word_dict["custom_examples"]["german"] %}
+                <i>&nbsp;&nbsp;&nbsp;&nbsp;{{beispiel_de|treat_hidden_words('custom_examples', all_words_to_hide, all_secondary_words, [])}}</i>
+                <br>
+            {% endfor %}
+            {% if word_dict["custom_examples"]["english"]|length %}
+            <b>Auf Englisch:</b><br>
+            {% for beispiel_en in word_dict["custom_examples"]["english"] %}
+                <i>&nbsp;&nbsp;&nbsp;&nbsp;{{beispiel_en}}</i>
+                <br>
+            {% endfor %}
+            {% endif %}
+        </p>
+    {% endif %}
 
 </body>
 
