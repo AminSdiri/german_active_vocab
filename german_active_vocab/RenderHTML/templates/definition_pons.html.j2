@@ -158,7 +158,7 @@
             {% set ns.previous_h1_value = h1_value %}
         {% endfor %}
         {% if ns.is_first_big_section %}
-            <span class="word_freq">{{dict_dict["word_freq"]|treat_class("word_freq", ns.previous_h1_key, ns.previous_h1_value)}} </span>
+            <span class="word_freq">{{word_dict["word_freq"]|treat_class("word_freq", ns.previous_h1_key, ns.previous_h1_value)}} </span>
         {% endif %}
         {% set ns.is_first_big_section = false %}
         </h1>
@@ -169,7 +169,7 @@
             {% set ns.previous_h2_value="" %}
             {% for h2_key,h2_value in small_section.items() %}
                 {% if h2_key != 'def_blocks' %}
-                    <span class={{h2_key}}>{{h2_value|treat_class(h2_key, ns.previous_h2_key, ns.previous_h2_value)|treat_hidden_words(h2_key, big_section['hidden_words_list'], big_section['secondary_words_to_hide'], dict_dict['forced_hidden_words'])}} </span>
+                    <span class={{h2_key}}>{{h2_value|treat_class(h2_key, ns.previous_h2_key, ns.previous_h2_value)|treat_hidden_words(h2_key, big_section['hidden_words_list'], big_section['secondary_words_to_hide'], word_dict['forced_hidden_words'])}} </span>
                 {% endif %}
                 {% set ns.previous_h2_key = h2_key %}
                 {% set ns.previous_h2_value = h2_value %}
@@ -182,11 +182,11 @@
                 {% for h3_key,h3_value in def_block.items() %}
                     {% if h3_value|is_list %}
                         {% for h4_value in h3_value %}
-                            <span class={{h3_key}}>{{h4_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, big_section['hidden_words_list'], big_section['secondary_words_to_hide'], dict_dict['forced_hidden_words'])}} </span>
+                            <span class={{h3_key}}>{{h4_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, big_section['hidden_words_list'], big_section['secondary_words_to_hide'], word_dict['forced_hidden_words'])}} </span>
                             {% set ns.previous_h3_key = h3_key %}
                         {% endfor %}
                     {% else %}
-                        <span class={{h3_key}}>{{h3_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, big_section['hidden_words_list'], big_section['secondary_words_to_hide'], dict_dict['forced_hidden_words'])}} </span>
+                        <span class={{h3_key}}>{{h3_value|treat_class(h3_key, ns.previous_h3_key, ns.previous_h3_value)|treat_hidden_words(h3_key, big_section['hidden_words_list'], big_section['secondary_words_to_hide'], word_dict['forced_hidden_words'])}} </span>
                         {% set ns.previous_h3_key = h3_key %}
                     {% endif %}
                     {% set ns.previous_h3_value = h3_value %}
@@ -196,12 +196,12 @@
         {% endfor %} 
     {% endfor %}
     {# Adding Synonymes #}
-    {% if dict_dict["synonymes"]|length %}
+    {% if word_dict["synonymes"]|length %}
         <hr>
         <p>
         <font size="5" color="#FFD300">Synonyme</font>
         <br>
-        {% for item in dict_dict["synonymes"] %}
+        {% for item in word_dict["synonymes"] %}
         <br>
             <span>&nbsp;&nbsp;&nbsp;&nbsp;-&nbsp;{{item|join(', ')}}</span>
         {% endfor %}
@@ -213,18 +213,18 @@
     {# Adding custom examples section #}
     <!-- hr border-top='1px dotted' -->
     <!-- hr border-top="1px dashed" width="120%  experimenti chouf enehi li talsa7-->
-    {% if dict_dict["custom_examples"]["german"]|length %}
+    {% if word_dict["custom_examples"]["german"]|length %}
         <hr>
         <p class='custom_examples'>
             <b>Eigenes Beispiel:</b>
             <br>
-            {% for beispiel_de in dict_dict["custom_examples"]["german"] %}
+            {% for beispiel_de in word_dict["custom_examples"]["german"] %}
                 <i>&nbsp;&nbsp;&nbsp;&nbsp;{{beispiel_de}}</i>
                 <br>
             {% endfor %}
-            {% if dict_dict["custom_examples"]["english"]|length %}
+            {% if word_dict["custom_examples"]["english"]|length %}
             <b>Auf Englisch:</b><br>
-            {% for beispiel_en in dict_dict["custom_examples"]["english"] %}
+            {% for beispiel_en in word_dict["custom_examples"]["english"] %}
                 <i>&nbsp;&nbsp;&nbsp;&nbsp;{{beispiel_en}}</i>
                 <br>
             {% endfor %}

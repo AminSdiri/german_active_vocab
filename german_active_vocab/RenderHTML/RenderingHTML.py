@@ -14,7 +14,7 @@ logger = set_up_logger(__name__)
 # TODO (2) LOOK&FEEL fama dl, Definition list, Supports the standard block attributes fel PyQT HTML esta3melha le def blocks bech yabdew alignee 3al isar.
 # https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dl?retiredLocale=de
 
-def render_html(dict_dict: dict[str, Any], mode='full') -> str:
+def render_html(word_dict: dict[str, Any], mode='full') -> str:
     # get from duden > found in pons > not translate > else
     # DONE (1) STRUCT use one unified decision tree for all functions
 
@@ -72,16 +72,16 @@ def render_html(dict_dict: dict[str, Any], mode='full') -> str:
     else:
         raise RuntimeError
         
-    word_info = get_saved_seen_word_info(dict_dict['search_word'])
+    word_info = get_saved_seen_word_info(word_dict['search_word'])
 
-    dict_content = dict_dict.get_dict_content()
+    dict_content = word_dict.get_dict_content()
 
-    if 'translate' in dict_dict['requested']:
+    if 'translate' in word_dict['requested']:
         if dict_content:
             JINJA_ENVIRONEMENT.filters["treat_class"] = treat_class_trans
             tmpl = JINJA_ENVIRONEMENT.get_template('translation.html.j2')
             defined_html = tmpl.render(dict_content=dict_content, 
-                                    dict_dict=dict_dict,
+                                    word_dict=word_dict,
                                     mode=mode)
         else:
             tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_translation.html.j2')
@@ -94,7 +94,7 @@ def render_html(dict_dict: dict[str, Any], mode='full') -> str:
         # DONE (1)* make the rendering faster (it takes 2.2s for machen pons to render!)
         # probably because of the big list of words to hide
         start = time.time()
-        defined_html = tmpl.render(dict_dict=dict_dict,
+        defined_html = tmpl.render(word_dict=word_dict,
                                    dict_content=dict_content,
                                    word_info=word_info,
                                    col_pal=color_palette_dict,
@@ -102,7 +102,7 @@ def render_html(dict_dict: dict[str, Any], mode='full') -> str:
         print('The rendering ran for', time.time() - start)
     else:
         tmpl = JINJA_ENVIRONEMENT.get_template('not_found.html.j2')
-        defined_html = tmpl.render(word=word_info["word"], source=dict_dict['requested'].capitalize())
+        defined_html = tmpl.render(word=word_info["word"], source=word_dict['requested'].capitalize())
 
     # trim_vlocks and lstrip_blocks are not enoughs?
     defined_html = "".join(line.strip()
@@ -588,27 +588,27 @@ def hide_words_to_hide(value, class_name, words_to_hide, secondary_words, forced
 
 # # Lookup decision tree #
     #     if translate:
-    #     dict_content = dict_dict[f'content_{dict_dict["requested"].replace("translate_", "")}']
-    #     if dict_dict:
-    #         defined_html = render_html_from_dict('translation', dict_content, dict_dict)
+    #     dict_content = word_dict[f'content_{word_dict["requested"].replace("translate_", "")}']
+    #     if word_dict:
+    #         defined_html = render_html_from_dict('translation', dict_content, word_dict)
     #     else:
     #         tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_translation.html.j2')
     #         defined_html = tmpl.render(word=word_info["word"])
     #     return defined_html
 
-    # if dict_dict['requested'] == 'duden':
-    #     if dict_dict['source'] == 'duden':
+    # if word_dict['requested'] == 'duden':
+    #     if word_dict['source'] == 'duden':
     #         # todo (0)* get ride of this after standarizing dicts
-    #         defined_html = render_html_from_dict('pons', dict_dict, word_info)
+    #         defined_html = render_html_from_dict('pons', word_dict, word_info)
     #     else:
     #         tmpl = JINJA_ENVIRONEMENT.get_template('not_found_duden.html.j2')
     #         defined_html = tmpl.render(word=word_info["word"])
     #     return defined_html
 
-    # if dict_dict['source'] == 'pons':
-    #     defined_html = render_html_from_dict('pons', dict_dict, word_info)
-    # elif dict_dict['source'] == 'duden':
-    #     defined_html = render_html_from_dict('duden', dict_dict, word_info)
+    # if word_dict['source'] == 'pons':
+    #     defined_html = render_html_from_dict('pons', word_dict, word_info)
+    # elif word_dict['source'] == 'duden':
+    #     defined_html = render_html_from_dict('duden', word_dict, word_info)
     # else:
     #     tmpl = JINJA_ENVIRONEMENT.get_template('not_found_pons_duden.html.j2')
     #     defined_html = tmpl.render(word=word_info["word"])
