@@ -1,67 +1,60 @@
 from datetime import datetime, timedelta
-import json
 import re
 import pandas as pd
 from bs4 import BeautifulSoup as bs
 
 from GetDict.GenerateDict import create_dict_for_manually_added_words
-from RenderHTML.RenderingHTML import get_saved_seen_word_info
-from GetDict.HiddenWordsList import get_all_hidden_words
-from utils import set_up_logger, write_str_to_file
+from utils import set_up_logger
 from settings import JINJA_ENVIRONEMENT
 
 logger = set_up_logger(__name__)
 
 # DONE (0) hide der, die, das, den, dem .. before nouns
 
-def quizify_and_save(dict_data_path, qt_html_content, beispiel_de,
-                      beispiel_en, tag, dict_dict,
-                      dict_saving_word):
+def quizify_and_save(dict_data_path, beispiel_de,
+                      beispiel_en, tag, word_dict: "WordDict",
+                      saving_word):
     # TODO (1) fix this function
     '''
     Now we have a unified dict that the user can change directly! 
     Dielemma: if customising html in QtTextEdit Window is allowed,
-    we cant use dict_dict to generate quiz file without "übertragung"
-    of changes from html to dict_dict so quiz file is generated from the html.
+    we cant use word_dict to generate quiz file without "übertragung"
+    of changes from html to word_dict so quiz file is generated from the html.
 
     if a word is searched and it's already saved, in quiz mode it's retrieved
     from the saved html to show also the customisations made by the user
     before.
     here it's not even the case, only the information that the word is already
-    saved is shown but the html is reconstructed again from dict_dict.
+    saved is shown but the html is reconstructed again from word_dict.
     this is a "middle priority" bug
 
-    but then we can't use all the exotic options behind dict_dict
+    but then we can't use all the exotic options behind word_dict
     (see new features allowed by dict dict), so every change to html file
-    should be mirrored in dict_dict (this is a TODO) it complicated for me
+    should be mirrored in word_dict (this is a TODO) it complicated for me
     so for now just generate the quiz file from the definition file rendered
-    from dict_dict (previous direct customisations to the definition html
+    from word_dict (previous direct customisations to the definition html
     will be lost)
-    and only allow for persitant custom examples (through dict_dict)
-    and because older entries with custom example dosnt' have dict_dict
-    we will retrive them using bs and add them to dict_dict
+    and only allow for persitant custom examples (through word_dict)
+    and because older entries with custom example dosnt' have word_dict
+    we will retrive them using bs and add them to word_dict
 
     so big flow (for now, only current changes to html will be saved):
-    - generate html (TODO including custom examples already in dict_dict)
+    - generate html (TODO including custom examples already in word_dict)
     - allow user to customize it
     - if user add new exemple and save (this function):
     - get custom examples fron saved html file in lists if theres's no
-    dict_dict cache, else get it from dict_dict
+    word_dict cache, else get it from word_dict
     - append new custom examples
-    - save the new list in dict_dict
+    - save the new list in word_dict
     - destroy the custom examples section in html and generate them again
     - include the custum examples list in html again
     - save the html
     '''
 
-    # TODO (3) look at qdatawidgetmapper
-
-    word = dict_dict['search_word']
+    word = word_dict['search_word']
     words_df = pd.read_csv(dict_data_path / 'wordlist.csv')
     words_df.set_index('Word', inplace=True)
     word_is_already_saved = word in words_df.index
-
-    word_info = get_saved_seen_word_info(dict_dict['search_word'])
     
     ####  old code ####
     # removing '\n' elements
@@ -77,31 +70,30 @@ def quizify_and_save(dict_data_path, qt_html_content, beispiel_de,
     if not beispiel_de and beispiel_en:
         raise RuntimeError('no no no no no, NO Beispiel_en without Beispiel_de, no.')
 
-    if not dict_dict:
-        dict_dict = create_dict_for_manually_added_words()
+    if not word_dict:
+        word_dict = create_dict_for_manually_added_words()
 
-    dict_dict = dict_dict.append_new_examples_in_dict_dict(beispiel_de, beispiel_en)
+    word_dict = word_dict.append_new_examples_in_word_dict(beispiel_de, beispiel_en)
+    # check if one of the words will get hidden in the custom german examples -> otherwise ask the user manually to select it
+    # DONE (-1) kamel 3al old custom examples
+    if 'custom_examples' in word_dict:
+        all_word_variants, _ = word_dict.get_all_hidden_words()
+        no_hidden_words_in_example = check_for_hidden_words_presence_in_custom_examples(examples=word_dict['custom_examples']['german'],
+                                                                                        hidden_words=all_word_variants)
 
     # TODO (2) when it's not ok to overwrite?
-    dict_dict_path = dict_data_path / 'dict_dicts' / f'{dict_saving_word}_dict.json'
-    write_str_to_file(dict_dict_path, json.dumps(dict_dict), overwrite=True)
+    word_dict.save_word_dict()
 
-    # if dict_dict['custom_examples']['german']:
-    #     custom_section_soup = _create_custom_section(dict_dict)
+    # if word_dict['custom_examples']['german']:
+    #     custom_section_soup = _create_custom_section(word_dict)
     #     qt_html_content_soup.body.insert(len(qt_html_content_soup.body.contents), custom_section_soup.body.p)
 
     # qt_html_content = str(qt_html_content_soup)
 
-    # TODO (3) after mirroring the changes made in the html to dict_dict,
-    # create_quiz_html will create a quiz_dict instead from dict_dict and
+    # TODO (3) after mirroring the changes made in the html to word_dict,
+    # create_quiz_html will create a quiz_dict instead from word_dict and
     # render the html from it
 
-    # check if one of the words will get hidden in the custom german examples -> otherwise ask the user manually to select it
-    # DONE (-1) kamel 3al old custom examples
-    if 'custom_examples' in dict_dict:
-        all_word_variants, _ = get_all_hidden_words(dict_dict_content)
-        no_hidden_words_in_example = _check_for_hidden_words_presence_in_custom_examples(examples=dict_dict['custom_examples']['german'],
-                                                                                        hidden_words=dict_dict['hidden_words_list'])
 
     # insert custom examples properly
     # TODO (1) when do I need fix_html_with_custom_example?
@@ -196,9 +188,9 @@ def _remove_headwords(clean_html_soup):
 
     return clean_html_soup
 
-def _create_custom_section(dict_dict):
+def _create_custom_section(word_dict):
     tmpl = JINJA_ENVIRONEMENT.get_template('custom_examples_section.html.j2')
-    custom_section_html = tmpl.render(dict_dict=dict_dict)
+    custom_section_html = tmpl.render(word_dict=word_dict)
 
     custom_section_html = "".join(line.strip()
                                       for line
@@ -235,7 +227,7 @@ def _add_word_to_words_df(dict_data_path, word, tag, words_df):
     words_df.loc[word, "Tag"] = tag
     words_df.to_csv(dict_data_path / 'wordlist.csv')
 
-def _check_for_hidden_words_presence_in_custom_examples(examples: list, hidden_words:list):
+def check_for_hidden_words_presence_in_custom_examples(examples: list, hidden_words:list):
     no_hidden_words_in_example = []
     for example_index, example_phrase in enumerate(examples):
         if not any(x in example_phrase for x in hidden_words):
