@@ -22,7 +22,11 @@ logger = set_up_logger(__name__)
 # TODO (4) type-hinting in every function
 # TODO (4) positional args vs keyword args
 # DONE (0)* create word_dict class that inherit form dict and have all dict operations
-# TODO (0) rename word_dict to word_dict
+# DONE (0) rename word_dict to word_dict
+# TODO (1) add ability to delete and modify custom examples from DictView
+# TODO (0) gray out force hide button if no word is selected in TextView
+# TODO (0) replace (umgangssprachlich) in duden_syn with umg with pons styling or group them like duden?
+
 
 class WordDict(dict):
     def __init__(self, word_dict, saving_word):
@@ -322,11 +326,18 @@ class DefEntry():
         self.word_dict = WordDict(word_dict, saving_word=self.word_query.saving_word)
 
         # temporary, move custom examples from html to json
+        # TODO (0)* loop over all html files and get rid of all html extraction related code. htnl will be only rendered
         german_examples, english_examples = extract_custom_examples_from_html(search_word=self.word_dict['search_word'],
                                                                                     saving_word=self.word_query.saving_word,
                                                                                     old_saving_word=replace_umlauts_1(self.word_query.search_word))
         for german_example, english_example in zip_longest(german_examples, english_examples):
             self.word_dict = self.word_dict.append_new_examples_in_word_dict(german_example, english_example)
+        
+        # otherwise we'll get an error in rendering, move to better place after getting rid of html dependency
+        if 'custom_examples' not in self.word_dict:
+            self.word_dict['custom_examples'] = {}
+            self.word_dict['custom_examples']['german'] = []
+            self.word_dict['custom_examples']['english'] = []
  
         self.defined_html = render_html(word_dict=self.word_dict)
     
@@ -369,7 +380,12 @@ class DefEntry():
             inner_text, note_id, already_in_anki = parse_anki_attribute(german_phrase)
             front_with_cloze_wrapping = treat_words_to_hide(inner_text, words_to_hide, secondary_words, treatement='cloze')
 
-            english_translation = self.word_dict['custom_examples']['english'][idx]
+            try:
+                english_translation = self.word_dict['custom_examples']['english'][idx]
+            except IndexError:
+                english_translation = '#'*len(german_phrase)
+                self.word_dict['custom_examples']['english'].append(english_translation)
+                self.word_dict.save_word_dict()
 
             note_content = {'cloze': front_with_cloze_wrapping,
                             'hint1': synonymes_html,
@@ -391,7 +407,7 @@ class DefEntry():
                                 note_id=note_id)
             
             # add node_id to example data attribute to track it and update its anki note when needed
-            if not already_in_anki:
+            if not already_in_anki and note_id:
                 german_phrase = wrap_text_in_tag_with_attr(text=german_phrase, tag_name='span', attr_name='data-anki-note-id', attr_value=note_id)
                 self.word_dict['custom_examples']['german'][idx] = german_phrase
                 self.word_dict.save_word_dict()
