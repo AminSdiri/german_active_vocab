@@ -144,9 +144,9 @@ class DefinitionWindow(QWidget):
         self.def_obj.word_dict = self.def_obj.word_dict.append_new_examples_in_word_dict(german_phrase, english_translation)
         # check if one of the words will get hidden in the custom german examples -> otherwise ask the user manually to select it
         # DONE (-1) kamel 3al old custom examples
-        if 'custom_examples' in self:
-            all_word_variants, _ = self.get_all_hidden_words()
-            faulty_examples = check_for_hidden_words_presence_in_custom_examples(examples=self['custom_examples']['german'],
+        if 'custom_examples' in self.def_obj.word_dict:
+            all_word_variants, _ = self.def_obj.word_dict.get_all_hidden_words()
+            faulty_examples = check_for_hidden_words_presence_in_custom_examples(examples=self.def_obj.word_dict['custom_examples']['german'],
                                                                                             hidden_words=all_word_variants)
         self.beispiel.clear()
         self.beispiel2.clear()
