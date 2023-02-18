@@ -1,28 +1,34 @@
 from dataclasses import dataclass, field
+import json
 from pathlib import Path
-import re
 from datetime import datetime, timedelta
 from argparse import Namespace
 from collections import Counter
 from PyQt5.QtCore import pyqtSignal, QWaitCondition
 
 from bs4.builder import HTML
-from GetDict.GenerateDict import standart_dict
+from GetDict.GenerateDict import extract_custom_examples_from_html, standart_dict
 from RenderHTML.RenderingHTML import render_html
 from PushToAnki import Anki
 from GetDict.HiddenWordsList import treat_words_to_hide
+from GetDict.ParsingSoup import parse_anki_attribute, wrap_text_in_tag_with_attr
 from settings import ANKI_CONFIG, DICT_DATA_PATH
+from itertools import zip_longest
 
-from utils import (sanitize_word, set_up_logger)
+from utils import (replace_umlauts_1, sanitize_word, set_up_logger, write_str_to_file)
 
 logger = set_up_logger(__name__)
 
 # TODO (4) type-hinting in every function
 # TODO (4) positional args vs keyword args
-# DONE (0)* create dict_dict class that inherit form dict and have all dict operations
-# TODO (0) rename dict_dict to word_dict
+# DONE (0)* create word_dict class that inherit form dict and have all dict operations
+# TODO (0) rename word_dict to word_dict
 
-class WordDict(dict):    
+class WordDict(dict):
+    def __init__(self, word_dict, saving_word):
+        super().__init__(word_dict) 
+        self.word_dict_path = DICT_DATA_PATH / 'word_dicts' / f'{saving_word}_dict.json'
+
     def get_dict_content(self):
         translate = 'translate' in self['requested']
         if translate:
@@ -61,7 +67,7 @@ class WordDict(dict):
     def get_block_from_address(self, address) -> tuple[str, str]:
         bookmarked_address = address[:(address.index('def_blocks')+1+1)]
         bookmarked_def_block = self.get_dict_slice_from_adress(bookmarked_address)
-        bookmarked_def_block = bookmarked_def_block.copy() # we're not modifing dict_dict
+        bookmarked_def_block = bookmarked_def_block.copy() # we're not modifing word_dict
 
         if not isinstance(bookmarked_def_block, dict):
             raise RuntimeError('Case not taken into account')
@@ -87,9 +93,9 @@ class WordDict(dict):
         bookmarked_def_block.update(other_properties)
         return bookmarked_def_block
 
-    def get_definitions_from_dict_dict(self, info='definition') -> list[str]:
+    def get_definitions_from_word_dict(self, info='definition') -> list[str]:
         definitions_list: list[str] = []
-        for big_section in self['content']:
+        for big_section in self.get_dict_content():
             if "word_subclass" not in big_section:
                 # it's a dict from duden
                 continue
@@ -119,23 +125,27 @@ class WordDict(dict):
             synonymes = ''
         return synonymes
 
-    def append_new_examples_in_dict_dict(self, beispiel_de, beispiel_en):
+    def append_new_examples_in_word_dict(self, beispiel_de, beispiel_en):
+        _ = self._prevent_duplicating_examples()
         if beispiel_de:
             if 'custom_examples' in self:
-                # update custom examples list in dict_dict
+                # update custom examples list in word_dict
+                if beispiel_de in self['custom_examples']['german']:
+                    # ignore if example already in word_dict
+                    return self
                 self['custom_examples']['german'].append(beispiel_de)
                 if not beispiel_en:
                     beispiel_en = '#'*len(beispiel_de)
                 self['custom_examples']['english'].append(beispiel_en)
 
-                _ = self._prevent_duplicating_examples()
             else:
-                # create custom examples list in dict_dict
+                # create custom examples list in word_dict
                 self['custom_examples'] = {}
                 self['custom_examples']['german'] = [beispiel_de]
                 if not beispiel_en:
                     beispiel_en = '#'*len(beispiel_de)
                 self['custom_examples']['english'] = [beispiel_en]
+        
         
         return self
 
@@ -208,14 +218,33 @@ class WordDict(dict):
         self.clear()
         self.update(word_dict)
 
+    def get_all_hidden_words(self) -> tuple[list, dict[str, str]]:
+        logger.info("extract all hidden_words and secondary_words")
+
+        word_dict_content = self.get_dict_content()
+        all_word_variants = []
+        all_secondary_words = {}
+
+        for rom_level_dict in word_dict_content:
+            all_word_variants += rom_level_dict['hidden_words_list']
+            all_secondary_words.update(rom_level_dict['secondary_words_to_hide'])
+
+        # add forced_hidden_words and remove duplicates
+        if 'forced_hidden_words' in self:
+            all_word_variants = list(set(all_word_variants + self['forced_hidden_words']))
+
+        return all_word_variants, all_secondary_words
+
+    def save_word_dict(self):
+        write_str_to_file(self.word_dict_path, json.dumps(self), overwrite=True)
+
 
 @dataclass
 class WordQuery():
     input_word: str
     cl_args: Namespace
     search_word: str = ''
-    cache_saving_word: str = ''
-    dict_saving_word: str = ''
+    saving_word: str = ''
     ignore_cache: bool = False
     ignore_dict: bool = False
     translate_fr: bool = False
@@ -252,18 +281,18 @@ class WordQuery():
         else:
             self.search_word = self.input_word
         self.search_word = self.search_word.lower().strip()
-        self.dict_saving_word = sanitize_word(self.search_word)
+        self.saving_word = sanitize_word(self.search_word)
 
-        # saving word
-        if self.translate_fr:
-            self.cache_saving_word = self.search_word + '_fr'
-        elif self.translate_en:
-            self.cache_saving_word = self.search_word + '_en'
-        elif self.get_from_duden:
-            self.cache_saving_word = self.search_word + '_du'
-        else:
-            self.cache_saving_word = self.search_word
-        self.cache_saving_word = sanitize_word(self.cache_saving_word)
+        # # saving word
+        # if self.translate_fr:
+        #     self.cache_saving_word = self.search_word + '_fr'
+        # elif self.translate_en:
+        #     self.cache_saving_word = self.search_word + '_en'
+        # elif self.get_from_duden:
+        #     self.cache_saving_word = self.search_word + '_du'
+        # else:
+        #     self.cache_saving_word = self.search_word
+        # self.cache_saving_word = sanitize_word(self.cache_saving_word)
         
         if self.cl_args and self.cl_args.ger:
             self.beispiel_de = self.cl_args.ger.replace("//QUOTE", "'").replace("//DOUBLEQUOTE", '"').strip()
@@ -276,11 +305,9 @@ class DefEntry():
     word_query: WordQuery
     message_box_content_carrier: pyqtSignal
     wait_for_usr: QWaitCondition
-    beispiel_de: str = ''
-    beispiel_en: str = ''
 
-    dict_dict: dict = field(default_factory=dict)
-    dict_dict_path: Path = ''
+    word_dict: WordDict = field(default_factory=dict)
+    word_dict_path: Path = ''
 
     defined_html: HTML = ''
 
@@ -288,17 +315,24 @@ class DefEntry():
 
         self._log_word_in_wordlist_history()
 
-        dict_dict = standart_dict(self.word_query,
+        word_dict = standart_dict(self.word_query,
                                 self.message_box_content_carrier,
                                 self.wait_for_usr)
         
-        self.dict_dict = WordDict(dict_dict)
+        self.word_dict = WordDict(word_dict, saving_word=self.word_query.saving_word)
+
+        # temporary, move custom examples from html to json
+        german_examples, english_examples = extract_custom_examples_from_html(search_word=self.word_dict['search_word'],
+                                                                                    saving_word=self.word_query.saving_word,
+                                                                                    old_saving_word=replace_umlauts_1(self.word_query.search_word))
+        for german_example, english_example in zip_longest(german_examples, english_examples):
+            self.word_dict = self.word_dict.append_new_examples_in_word_dict(german_example, english_example)
  
-        self.defined_html = render_html(dict_dict=self.dict_dict)
+        self.defined_html = render_html(word_dict=self.word_dict)
     
 
     def re_render_html(self) -> str:
-        self.defined_html = render_html(dict_dict=self.dict_dict)
+        self.defined_html = render_html(word_dict=self.word_dict)
         return self.defined_html
 
 
@@ -319,49 +353,98 @@ class DefEntry():
         f.write(f'\n{self.word_query.search_word}, {str(word_count)}, {now.strftime("%d.%m.%y")}')
         f.close()
 
-    def ankify(self, german_phrase : str = '', english_translation: str = '', def_block=None) -> None:
-        '''2 modes, if user wants to capture the custom examples than he should only provide the german phrase
-        and optionally it's english translation, all the definitions and synonymes will be automaticly extracted.
+    def ankify_custom_examples(self) -> None:
+        '''if user wants to capture the custom examples than we should only provide the german phrase
+        and optionally it's english translation, all the definitions and synonymes will be automaticly extracted'''
+
+        # get definitions
+        definitions_list = self.word_dict.get_definitions_from_word_dict(info='definition')
+        definitions_html = '<ul>' + ''.join([f'<li>{elem}</li>' for elem in definitions_list]) + '</ul>'
+
+        synonymes_html = self.word_dict.extract_synonymes_in_html_format()
+        
+        words_to_hide, secondary_words = self.word_dict.get_all_hidden_words()
+
+        for idx, german_phrase in enumerate(self.word_dict['custom_examples']['german']):
+            inner_text, note_id, already_in_anki = parse_anki_attribute(german_phrase)
+            front_with_cloze_wrapping = treat_words_to_hide(inner_text, words_to_hide, secondary_words, treatement='cloze')
+
+            english_translation = self.word_dict['custom_examples']['english'][idx]
+
+            note_content = {'cloze': front_with_cloze_wrapping,
+                            'hint1': synonymes_html,
+                            'hint2': english_translation,
+                            'hint3': definitions_html,
+                            'answer_extra': self.word_dict['search_word']}
+
+            with Anki(base=ANKI_CONFIG['base'], profile=ANKI_CONFIG['profile']) as a:
+                if not already_in_anki:
+                    note_id = a.add_anki_note(note_content,
+                                        tags='',
+                                        model=ANKI_CONFIG['model'],
+                                        deck=ANKI_CONFIG['deck'],
+                                        overwrite_notes=ANKI_CONFIG['overwrite'])
+                else:
+                    a.update_anki_note(note_content,
+                                tags='',
+                                model=ANKI_CONFIG['model'],
+                                note_id=note_id)
+            
+            # add node_id to example data attribute to track it and update its anki note when needed
+            if not already_in_anki:
+                german_phrase = wrap_text_in_tag_with_attr(text=german_phrase, tag_name='span', attr_name='data-anki-note-id', attr_value=note_id)
+                self.word_dict['custom_examples']['german'][idx] = german_phrase
+                self.word_dict.save_word_dict()
+
+    def ankify_def_block_example(self, def_block) -> None:
+        '''
         If the user capture an example from the word_dict, only the corresponding definition will be extracted, 
         and the words_to_hide for it's rom level'''
 
-        if def_block is None:
-            definitions_list = self.dict_dict.get_definitions_from_dict_dict(info='definition')
-            definitions_html = '<ul>' + ''.join([f'<li>{elem}</li>' for elem in definitions_list]) + '</ul>'
-            words_to_hide, secondary_words = self.get_all_hidden_words()
-        else:
-            definition_1 = def_block.get('definition', '')
-            definition_2 = def_block.get('sense', '')
-            if definition_1 and definition_2:
-                logger.error('Loss of Information! Both a definition and sense found, only one will be sent to Anki!!')
-            definitions_html = definition_1 or definition_2
+        # get definitions
+        definition_1 = def_block.get('definition', '')
+        definition_2 = def_block.get('sense', '')
+        if definition_1 and definition_2:
+            logger.error('Loss of Information! Both a definition and sense found, only one will be sent to Anki!!')
+        definitions_html = definition_1 or definition_2
 
-            german_phrase = def_block.get('example', '')
+        # transform german_phrase
+        german_phrase = def_block.get('example', '')
+        inner_text, note_id, already_in_anki = parse_anki_attribute(german_phrase)
+        words_to_hide = def_block.get('hidden_words_list', {})
+        secondary_words = def_block.get('secondary_words', {})
+        front_with_cloze_wrapping = treat_words_to_hide(inner_text, words_to_hide, secondary_words, treatement='cloze')
 
-            words_to_hide = def_block.get('hidden_words_list', {})
-            secondary_words = def_block.get('secondary_words', {})
+        synonymes_html = self.word_dict.extract_synonymes_in_html_format()
 
-        synonymes_html = self.dict_dict.extract_synonymes_in_html_format()
-
-        front_with_cloze_wrapping = treat_words_to_hide(german_phrase, words_to_hide, secondary_words, treatement='cloze')
+        english_translation = ''
 
         note_content = {'cloze': front_with_cloze_wrapping,
                         'hint1': synonymes_html,
                         'hint2': english_translation,
                         'hint3': definitions_html,
-                        'answer_extra': self.dict_dict['search_word']}
+                        'answer_extra': self.word_dict['search_word']}
 
         with Anki(base=ANKI_CONFIG['base'], profile=ANKI_CONFIG['profile']) as a:
-            a.add_notes_single(note_content,
-                                tags='',
-                                model=ANKI_CONFIG['model'],
-                                deck=ANKI_CONFIG['deck'],
-                                overwrite_notes=ANKI_CONFIG['overwrite'])
+            if not already_in_anki:
+                note_id = a.add_anki_note(note_content,
+                                    tags='',
+                                    model=ANKI_CONFIG['model'],
+                                    deck=ANKI_CONFIG['deck'],
+                                    overwrite_notes=ANKI_CONFIG['overwrite'])
+            else:
+                a.update_anki_note(note_content,
+                            tags='',
+                            model=ANKI_CONFIG['model'],
+                            note_id=note_id)
+                
+        return note_id, already_in_anki
+
 
     def add_word_to_hidden_list(self, selected_text2hide) -> None:
-        if 'forced_hidden_words' in self.dict_dict:
-            self.dict_dict['forced_hidden_words'].append(selected_text2hide)
+        if 'forced_hidden_words' in self.word_dict:
+            self.word_dict['forced_hidden_words'].append(selected_text2hide)
         else:
-            self.dict_dict['forced_hidden_words']= [selected_text2hide]
+            self.word_dict['forced_hidden_words']= [selected_text2hide]
 
         logger.debug(f'forced word2hide: {selected_text2hide}')

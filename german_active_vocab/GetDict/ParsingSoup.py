@@ -1,4 +1,3 @@
-from typing import Any
 from bs4 import BeautifulSoup as bs
 from .HiddenWordsList import generate_hidden_words_list
 
@@ -42,6 +41,9 @@ logger = set_up_logger(__name__)
 #TODO (1) unwrap Wendungen_Redensarten_Sprichwoerter
 
 def construct_dict_content_from_soup(_duden_soup):
+    if not _duden_soup:
+        return []
+    
     (headword,
     wortart,
     bedeutung_soup) = extract_parts_from_dudensoup(_duden_soup)
@@ -383,15 +385,11 @@ def create_synonyms_list(soup: bs) -> list[list[str]]:
     logger.info("create_synonyms_list")
     # approximate = True
 
-    syn_section: bs = None
     logger.debug('fetching Synonyme section')
     if soup.name == 'div':
         syn_section = soup
     else:
         syn_section = soup.find('div', id="andere-woerter")
-    
-    if not syn_section:
-        raise RuntimeError('synonymes section not Found in Duden')
 
     xerox_elements = [x for x in syn_section.contents if x.name == 'div']
 
@@ -433,6 +431,36 @@ def recursively_extract(node, exfun, maxdepth=2):
                 for li in li_list.find_all('li', recursive=False)]
     return exfun(node)
 
+def wrap_text_in_tag_with_attr(text, tag_name, attr_name, attr_value):
+    return f'<{tag_name} {attr_name}="{attr_value}">{text}</{tag_name}>'
+
+def parse_anki_attribute(text):
+    '''
+    "this is an example" -> "this is an example", None
+    "this <b>is</b> an example" -> "this <b>is</b> an example", None
+    "<span data-anki-note-id='123'>this <b>is</b> an example</span>" -> "this <b>is</b> an example", "123"
+    "<style color="F054525" data-anki-note-id='123'>this <b>is</b> an example</style>" -> "this <b>is</b> an example", "123"
+    '''
+    
+    soup = bs(text, 'html.parser')
+
+    # check if the text is have already the data-anki-note-id attribute
+    elements_with_attr = soup.find(lambda tag: tag.has_attr('data-anki-note-id'))
+    if not elements_with_attr:
+        return text, None, False
+
+    # get the data-anki-note-id value
+    note_id = elements_with_attr['data-anki-note-id']
+    note_id = int(note_id)
+
+    # extract the contents of the tag containing data-* attribute and convert them to string
+    contents = elements_with_attr.contents
+    inner_text = ''.join([str(content) for content in contents])
+
+    already_in_anki = True
+    
+    return inner_text, note_id, already_in_anki
+
 # def search(word, exact=True, return_words=True):
 #     """
 #     Search for a word 'word' in duden
@@ -455,3 +483,55 @@ def recursively_extract(node, exfun, maxdepth=2):
 #         return [get(urlname) for urlname in urlnames]
 #     else:
 #         return urlnames
+
+
+def format_html(text: str, operation) -> str:
+    if text.startswith('<s') and operation == 'discard':
+        return text
+    
+    if text.startswith('<s') and operation == 'bookmark':
+        text = remove_html_wrapping(text, unwrap= 'red_strikthrough')
+        text = wrap_html(text, style='lime')
+        return text
+    
+    if text.startswith('<font') and operation == 'discard':
+        text = remove_html_wrapping(text, unwrap= 'lime')
+        text = wrap_html(text, style='red_strikthrough')
+        return text
+    
+    if text.startswith('<font') and operation == 'bookmark':
+        return text
+    
+    if operation == 'discard':
+        text = wrap_html(text, style='red_strikthrough')
+        return text
+    
+    if operation == 'bookmark':
+        text = wrap_html(text, style='lime')
+        return text
+    
+    raise RuntimeError(f'wrap to {operation} not executed')
+
+def wrap_html(text: str, style :str) -> str:
+    if style == 'red_strikthrough':
+        text=wrap_text_in_tag_with_attr(text=text, tag_name='s', attr_name='style', attr_value='color:Tomato')
+        # text=f'<s style="color:Tomato;">{text}</s>'
+        return text
+    
+    if style == 'lime':
+        text=f'<font color="Lime">{text}</font>'
+        return text
+    
+    raise RuntimeError(f'wrap to {style} not executed')
+
+def remove_html_wrapping(text: str, unwrap: str) -> str:
+    if not text.startswith('<s'):
+        return text
+        
+    if unwrap == 'red_strikthrough':
+        return text.replace('<s style="color:Tomato">','').replace('</s>', '') 
+    if unwrap == 'lime':
+        # BUG (2) ken fama deja font fi dict original yetna7a rodbelek
+        return text.replace('<font color="Lime">','').replace('</font>', '')
+        # text.replace("<font style='color:Lime'>",'').replace('</font>', '')
+    raise RuntimeError(f'unwrapping {unwrap} not executed')

@@ -9,6 +9,7 @@ sys.modules['PyQt6'] = None # prevent aqt from using PyQt6 to avoid names confli
 from aqt.profiles import ProfileManager
 
 # TODO (2) baddel el echos lkol lenna des notifications w logger
+# https://addon-docs.ankiweb.net/the-anki-module.html
 
 class Anki:
     """My Anki collection wrapper class."""
@@ -63,6 +64,9 @@ class Anki:
             raise click.Abort() from error
         except anki.errors.DBError as error:
             click.echo('Database is NA/locked!')
+            notification.notify(title='Database is locked!',
+                        message=f'Anki already open, or media currently syncing. please close Anki and try again".',
+                        timeout=10)
             raise click.Abort() from error
 
         # Restore CWD (because Anki changes it)
@@ -98,12 +102,7 @@ class Anki:
         self.col.models.set_current(model)
         return model
 
-    def add_notes_single(self, note_content, tags='', model=None, deck=None, overwrite_notes=False, note_id=None):
-        # TODO (0)* add card ID to word_dict to be able to replace it after a change without resetting review data
-        # note = self.col.get_note(1672861066580) (vorladen)
-        # from Note.__init__:
-        # if model and id:
-        #    raise Exception("only model or id should be provided")
+    def add_anki_note(self, note_content, tags='', model=None, deck=None, overwrite_notes=False):
         """Add new note to collection"""
         if model is not None:
             self.set_model(model)
@@ -127,13 +126,18 @@ class Anki:
         for tag in tags:
             note.add_tag(tag)
 
-        note_id = 0
+        note_id = None
+        # NORMAL: NoteFieldsCheckResponse.State.ValueType  # 0
+        # EMPTY: NoteFieldsCheckResponse.State.ValueType  # 1
+        # DUPLICATE: NoteFieldsCheckResponse.State.ValueType  # 2
+        # MISSING_CLOZE: NoteFieldsCheckResponse.State.ValueType  # 3
+        # NOTETYPE_NOT_CLOZE: NoteFieldsCheckResponse.State.ValueType  # 4
+        # FIELD_NOT_CLOZE: NoteFieldsCheckResponse.State.ValueType  # 5
         if not note.dupeOrEmpty():
             self.col.addNote(note)
             notification.notify(title='Anki: Note added.',
                         message=f'Front: "{list(fields)[0]}".',
                         timeout=10)
-            # TODO save note_id in word_dict to be able to update note later after changes
             note_id = note.id
             self.modified = True
         elif note.dupeOrEmpty() ==1:
@@ -144,17 +148,23 @@ class Anki:
                         message=f'Front "{list(fields)[0]}" is empty. note was not added!',
                         timeout=10)
         elif note.dupeOrEmpty() ==2:
-            if overwrite_notes:
-                # TODO (1) add ability to only change note contents without changing review time and meta-informations
-                self.col.addNote(note)
-                self.modified = True
-            else:
-                click.secho('Dupe detected, note was not added!', fg='red')
-                click.echo('Question:')
-                click.echo(list(fields)[0])
-                notification.notify(title='Anki Dupe detected.',
-                            message=f'Front {list(fields)[0]} already exist. note was not added!',
-                            timeout=10)
+            # for notes that are already in anki but doesn't have an anki-note-id, 
+            # that's why we're here and we have to fix that
+            note_ids = self.col.find_notes(f'Text:"{fields[0]}"')
+            assert len(note_ids) == 1, f'more than one note found with Text:"{fields[0]}"'
+            note.id = note_ids[0]
+            self.col.update_note(note)
+            self.modified = True
+            note_id = note.id
+            notification.notify(title='Anki: Note updated.',
+                    message=f'Front: "{list(fields)[0]}".',
+                    timeout=10)
+            click.secho('Dupe detected, got note id, note and word_dict got updated!', fg='red')
+            click.echo('Question:')
+            click.echo(list(fields)[0])
+            notification.notify(title='Anki Dupe detected.',
+                        message=f'Front {list(fields)[0]} already exist. we got note id, note and word_dict got updated.',
+                        timeout=10)
         else:
             click.secho('Invalid Note, note was not added!', fg='red')
             click.echo('Question:')
@@ -162,8 +172,56 @@ class Anki:
             notification.notify(title='Anki: Invalid Note.',
                         message=f'Front {list(fields)[0]} is invalid. note was not added!',
                         timeout=10)
-
         return note_id
+    
+    def update_anki_note(self, note_content: dict, note_id: int, tags='', model=None):
+        # DONE (1) add ability to only change note contents without changing review time and meta-informations
+        # DONE (0)* add card ID to word_dict to be able to replace it after a change without resetting review data
+        """update an already existing note"""
+        if model is not None:
+            self.set_model(model)
+
+        note = self.col.get_note(note_id)
+
+        fields = [
+            note_content['cloze'],
+            note_content['hint1'],
+            note_content['hint2'],
+            note_content['hint3'],
+            note_content['answer_extra']
+            ]
+        note.fields = [plain_to_html(x) for x in fields]
+
+        tags = tags.strip().split()
+        for tag in tags:
+            note.add_tag(tag)
+
+        if not note.dupeOrEmpty():
+            self.col.update_note(note)
+            notification.notify(title='Anki: Note Updated.',
+                        message=f'Front: "{list(fields)[0]}".',
+                        timeout=10)
+            note_id = note.id
+            self.modified = True
+        elif note.dupeOrEmpty() ==1:
+            click.secho('Empty, note was not added!', fg='red')
+            click.echo('Question:')
+            click.echo(list(fields)[0])
+            notification.notify(title='Anki: Empty Note.',
+                        message=f'Front "{list(fields)[0]}" is empty. note was not added!',
+                        timeout=10)
+        elif note.dupeOrEmpty() ==2:
+            notification.notify(title='Anki Dupe detected.',
+                        message=f'Front {list(fields)[0]} already exist. note was updated!',
+                        timeout=10)
+            raise RuntimeError("note dupe detected though we're trying to update it")
+        else:
+            click.secho('Invalid Note, note was not added!', fg='red')
+            click.echo('Question:')
+            click.echo(list(fields)[0])
+            notification.notify(title='Anki: Invalid Note.',
+                        message=f'Front {list(fields)[0]} is invalid. note was not added!',
+                        timeout=10)
 
 
     def sync(self):
@@ -250,7 +308,7 @@ def plain_to_html(plain):
 
 if __name__ == "__main__":
     # for testing
-    from settings import ANKI_CONFIG
-    with Anki(**ANKI_CONFIG) as a:
-        a.add_notes_single(['a8', 'b8'], tags='', model=None, deck=None)
+    # from settings import ANKI_CONFIG
+    # with Anki(**ANKI_CONFIG) as a:
+    #     a.add_notes_single(['a8', 'b8'], tags='', model=None, deck=None)
     print('done')
