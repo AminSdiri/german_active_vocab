@@ -24,7 +24,7 @@ logger = set_up_logger(__name__)
 # DONE (0)* create word_dict class that inherit form dict and have all dict operations
 # DONE (0) rename word_dict to word_dict
 # TODO (1) add ability to delete and modify custom examples from DictView
-# TODO (0) gray out force hide button if no word is selected in TextView
+# DONE (0) gray out force hide button if no word is selected in TextView
 # TODO (0) replace (umgangssprachlich) in duden_syn with umg with pons styling or group them like duden?
 
 

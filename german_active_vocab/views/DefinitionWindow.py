@@ -51,6 +51,10 @@ class DefinitionWindow(QWidget):
         self.txt_cont.move(5, 5)
         self.txt_cont.resize(690, 545)
         self.txt_cont.setReadOnly(True)
+        self.txt_cont.selectionChanged.connect(
+            lambda: self.force_hide_button.setEnabled(
+                self.txt_cont.textCursor().selectedText() != "")
+                    )
 
         self.save_to_stud = QCheckBox('Studium', self)
         self.save_to_stud.move(5, 645)
@@ -61,9 +65,10 @@ class DefinitionWindow(QWidget):
         self.return_button.move(105, 645)
         self.return_button.resize(80, 30)
 
-        self.force_hide_button = QPushButton('Force Hide', self)
+        self.force_hide_button = QPushButton('Force Hide', self, enabled=False)
         self.force_hide_button.move(200, 645)
         self.force_hide_button.resize(90, 30)
+        self.force_hide_button.setToolTip("Maually add selected word to words to learn if it's not automaticly recognized as a flexion (not colorized).")
 
         self.add_example_button = QPushButton('Add', self, enabled=False)
         self.add_example_button.move(300, 645)
