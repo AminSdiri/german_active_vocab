@@ -74,9 +74,11 @@ def standart_dict(word_query,
                                                 translate_fr='fr' in source,
                                                 ignore_cache=ignore_cache)
 
+            # schnappen en ta3tik erreur puisque fama content_de ama translate_en
             if _pons_json:
                 if len(_pons_json) == 1:
-                    lang = _pons_json[0]["lang"]
+                    # lang = _pons_json[0]["lang"] # schnappen en ta3tik erreur puisque fama content_de ama translate_en
+                    lang = source.replace('translate_', '')
                     word_dict.update({
                         'requested' : source,
                         f'content_{lang}': construct_dict_content_from_json(_pons_json[0]["hits"],
