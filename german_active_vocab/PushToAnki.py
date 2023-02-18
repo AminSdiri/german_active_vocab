@@ -150,8 +150,8 @@ class Anki:
         elif note.dupeOrEmpty() ==2:
             # for notes that are already in anki but doesn't have an anki-note-id, 
             # that's why we're here and we have to fix that
-            note_ids = self.col.find_notes(f'Text:"{fields[0]}"')
-            assert len(note_ids) == 1, f'more than one note found with Text:"{fields[0]}"'
+            note_ids = self.col.find_notes(f'Text:"{note.fields[0]}"')
+            assert len(note_ids) == 1, f'no notes or more than one note found with Text:"{note.fields[0]}"'
             note.id = note_ids[0]
             self.col.update_note(note)
             self.modified = True
@@ -162,7 +162,7 @@ class Anki:
             click.secho('Dupe detected, got note id, note and word_dict got updated!', fg='red')
             click.echo('Question:')
             click.echo(list(fields)[0])
-            notification.notify(title='Anki Dupe detected.',
+            notification.notify(title='Anki Dupe detected and updated.',
                         message=f'Front {list(fields)[0]} already exist. we got note id, note and word_dict got updated.',
                         timeout=10)
         else:
