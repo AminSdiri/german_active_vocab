@@ -86,7 +86,7 @@ def construct_dict_content_from_json(json_data, search_word: str, translate: boo
                  arab_level_dict) = _populate_rom_and_arab_levels(arab_level_json["headword_full"],
                                                                   rom_level_dict, arab_level_dict)
 
-                arab_level_dict['def_blocks'] = populate_def_blocks(translate, arab_level_json["arabs"])
+                arab_level_dict['def_blocks'] = _populate_def_blocks(translate, arab_level_json["arabs"])
 
         elif "source" in rom_level_json:
             gra_was_in_block = False
@@ -132,14 +132,14 @@ def construct_dict_content_from_json(json_data, search_word: str, translate: boo
 
     return dict_content
 
-def populate_def_blocks(translate: bool, json_definition_blocks: list[dict]) -> list[dict[str, Any]]:
+def _populate_def_blocks(translate: bool, json_definition_blocks: list[dict]) -> list[dict[str, Any]]:
     def_blocks = []
     def_idx = 0
     for json_definition_block in json_definition_blocks:
         def_blocks.append({})
         def_block_dict = def_blocks[def_idx]
 
-        def_block_dict, skip = clean_up_header_number(def_block_dict, block_number=json_definition_block["header"])
+        def_block_dict, skip = _clean_up_header_number(def_block_dict, block_number=json_definition_block["header"])
         if skip:
             continue
 
@@ -180,7 +180,7 @@ def populate_def_blocks(translate: bool, json_definition_blocks: list[dict]) -> 
         def_idx += 1
     return def_blocks
 
-def clean_up_header_number(def_block_dict: dict[str, Any], block_number: str) -> tuple[dict[str, Any], bool]:
+def _clean_up_header_number(def_block_dict: dict[str, Any], block_number: str) -> tuple[dict[str, Any], bool]:
     '''header_number sometime contains other elements (style..)
         putting those in sibling entries'''
     
