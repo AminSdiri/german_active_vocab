@@ -96,6 +96,23 @@ def sanitize_word(word: str) -> str:
     return "".join(sanitize_char(char) for char in word)
 
 
+def replace_umlauts_1(word: str) -> str:
+    # temporary
+    """for duden links
+
+    Args:
+        word (str): [description]
+
+    Returns:
+        [str]: strings without Umlaut
+    """
+    normalized_word = word.replace("ü", "ue")\
+                        .replace("ö", "oe")\
+                        .replace("ä", "ae")\
+                        .replace("ß", "ss")
+    return normalized_word
+
+
 def replace_umlauts_2(word: str) -> str:
     """for duden links
 
@@ -257,51 +274,3 @@ def write_str_to_file(path: Path, content: str, overwrite=False, notification_li
     #     # notify
     #     pass
 
-def format_html(text: str, operation) -> str:
-    if text.startswith('<s') and operation == 'discard':
-        return text
-    
-    if text.startswith('<s') and operation == 'bookmark':
-        text = remove_html_wrapping(text, unwrap= 'red_strikthrough')
-        text = wrap_html(text, style='lime')
-        return text
-    
-    if text.startswith('<font') and operation == 'discard':
-        text = remove_html_wrapping(text, unwrap= 'lime')
-        text = wrap_html(text, style='red_strikthrough')
-        return text
-    
-    if text.startswith('<font') and operation == 'bookmark':
-        return text
-    
-    if operation == 'discard':
-        text = wrap_html(text, style='red_strikthrough')
-        return text
-    
-    if operation == 'bookmark':
-        text = wrap_html(text, style='lime')
-        return text
-    
-    raise RuntimeError(f'wrap to {operation} not executed')
-
-def wrap_html(text: str, style :str) -> str:
-    if style == 'red_strikthrough':
-        text=f'<s style="color:Tomato;">{text}</s>'
-        return text
-    
-    if style == 'lime':
-        text=f'<font color="Lime">{text}</font>'
-        return text
-    
-    raise RuntimeError(f'wrap to {style} not executed')
-
-def remove_html_wrapping(text: str, unwrap: str) -> str:
-    if not text.startswith('<s'):
-        return text
-        
-    if unwrap == 'red_strikthrough':
-        return text.replace('<s style="color:Tomato;">','').replace('</s>', '') 
-    if unwrap == 'lime':
-        # BUG (2) ken fama deja font fi dict original yetna7a rodbelek
-        return text.replace('<font color="Lime">','').replace('</font>', '')
-    raise RuntimeError(f'unwrapping {unwrap} not executed')
