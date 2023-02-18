@@ -25,8 +25,6 @@ def get_duden_soup(word, filename, ignore_cache, duden_source):
     # https://www.duden.de/rechtschreibung/Schleife_Schlinge_Kurve_Schlaufe 
     
     logger.debug('Looking in Duden cache')
-    filename = filename if '_du' in filename else f'{filename}_du'
-    filename = f'{filename}_syn' if duden_source == 'synonymes' else filename
     cache_path = DICT_DATA_PATH / 'cache' / filename
     duden_html, duden_cache_found = get_cache(cache_path)
 
