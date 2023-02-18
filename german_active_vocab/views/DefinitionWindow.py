@@ -6,16 +6,17 @@ from PyQt5.QtWidgets import (QPushButton, QWidget, QLineEdit, QTextEdit, QCheckB
 from PyQt5.QtGui import (QTextCharFormat,
                          QTextCursor,
                          QColor)
-from SavingToQuiz import quizify_and_save
+from SavingToQuiz import check_for_hidden_words_presence_in_custom_examples, quizify_and_save
 from EditDictModelView import DictEditorWidget, TreeModel
-from utils import remove_html_wrapping, set_up_logger, format_html
+from GetDict.ParsingSoup import format_html, remove_html_wrapping, wrap_text_in_tag_with_attr
+from utils import set_up_logger
 from settings import (DICT_DATA_PATH,
                       NORMAL_FONT)
 
 logger = set_up_logger(__name__)
 
-# plemplem, herumwirbeln 3tatek error
-
+# BUG (0) can't change dict content for herumwirbeln du
+# TODO (1) add radio button to switch between duden and pons
 # TODO (1) separate Def-Obj Model operations from View 
 # custom example li savitou mel pons dict zeda mawjoud fel kelma me duden (prolet).
 # 7aja zaboura 3alekher ama fama risque mta3 conflit
@@ -60,9 +61,14 @@ class DefinitionWindow(QWidget):
         self.return_button.move(105, 645)
         self.return_button.resize(80, 30)
 
-        self.highlight_button = QPushButton('Force Hide', self)
-        self.highlight_button.move(250, 645)
-        self.highlight_button.resize(90, 30)
+        self.force_hide_button = QPushButton('Force Hide', self)
+        self.force_hide_button.move(200, 645)
+        self.force_hide_button.resize(90, 30)
+
+        self.add_example_button = QPushButton('Add', self, enabled=False)
+        self.add_example_button.move(300, 645)
+        self.add_example_button.resize(80, 30)
+        self.add_example_button.setToolTip("Add your examples to the word dictionnary")
 
         self.anki_button = QPushButton('Anki', self)
         self.anki_button.move(390, 645)
@@ -82,6 +88,8 @@ class DefinitionWindow(QWidget):
         self.beispiel.resize(690, 40)
         self.beispiel.setPlaceholderText("Sie können hier Ihr eigenes Beispiel mit dem neuen Wort eingeben, um es zu behalten.")
         self.beispiel.setToolTip("We learn best by real world associations => Tip: The best example is the sentence that incited you to look up the word.")
+        # enable add_example button only if a custom example is provided
+        self.beispiel.textChanged[str].connect(lambda: self.add_example_button.setEnabled(self.beispiel.text() != ""))
         
         self.beispiel2 = QLineEdit(self)
         self.beispiel2.move(5, 600)
@@ -107,15 +115,16 @@ class DefinitionWindow(QWidget):
 
     def construct_model(self, def_obj):
         self.def_obj = def_obj
-        dict_content = def_obj.dict_dict.get_dict_content()
+        dict_content = def_obj.word_dict.get_dict_content()
         self.model = TreeModel(headers=["Type", "Content"],
                                data=dict_content)
         self.model.dataChanged.connect(self.refresh_dict)
         self.dict_tree_view.setModel(self.model)
 
     def def_window_connect_buttons(self):
-        self.highlight_button.clicked.connect(self.force_hide)
-        self.anki_button.clicked.connect(self.send_to_anki)
+        self.add_example_button.clicked.connect(self.add_example)
+        self.force_hide_button.clicked.connect(self.force_hide)
+        self.anki_button.clicked.connect(self.send_examples_to_anki)
         self.save_button.clicked.connect(self.save_definition)
         self.edit_button.clicked.connect(self.expend_window_to_edit_dict)
         self.discard_button.clicked.connect(lambda: self.format_selection(operation='discard'))
@@ -129,6 +138,25 @@ class DefinitionWindow(QWidget):
             self._end_test = False
             self.return_button.clicked.connect(self.parent().return_clicked)
 
+    def add_example(self):
+        _, german_phrase, english_translation, _ = self.get_def_window_content()
+        # lenna add, lezemha tchouf machen fama fel example walle
+        self.def_obj.word_dict = self.def_obj.word_dict.append_new_examples_in_word_dict(german_phrase, english_translation)
+        # check if one of the words will get hidden in the custom german examples -> otherwise ask the user manually to select it
+        # DONE (-1) kamel 3al old custom examples
+        if 'custom_examples' in self:
+            all_word_variants, _ = self.get_all_hidden_words()
+            faulty_examples = check_for_hidden_words_presence_in_custom_examples(examples=self['custom_examples']['german'],
+                                                                                            hidden_words=all_word_variants)
+        self.beispiel.clear()
+        self.beispiel2.clear()
+        # TODO save here automaticly or by hitting the save button?
+
+        if faulty_examples:
+            self.launch_no_hidden_words_in_beispiel_de_dialog(faulty_examples)
+
+        self.update_text_view()        
+
     def format_selection(self, operation: str) -> None:
         for index in self.dict_tree_view.selectedIndexes():
             if not index.data() or not index.column():
@@ -136,30 +164,34 @@ class DefinitionWindow(QWidget):
                 continue
             print(f'formatting {index.data()}')
             text, address = self.model.get_dict_address(index)
-            text = format_html(text, operation)
             # add to anki
             if operation == 'bookmark':
                 # create a simple dict that holds the def block
-                bookmarked_def_block = self.def_obj.dict_dict.get_block_from_address(address)
-                self.def_obj.ankify(def_block=bookmarked_def_block)
+                bookmarked_def_block = self.def_obj.word_dict.get_block_from_address(address)
+                note_id, already_in_anki = self.def_obj.ankify_def_block_example(def_block=bookmarked_def_block)
+                # add anki id if note is not already in anki
+                if not already_in_anki:
+                    text = wrap_text_in_tag_with_attr(text=text, tag_name='span', attr_name='data-anki-note-id', attr_value=note_id)
                 
-            self.def_obj.dict_dict.update_dict(text, address)
+            text = format_html(text, operation)
+            self.def_obj.word_dict.update_dict(text, address)
 
             # update_model
             self.model.setData(index, text)
             # self.model.dataChanged.emit(index, index) # signal already emmited in setData 
+        self.def_obj.word_dict.save_word_dict()
         self.update_text_view()
 
     def restore_discarded(self) -> None:
         operation = lambda elem: remove_html_wrapping(elem, unwrap='red_strikthrough')
-        self.def_obj.dict_dict.recursivly_operate_on_last_lvl(operation)
+        self.def_obj.word_dict.recursivly_operate_on_last_lvl(operation)
 
         # update whole model
         # NOT WORKING
         # self.dict_tree_view.hide()
         # self.model.beginResetModel()
         # headers = ["Type", "Content"]
-        # self.model = TreeModel(headers, self.def_obj.dict_dict['content'])
+        # self.model = TreeModel(headers, self.def_obj.word_dict['content'])
         # self.model.dataChanged.emit(QModelIndex(), QModelIndex())
         # self.model.endResetModel()
         # self.dict_tree_view.show()
@@ -170,7 +202,7 @@ class DefinitionWindow(QWidget):
         self.dict_tree_view.deleteLater() # lets Qt knows it needs to delete this widget from the GUI
         
         headers = ["Type", "Content"]
-        dict_content = self.def_obj.dict_dict.get_dict_content()
+        dict_content = self.def_obj.word_dict.get_dict_content()
         self.model = TreeModel(headers=headers,
                                data=dict_content)
         
@@ -185,7 +217,7 @@ class DefinitionWindow(QWidget):
 
     def refresh_dict(self, index) -> None:
         text, address = self.model.get_dict_address(index)
-        self.def_obj.dict_dict.update_dict(text, address)
+        self.def_obj.word_dict.update_dict(text, address)
 
     def update_text_view(self) -> None:
         defined_html = self.def_obj.re_render_html()
@@ -218,11 +250,9 @@ class DefinitionWindow(QWidget):
         color_format.setForeground(color)
         self.txt_cont.textCursor().mergeCharFormat(color_format)
 
-    def send_to_anki(self) -> None:
+    def send_examples_to_anki(self) -> None:
 
-        _, german_phrase, english_translation, _ = self.get_def_window_content()
-
-        self.def_obj.ankify(german_phrase, english_translation)
+        self.def_obj.ankify_custom_examples()
 
     def save_definition(self) -> None:
         logger.info("save_definition")
@@ -230,12 +260,11 @@ class DefinitionWindow(QWidget):
         # Force hide is the only button function we need now
         # self.switch_highlight_button_action(new_action='highlight')
 
-        custom_html_from_qt, beispiel_de, beispiel_en, tag = self.get_def_window_content()
+        _, beispiel_de, beispiel_en, tag = self.get_def_window_content()
 
         faulty_examples = quizify_and_save(dict_data_path=DICT_DATA_PATH,
-                                            dict_dict=self.def_obj.dict_dict,
-                                            dict_saving_word=self.def_obj.word_query.dict_saving_word,
-                                            qt_html_content=custom_html_from_qt,
+                                            word_dict=self.def_obj.word_dict,
+                                            saving_word=self.def_obj.word_query.saving_word,
                                             beispiel_de=beispiel_de,
                                             beispiel_en=beispiel_en,
                                             tag=tag)
