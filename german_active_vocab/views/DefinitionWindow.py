@@ -16,10 +16,9 @@ from settings import (DICT_DATA_PATH,
 logger = set_up_logger(__name__)
 
 # BUG (0) can't change dict content for herumwirbeln du
-# TODO (1) add radio button to switch between duden and pons
+# TODO (0)* add radio button to switch between duden and pons
+# DONE (0) make text of radio button grey if dict_content is empty and white if it's full
 # TODO (1) separate Def-Obj Model operations from View 
-# custom example li savitou mel pons dict zeda mawjoud fel kelma me duden (prolet).
-# 7aja zaboura 3alekher ama fama risque mta3 conflit
 
 # DONE add deleted and focused Properties from TreeModel, update TextView 
 # DONE delete an element should hide all of it's children -> select an element should select all of it's children

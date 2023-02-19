@@ -382,52 +382,59 @@ def get_wordclass_from_soup(soup: bs) -> str:
 
 
 def create_synonyms_list(soup: bs) -> list[list[str]]:
+    if not soup:
+        return []
+    
     logger.info("create_synonyms_list")
     # approximate = True
 
-    logger.debug('fetching Synonyme section')
-    if soup.name == 'div':
-        syn_section = soup
-    else:
-        syn_section = soup.find('div', id="andere-woerter")
+    try:
+        logger.debug('fetching Synonyme section')
+        if soup.name == 'div':
+            syn_section = soup
+        else:
+            syn_section = soup.find('div', id="andere-woerter")
 
-    xerox_elements = [x for x in syn_section.contents if x.name == 'div']
+        xerox_elements = [x for x in syn_section.contents if x.name == 'div']
 
-    syn_list_of_lists: list[list[str]] = []
+        syn_list_of_lists: list[list[str]] = []
 
-    for xerox_element in xerox_elements:
-        if xerox_element['class'][0] == 'xerox':
-            syn_list: list[str] = []
-            usage: str = ''
-            for xerox_group in xerox_element.contents:
-                if xerox_group.name == 'ul':
-                    syn_sublist = xerox_group.find_all('li')
-                    syn_sublist = [syn_elem.text for syn_elem in syn_sublist]
-                    if usage:
-                        syn_sublist = [
-                            f'{syn} ({usage})' for syn in syn_sublist]
-                    syn_list += syn_sublist
-                elif xerox_group.name == 'h3':
-                    usage = xerox_group.text
-        syn_list_of_lists.append(syn_list)
+        for xerox_element in xerox_elements:
+            if xerox_element['class'][0] == 'xerox':
+                syn_list: list[str] = []
+                usage: str = ''
+                for xerox_group in xerox_element.contents:
+                    if xerox_group.name == 'ul':
+                        syn_sublist = xerox_group.find_all('li')
+                        syn_sublist = [syn_elem.text for syn_elem in syn_sublist]
+                        if usage:
+                            syn_sublist = [f'{syn} <acronym title="usage">{usage}</acronym>' for syn in syn_sublist]
+                        syn_list += syn_sublist
+                    elif xerox_group.name == 'h3':
+                        usage = xerox_group.text
+                        usage = usage.replace('umgangssprachlich', 'umg')\
+                                     .replace('landschaftlich', 'land')
+            syn_list_of_lists.append(syn_list)
 
-    # section = copy.copy(section)
-    # if section.header:
-    #     section.header.extract()
-    #     return recursively_extract(section, maxdepth=2,
-    #                                exfun=lambda x: x.text.strip())
-
+        # section = copy.copy(section)
+        # if section.header:
+        #     section.header.extract()
+        #     return recursively_extract(section, maxdepth=2,
+        #                                exfun=lambda x: x.text.strip())
+    except TypeError:
+        raise TypeError('Type Error in create_synonyms_list >> Check it!')
+    
     return syn_list_of_lists
 
 
-def recursively_extract(node, exfun, maxdepth=2):
+def _recursively_extract(node, exfun, maxdepth=2):
     logger.debug("recursively_extract")
     if node.name in ['ol', 'ul']:
         li_list = node
     else:
         li_list = node.ol or node.ul
     if li_list and maxdepth:
-        return [recursively_extract(li, exfun, maxdepth=(maxdepth - 1))
+        return [_recursively_extract(li, exfun, maxdepth=(maxdepth - 1))
                 for li in li_list.find_all('li', recursive=False)]
     return exfun(node)
 

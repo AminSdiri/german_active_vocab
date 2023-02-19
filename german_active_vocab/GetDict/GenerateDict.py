@@ -141,7 +141,7 @@ def standart_dict(word_query,
                                                         value=construct_dict_content_from_soup(duden_soup))
             word_dict = _update_dict_without_overwriting(word_dict,
                                                         key='synonymes',
-                                                        value=_add_synonymes_from_duden(duden_syn_soup))
+                                                        value= create_synonyms_list(duden_syn_soup))
             word_dict = _update_dict_without_overwriting(word_dict,
                                                         key='word_freq',
                                                         value=get_word_freq_from_soup(duden_soup))
@@ -286,17 +286,6 @@ def standart_dict(word_query,
                             
         return message_box_dict
 
-    def _add_synonymes_from_duden(_duden_syn_soup) -> list[list[str]]:
-        if not _duden_syn_soup:
-            return []
-
-        try:
-            synonyms_list = create_synonyms_list(_duden_syn_soup)
-            return synonyms_list
-        except TypeError:
-            # logger.warning('Type Error in create_synonyms_list >> Check it!')
-            raise TypeError('Type Error in create_synonyms_list >> Check it!')
-
     dict_exist = False
     # if not ignore_dict:
     dict_cache_found, _error_reading_json, word_dict = _read_dict_from_file(word_query.saving_word)
@@ -309,7 +298,8 @@ def standart_dict(word_query,
     dict_exist = dict_cache_found and not _error_reading_json
     if dict_exist and 'search_word' not in word_dict: # temporary
         word_dict['search_word'] = word_query.search_word
-    
+
+    update_synonymes_format(word_dict)
 
     if not dict_exist:
         word_dict = _create_empty_dict(word_query.search_word)
@@ -375,6 +365,16 @@ def standart_dict(word_query,
                                 source='pons')
     _update_files(word_dict, word_query.saving_word, replace_umlauts_1(word_query.search_word))
     return word_dict
+
+def update_synonymes_format(word_dict):
+    # temporary, update synonymes format, delete after all word_dicts are modified after 19.02.23
+    # BUG (0) saugen w blasen 3tawek des erreur lenna bel du w blech
+    word_dict['synonymes'] = [
+        [syn.replace('(', '<acronym title="usage">')\
+            .replace(')', '</acronym>')\
+            .replace('umgangssprachlich', 'umg')\
+            .replace('landschaftlich', 'land')
+                for syn in syn_sublist] for syn_sublist in word_dict['synonymes']]
 
 def create_dict_for_manually_added_words() -> dict[str, Any]:
     # dict is not built -> word not found anywhere but html "written" manually
