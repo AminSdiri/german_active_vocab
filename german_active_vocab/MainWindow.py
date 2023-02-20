@@ -102,8 +102,8 @@ class MainWindow(QMainWindow):
         self.def_window = DefinitionWindow(def_obj=def_obj,
                                            parent=self)
 
-        self.def_window.construct_model(def_obj)  # TODO shouldn be here if you're using def_obj in DefinitionWiDow
-        self.def_window.fill_def_window(def_obj) # BUG (0) thabet fel unpacking thaherli mayhemouch esm el variable
+        self.def_window.construct_model()
+        self.def_window.fill_def_window() # BUG (0) thabet fel unpacking thaherli mayhemouch esm el variable
         self.set_window_properties(title="Wörterbuch",
                                    central_widget=self.def_window,
                                    frameless=False,

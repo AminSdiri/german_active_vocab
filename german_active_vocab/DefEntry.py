@@ -339,10 +339,10 @@ class DefEntry():
             self.word_dict['custom_examples']['german'] = []
             self.word_dict['custom_examples']['english'] = []
  
-        self.defined_html = render_html(word_dict=self.word_dict)
+        self.defined_html = self.render_html()
     
 
-    def re_render_html(self) -> str:
+    def render_html(self) -> str:
         self.defined_html = render_html(word_dict=self.word_dict)
         return self.defined_html
 

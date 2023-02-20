@@ -9,6 +9,7 @@ from PyQt5.QtGui import (QTextCharFormat,
 from SavingToQuiz import check_for_hidden_words_presence_in_custom_examples, quizify_and_save
 from EditDictModelView import DictEditorWidget, TreeModel
 from GetDict.ParsingSoup import format_html, remove_html_wrapping, wrap_text_in_tag_with_attr
+from views.ToggleButton import ToggleButton
 from utils import set_up_logger
 from settings import (DICT_DATA_PATH,
                       NORMAL_FONT)
@@ -55,19 +56,25 @@ class DefinitionWindow(QWidget):
                 self.txt_cont.textCursor().selectedText() != "")
                     )
 
-        self.save_to_stud = QCheckBox('Studium', self)
-        self.save_to_stud.move(5, 645)
-        
         # if code is being tested, the Return button have the "Pass Test" fonctionality
         # Do NOT load pytest anywhere outside test files for this to work
         self.return_button = QPushButton('Return' if "pytest" not in sys.modules else "Pass Test", self)
-        self.return_button.move(105, 645)
+        self.return_button.move(5, 645)
         self.return_button.resize(80, 30)
+
+        pons_color = '#02AF31'
+        duden_color ='#FFD500'
+        self.du_pons_switch = ToggleButton(parent=self,
+                                           hight=20,
+                                           bg_color=pons_color,
+                                           active_color=duden_color)
+        self.du_pons_switch.move(115, 650)
+        self.du_pons_switch.toggled.connect(self.change_requested)
 
         self.force_hide_button = QPushButton('Force Hide', self, enabled=False)
         self.force_hide_button.move(200, 645)
         self.force_hide_button.resize(90, 30)
-        self.force_hide_button.setToolTip("Maually add selected word to words to learn if it's not automaticly recognized as a flexion (not colorized).")
+        self.force_hide_button.setToolTip("Add selected word to words to learn if it's not automaticly recognized as a flexion (not colorized).")
 
         self.add_example_button = QPushButton('Add', self, enabled=False)
         self.add_example_button.move(300, 645)
@@ -117,13 +124,20 @@ class DefinitionWindow(QWidget):
 
         self.def_window_connect_buttons()
 
-    def construct_model(self, def_obj):
-        self.def_obj = def_obj
-        dict_content = def_obj.word_dict.get_dict_content()
+    def construct_model(self):
+        dict_content = self.def_obj.word_dict.get_dict_content()
         self.model = TreeModel(headers=["Type", "Content"],
                                data=dict_content)
         self.model.dataChanged.connect(self.refresh_dict)
         self.dict_tree_view.setModel(self.model)
+
+    def change_requested(self):
+        if self.du_pons_switch.isChecked():
+            self.def_obj.word_dict['requested'] = 'duden'
+        else:
+            self.def_obj.word_dict['requested'] = 'pons'
+        
+        self.refresh_all()
 
     def def_window_connect_buttons(self):
         self.add_example_button.clicked.connect(self.add_example)
@@ -190,6 +204,9 @@ class DefinitionWindow(QWidget):
         operation = lambda elem: remove_html_wrapping(elem, unwrap='red_strikthrough')
         self.def_obj.word_dict.recursivly_operate_on_last_lvl(operation)
 
+        self.refresh_all()
+
+    def refresh_all(self):
         # update whole model
         # NOT WORKING
         # self.dict_tree_view.hide()
@@ -202,13 +219,9 @@ class DefinitionWindow(QWidget):
         # self.dict_tree_view.update()
         # self.dict_tree_view.expandAll()
 
-        # TODO reuse construct_model method?
         self.dict_tree_view.deleteLater() # lets Qt knows it needs to delete this widget from the GUI
         
-        headers = ["Type", "Content"]
-        dict_content = self.def_obj.word_dict.get_dict_content()
-        self.model = TreeModel(headers=headers,
-                               data=dict_content)
+        self.construct_model()
         
         del self.dict_tree_view
         
@@ -224,9 +237,9 @@ class DefinitionWindow(QWidget):
         self.def_obj.word_dict.update_dict(text, address)
 
     def update_text_view(self) -> None:
-        defined_html = self.def_obj.re_render_html()
+        self.def_obj.defined_html = self.def_obj.render_html()
         self.txt_cont.clear()
-        self.txt_cont.insertHtml(defined_html)
+        self.txt_cont.insertHtml(self.def_obj.defined_html)
         self.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
         self.show()
 
@@ -235,16 +248,23 @@ class DefinitionWindow(QWidget):
         self.dict_tree_view.expandAll()
         self.dict_tree_view.show()
 
-    def fill_def_window(self, def_obj) -> None:
-        if def_obj.word_query.beispiel_de:
-            self.beispiel.insert(def_obj.word_query.beispiel_de)
+    def fill_def_window(self) -> None:
+        if self.def_obj.word_query.beispiel_de:
+            self.beispiel.insert(self.def_obj.word_query.beispiel_de)
 
-        if def_obj.word_query.beispiel_en:
-            self.beispiel2.insert(def_obj.word_query.beispiel_en)
+        if self.def_obj.word_query.beispiel_en:
+            self.beispiel2.insert(self.def_obj.word_query.beispiel_en)
 
         self.txt_cont.setFont(NORMAL_FONT)
-        self.txt_cont.insertHtml(def_obj.defined_html)
+        self.txt_cont.insertHtml(self.def_obj.defined_html)
         self.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
+
+        if self.def_obj.word_dict['requested'] == 'duden':
+            self.du_pons_switch.setChecked(True)
+        elif self.def_obj.word_dict['requested'] == 'pons':
+            self.du_pons_switch.setChecked(False)
+        else:
+            self.du_pons_switch.setEnabled(False)
 
     def highlight_selection(self) -> None:
         logger.info("highlight_selection")
