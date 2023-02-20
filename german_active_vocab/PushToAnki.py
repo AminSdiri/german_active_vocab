@@ -150,7 +150,9 @@ class Anki:
         elif note.dupeOrEmpty() ==2:
             # for notes that are already in anki but doesn't have an anki-note-id, 
             # that's why we're here and we have to fix that
-            note_ids = self.col.find_notes(f'Text:"{note.fields[0]}"')
+            note_front = note.fields[0].replace('"', r'\"') # if it contains double quotes
+            note_ids = self.col.find_notes(f'Text:"{note_front}"')
+            print(1)
             assert len(note_ids) == 1, f'no notes or more than one note found with Text:"{note.fields[0]}"'
             note.id = note_ids[0]
             self.col.update_note(note)
