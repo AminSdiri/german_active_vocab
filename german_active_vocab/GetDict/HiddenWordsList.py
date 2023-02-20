@@ -28,7 +28,8 @@ def generate_hidden_words_list(word_dict_content: list[dict[str,Any]]) -> list[d
         if wordclass == 'verb':
             word_variants = _get_verb_flexions(headword, flexions)
             secondary_words = {}
-        elif wordclass == 'noun' and genus:
+        elif wordclass == 'noun' and genus in ('der', 'die', 'das'): 
+            # in case of machen de-en genus is '<acronym title="feminine">f</acronym>' so we ignore it because we don't need it now
             # TODO (1) make it also work for duden (wortart: substantiv, maskulin), standarize dict structs
             word_variants, secondary_words = _get_noun_flexions(headword, flexions, genus)
         else:

@@ -369,6 +369,9 @@ def standart_dict(word_query,
 def update_synonymes_format(word_dict):
     # temporary, update synonymes format, delete after all word_dicts are modified after 19.02.23
     # BUG (0) saugen w blasen 3tawek des erreur lenna bel du w blech
+    if 'synonymes' not in word_dict:
+        return
+    
     word_dict['synonymes'] = [
         [syn.replace('(', '<acronym title="usage">')\
             .replace(')', '</acronym>')\
