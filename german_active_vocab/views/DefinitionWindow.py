@@ -17,7 +17,7 @@ from settings import (DICT_DATA_PATH,
 logger = set_up_logger(__name__)
 
 # BUG (0) can't change dict content for herumwirbeln du
-# TODO (0)* add radio button to switch between duden and pons
+# DONE (0)* add radio button to switch between duden and pons
 # DONE (0) make text of radio button grey if dict_content is empty and white if it's full
 # TODO (1) separate Def-Obj Model operations from View 
 
@@ -341,6 +341,7 @@ class DefinitionWindow(QWidget):
 
         self.update_text_view()
         
+        self.def_obj.word_dict.save_word_dict()
         notification.notify(title='Word added to hidden words',
                             message=selected_text2hide,
                             timeout=5)
@@ -351,7 +352,7 @@ class DefinitionWindow(QWidget):
         beispiel_de = beispiel_de.replace('- ', '– ')
         beispiel_en = beispiel_en.replace('- ', '– ')
         custom_html_from_qt = self.txt_cont.toHtml()
-        tag = 'Studium' if self.save_to_stud.isChecked() else ''
+        tag = ''
         return custom_html_from_qt, beispiel_de, beispiel_en, tag
 
 

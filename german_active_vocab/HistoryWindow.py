@@ -28,6 +28,7 @@ class WordlistWindow(QWidget):
         self.wordlist.move(5, 5)
 
     def fill_wordlist(self):
+        # TODO (3) we don't use htmls anymore, find another way
         files = (DICT_DATA_PATH / 'html').glob("*.html")
         files = list(files)
         files.sort(key=os.path.getmtime, reverse=True)
@@ -58,6 +59,7 @@ class HistoryWindow(QWidget):
         self.txt_cont.setReadOnly(True)
 
         self.history_entry = index if isinstance(index, str) else index.text()
+        # TODO (3) we don't use htmls anymore, find another way
         history_entry_path = DICT_DATA_PATH / 'html' / f'{self.history_entry}.html'
         text = read_str_from_file(history_entry_path)
 
@@ -73,6 +75,7 @@ class HistoryWindow(QWidget):
         logger.info("add_to_focus_from_history")
 
         word = self.history_entry.replace('.quiz', '')
+        # TODO (3) we don't use htmls anymore, find another way
         full_text, quiz_text = read_text_from_files(word)
 
         update_dataframe_file(word, quiz_text, full_text)
@@ -88,6 +91,7 @@ class HistoryWindow(QWidget):
 
         logger.debug(f'word2hide: {selected_text2hide}')
         self.txt_cont.clear()
+        # TODO (3) we don't use htmls anymore, find another way
         history_entry_path = DICT_DATA_PATH / 'html' / f'{self.history_entry}.html'
         text = read_str_from_file(history_entry_path)
         text = hide_text(text, selected_text2hide)

@@ -200,36 +200,6 @@ def update_dataframe_file(word, quiz_text, full_text) -> None:
                             timeout=2)
     logger.info(f'{word} switched to Focus Mode')
 
-def fix_html_with_custom_example(html_text: str) -> str:
-    # TODO (5) Vorübergehend, delete after all htmls are updated
-    # TODO (2) run in loop and then delete here
-    logger.info("fix_html_with_custom_example")
-
-    html_text = html_text.replace('</body></html><br><br>',
-                                  '<br><p style=" margin-top:12px; '
-                                  'margin-bottom:12px; margin-left:0px; '
-                                  'margin-right:0px; -qt-block-indent:0; '
-                                  'text-indent:0px;">')
-    if html_text[-4:] == '</i>':
-        html_text += '</p></body></html>'
-
-    return html_text
-
-def read_text_from_files(word: str) -> tuple[str, str]:
-    quiz_file_path = DICT_DATA_PATH / 'html' / f'{word}.quiz.html'
-    quiz_text = read_str_from_file(quiz_file_path)
-
-    full_file_path = DICT_DATA_PATH / 'html' / f'{word}.html'
-    full_text = read_str_from_file(full_file_path)
-
-    full_text = fix_html_with_custom_example(full_text)
-    write_str_to_file(full_file_path, full_text, overwrite=True)
-
-    quiz_text = fix_html_with_custom_example(quiz_text)
-    write_str_to_file(quiz_file_path, quiz_text, overwrite=True)
-
-    return full_text, quiz_text
-
 def read_str_from_file(path: Path) -> str:
     # word (path.stem) is sanitized before therefore not needed
     # path_str = sanitize_word(str(path))

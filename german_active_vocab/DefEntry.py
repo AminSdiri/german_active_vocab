@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 import json
+import os
 from pathlib import Path
 from datetime import datetime, timedelta
 from argparse import Namespace
@@ -26,7 +27,8 @@ logger = set_up_logger(__name__)
 # TODO (2) add ability to delete and modify custom examples from DictView
 # DONE (0) gray out force hide button if no word is selected in TextView
 # DONE (0) replace (umgangssprachlich) in duden_syn with umg with pons styling or group them like duden?
-
+# DONE (0)* loop over all html files and get rid of all html extraction related code.
+# html will be only rendered, not used to save informations.
 
 class WordDict(dict):
     def __init__(self, word_dict, saving_word):
@@ -130,12 +132,13 @@ class WordDict(dict):
         return synonymes
 
     def append_new_examples_in_word_dict(self, beispiel_de, beispiel_en):
-        _ = self._prevent_duplicating_examples()
+        if 'custom_examples' in self:
+            _ = self._prevent_duplicating_examples()
         if beispiel_de:
             if 'custom_examples' in self:
                 # update custom examples list in word_dict
-                if beispiel_de in self['custom_examples']['german']:
-                    # ignore if example already in word_dict
+                if any(beispiel_de in beispiele for beispiele in self['custom_examples']['german']):
+                    # ignore if example already in word_dict (may be wrapped in html tags)
                     return self
                 self['custom_examples']['german'].append(beispiel_de)
                 if not beispiel_en:
@@ -325,22 +328,14 @@ class DefEntry():
         
         self.word_dict = WordDict(word_dict, saving_word=self.word_query.saving_word)
 
-        # temporary, move custom examples from html to json
-        # TODO (0)* loop over all html files and get rid of all html extraction related code. htnl will be only rendered
-        german_examples, english_examples = extract_custom_examples_from_html(search_word=self.word_dict['search_word'],
-                                                                                    saving_word=self.word_query.saving_word,
-                                                                                    old_saving_word=replace_umlauts_1(self.word_query.search_word))
-        for german_example, english_example in zip_longest(german_examples, english_examples):
-            self.word_dict = self.word_dict.append_new_examples_in_word_dict(german_example, english_example)
-        
         # otherwise we'll get an error in rendering, move to better place after getting rid of html dependency
+        # TODO (2)
         if 'custom_examples' not in self.word_dict:
             self.word_dict['custom_examples'] = {}
             self.word_dict['custom_examples']['german'] = []
             self.word_dict['custom_examples']['english'] = []
- 
+
         self.defined_html = self.render_html()
-    
 
     def render_html(self) -> str:
         self.defined_html = render_html(word_dict=self.word_dict)

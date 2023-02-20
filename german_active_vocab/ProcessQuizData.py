@@ -31,19 +31,8 @@ class QuizEntry():
     def __post_init__(self):
         self.queue_quiz_word()
 
+        # TODO (3) we don't use htmls anymore, find another way
         self.get_quiz_and_full_htmls()
-
-
-    def get_quiz_and_full_htmls(self):
-        logger.info("get quiz files")
-
-        word = self.quiz_params["queued_word"]
-        self.quiz_file_path = DICT_DATA_PATH / 'html' / f'{word}.quiz.html'
-        self.full_file_path = DICT_DATA_PATH / 'html' / f'{word}.html'
-        if word:
-            self.full_text, self.quiz_text = read_text_from_files(word)
-        else:
-            self.full_text, self.quiz_text = '', ''
 
     def queue_quiz_word(self):
         logger.info("queue_quiz_word")
@@ -218,6 +207,7 @@ class FocusEntry():
             part_idx = int(part_idx.item())
             wordpart = random_focus_df.index[0]
 
+            # TODO (3) we don't use htmls anymore, find another way
             full_text, quiz_text = read_text_from_files(word)
 
             quiz_parts = bs(quiz_text, "lxml").find_all('p')

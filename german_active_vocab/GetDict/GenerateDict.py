@@ -161,54 +161,6 @@ def standart_dict(word_query,
             word_dict['updated'] = 'unified dicts 09.02'
             save_word_dict(word_dict, saving_word)
 
-            word_dict_path = DICT_DATA_PATH / 'word_dicts' / f'{word_dict["search_word"]}_standerised.json'
-            try:
-                os.remove(word_dict_path)
-            except FileNotFoundError:
-                pass
-            old_html_path = DICT_DATA_PATH / 'html' / f'{word_dict["search_word"]}.html'
-            try:
-                os.remove(old_html_path)
-            except FileNotFoundError:
-                pass
-            old_html_path = DICT_DATA_PATH / 'html' / f'{word_dict["search_word"]}.quiz.html'
-            try:
-                os.remove(old_html_path)
-            except FileNotFoundError:
-                pass
-
-            word_dict_path = DICT_DATA_PATH / 'word_dicts' / f'{saving_word}_standerised.json'
-            try:
-                os.remove(word_dict_path)
-            except FileNotFoundError:
-                pass
-            old_html_path = DICT_DATA_PATH / 'html' / f'{saving_word}.html'
-            try:
-                os.remove(old_html_path)
-            except FileNotFoundError:
-                pass
-            old_html_path = DICT_DATA_PATH / 'html' / f'{saving_word}.quiz.html'
-            try:
-                os.remove(old_html_path)
-            except FileNotFoundError:
-                pass
-
-            word_dict_path = DICT_DATA_PATH / 'word_dicts' / f'{old_saving_word}_standerised.json'
-            try:
-                os.remove(word_dict_path)
-            except FileNotFoundError:
-                pass
-            old_html_path = DICT_DATA_PATH / 'html' / f'{old_saving_word}.html'
-            try:
-                os.remove(old_html_path)
-            except FileNotFoundError:
-                pass
-            old_html_path = DICT_DATA_PATH / 'html' / f'{old_saving_word}.quiz.html'
-            try:
-                os.remove(old_html_path)
-            except FileNotFoundError:
-                pass
-
         if 'hidden_words_list' in word_dict:
             del word_dict['hidden_words_list']
             try:
@@ -429,58 +381,4 @@ def update_hidden_words_in_dict(selected_text2hide, saving_word) -> None:
         write_str_to_file(word_dict_path, json.dumps(word_dict), overwrite=True)
     else:
         raise RuntimeError('dict for quized word not found')
-    
-def extract_custom_examples_from_html(search_word: str, saving_word: str, old_saving_word: str) -> tuple[list[str], list[str]]:
-    '''
-    Temporary function:
-    save custom examples list from the old version html in word_dict
-    '''
-    # TODO (2) run in loop to update dicts and then delete
-    old_german_examples: list[str] = []
-    old_englisch_examples: list[str] = []
-    wordlist_df = pd.read_csv(DICT_DATA_PATH / 'wordlist.csv')
-    wordlist_df.set_index('Word', inplace=True)
-    word_is_already_saved = search_word in wordlist_df.index or saving_word in wordlist_df.index or old_saving_word in wordlist_df.index
-    if not word_is_already_saved:
-        return old_german_examples, old_englisch_examples
-
-    old_html_path = DICT_DATA_PATH / 'html' / f'{search_word}.html'
-    try:
-        old_html_str = read_str_from_file(old_html_path)
-    except FileNotFoundError:
-        old_html_path = DICT_DATA_PATH / 'html' / f'{saving_word}.html'
-        try:
-            old_html_str = read_str_from_file(old_html_path)
-        except FileNotFoundError:
-            old_html_path = DICT_DATA_PATH / 'html' / f'{old_saving_word}.html'
-            try:
-                old_html_str = read_str_from_file(old_html_path)
-            except FileNotFoundError:
-                return old_german_examples, old_englisch_examples
-    old_html_str = fix_html_with_custom_example(old_html_str)
-    old_html_soup = bs(old_html_str, 'lxml')
-
-    # lkolou deja fi class=custom_examples
-    ce_begin = old_html_soup.find("b", string="Eigenes Beispiel:")
-    if ce_begin:
-        custom_example_de_soup = ce_begin.findNext('i')
-        while custom_example_de_soup:
-            old_german_examples.append(custom_example_de_soup.string.replace('&nbsp;', '').replace('\xa0', ''))
-            custom_example_de_soup = custom_example_de_soup.findNext('i')
-    else:
-        return old_german_examples, old_englisch_examples
-
-    ce_englisch_begin = ce_begin.findNext('b', string="Auf Englisch:")
-    if ce_englisch_begin:
-        custom_example_en_soup = ce_englisch_begin.findNext('i')
-        while custom_example_en_soup:
-            old_englisch_examples.append(custom_example_en_soup.string.replace('&nbsp;', '').replace('\xa0', ''))
-            custom_example_en_soup = custom_example_en_soup.findNext('i')
-    
-    old_german_examples = old_german_examples[:-len(old_englisch_examples)]
-
-    # FIXED (1) BUG should return list
-    assert isinstance(old_german_examples, list)
-
-    return old_german_examples, old_englisch_examples
 
