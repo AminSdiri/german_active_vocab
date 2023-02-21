@@ -15,12 +15,11 @@ from settings import DICT_DATA_PATH
 
 logger = set_up_logger(__name__)
 
-# TODO (1) implement proper search for duden https://github.com/radomirbosak/duden/blob/master/duden/search.py
 # TODO (1) update dict "source" value if examples are manually given by user
 
 
-def get_duden_soup(word, filename, ignore_cache, duden_source):
-    # TODO (1) find better way to request word from duden
+def get_duden_soup(search_word, filename, ignore_cache, duden_source):
+    # TODO (1) implement proper search for duden https://github.com/radomirbosak/duden/blob/master/duden/search.py
     # example schleife is not found in duden but it's there under
     # https://www.duden.de/rechtschreibung/Schleife_Schlinge_Kurve_Schlaufe 
     
@@ -35,7 +34,7 @@ def get_duden_soup(word, filename, ignore_cache, duden_source):
 
     logger.info('Online searching for Word in Duden')
 
-    url_uppercase, url_lowercase = _make_duden_url(word, duden_source)
+    url_uppercase, url_lowercase = _make_duden_url(search_word, duden_source)
     found_in_duden, duden_html, http_code = _get_html_from_duden(url_lowercase)
     if http_code == 404:
         found_in_duden, duden_html, http_code = _get_html_from_duden(url_uppercase)
@@ -123,7 +122,8 @@ def get_json_from_pons_api(search_word: str,
     if json_cache_found and not ignore_cache:
         logger.debug('Reading Word from Pons Cache')
         json_data = json.loads(json_file)
-        return json_data
+        status_code = 200
+        return json_data, status_code
 
     logger.info('Online searching for Word in Pons')
     status_code = 0
@@ -137,7 +137,8 @@ def get_json_from_pons_api(search_word: str,
         url += search_word
         logger.debug(f'URL: {url}')
         try:
-            # TODO (1) save API secret as envirement var
+            # TODO (1) user needs to generate API and put in in API path... -> add API to environement path
+            # save API secret as envirement var
             # Please consider using your own API (it's free)
             # this one is limited to 1000 request per month
             # (https://en.pons.com/open_dict/public_api/secret)
@@ -145,8 +146,8 @@ def get_json_from_pons_api(search_word: str,
             api_secret = read_str_from_file(api_path)
             api_secret = api_secret.replace('\n', '')
             
-            # TODO (2) Pylint Missing timeout argument for method 'requests.get' can cause your program to hang indefinitely
-            raw_data = requests.get(url, headers={"X-Secret": api_secret})
+            # DONE (2) Pylint Missing timeout argument for method 'requests.get' can cause your program to hang indefinitely
+            raw_data = requests.get(url, headers={"X-Secret": api_secret}, timeout=30)
 
             status_code = raw_data.status_code
             if status_code == 200:
@@ -171,7 +172,7 @@ def get_json_from_pons_api(search_word: str,
                     f'Status Code: {str(status_code)} {message}')
                 json_data = ''
 
-            return json_data
+            return json_data, status_code
 
         except requests.exceptions.ConnectionError:
             notification.notify(title='No Connection to Mutter',
