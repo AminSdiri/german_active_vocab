@@ -8,23 +8,21 @@ from collections import Counter
 from PyQt5.QtCore import pyqtSignal, QWaitCondition
 
 from bs4.builder import HTML
-from GetDict.GenerateDict import extract_custom_examples_from_html, standart_dict
+from GetDict.GenerateDict import standart_dict
 from RenderHTML.RenderingHTML import render_html
 from PushToAnki import Anki
 from GetDict.HiddenWordsList import treat_words_to_hide
 from GetDict.ParsingSoup import parse_anki_attribute, wrap_text_in_tag_with_attr
 from settings import ANKI_CONFIG, DICT_DATA_PATH
-from itertools import zip_longest
 
-from utils import (replace_umlauts_1, sanitize_word, set_up_logger, write_str_to_file)
+from utils import (sanitize_word, set_up_logger, write_str_to_file)
 
 logger = set_up_logger(__name__)
 
-# TODO (4) type-hinting in every function
-# TODO (4) positional args vs keyword args
+# TODO (5) type-hinting in every function
+# TODO (5) positional args vs keyword args
 # DONE (0)* create word_dict class that inherit form dict and have all dict operations
 # DONE (0) rename word_dict to word_dict
-# TODO (2) add ability to delete and modify custom examples from DictView
 # DONE (0) gray out force hide button if no word is selected in TextView
 # DONE (0) replace (umgangssprachlich) in duden_syn with umg with pons styling or group them like duden?
 # DONE (0)* loop over all html files and get rid of all html extraction related code.
@@ -49,7 +47,7 @@ class WordDict(dict):
         # validate address
         dict_slice = self.get_dict_content()
         for idx, entry in enumerate(address):
-            # BUG when header is bookmarked then discarded
+            # BUG (2) when header is bookmarked then discarded
             try:
                 if idx == len(address)-1:
                     if isinstance(dict_slice[entry], str):
@@ -160,7 +158,7 @@ class WordDict(dict):
         '''get duplicated elements indexes in german examples.
         delete the elements having this index in both german and english examples
         (supposing they are parallels)'''
-        # TODO (4) change custom example entery to be dict of translations (key=german_example, value = english_translation) to avoid this non-sense
+        # TODO (2) change custom example entery to be dict of translations (key=german_example, value = english_translation) to avoid this non-sense
 
 
         # only values that appears more than once
@@ -328,8 +326,7 @@ class DefEntry():
         
         self.word_dict = WordDict(word_dict, saving_word=self.word_query.saving_word)
 
-        # otherwise we'll get an error in rendering, move to better place after getting rid of html dependency
-        # TODO (2)
+        # TODO (1) otherwise we'll get an error in rendering, move to better place after getting rid of html dependency
         if 'custom_examples' not in self.word_dict:
             self.word_dict['custom_examples'] = {}
             self.word_dict['custom_examples']['german'] = []
@@ -347,7 +344,7 @@ class DefEntry():
         now = datetime.now() - timedelta(hours=3)
 
         logger.info("log_word_in_wordlist_history")
-        # TODO (2) Pylint: Using open without explicitly specifying an encoding
+        # TODO (1) Pylint: Using open without explicitly specifying an encoding
         f = open(DICT_DATA_PATH / 'Wordlist.txt', "a+")
         fileend = f.tell()
         f.seek(0)

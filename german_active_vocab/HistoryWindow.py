@@ -7,11 +7,11 @@ from SavingToQuiz import hide_text
 from settings import DICT_DATA_PATH
 
 
-from utils import read_str_from_file, read_text_from_files, sanitize_word, set_up_logger, update_dataframe_file, write_str_to_file
+from utils import read_str_from_file, sanitize_word, set_up_logger, update_dataframe_file, write_str_to_file
 
 logger = set_up_logger(__name__)
 
-# TODO (1) add ability to delete enteries from history window
+# TODO (2) add ability to delete enteries from history window
 # DISCARDED (1) use a proper database (the use of SQL is counterproductive in my case)
 
 class WordlistWindow(QWidget):

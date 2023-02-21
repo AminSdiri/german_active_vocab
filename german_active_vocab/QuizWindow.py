@@ -15,7 +15,7 @@ from settings import (DICT_SRC_PATH,
                       QUIZ_PRIORITY_ORDER)
 
 
-from utils import read_dataframe_from_file, read_text_from_files, sanitize_word, set_up_logger, update_dataframe_file, write_str_to_file
+from utils import read_dataframe_from_file, sanitize_word, set_up_logger, update_dataframe_file, write_str_to_file
 
 logger = set_up_logger(__name__)
 
@@ -289,6 +289,7 @@ class QuizRatingDiag(QDialog):
         logger.info("add_to_focus")
 
         word = self.queued_word
+        # TODO (3) we don't use htmls anymore, find another way
         full_text, quiz_text = read_text_from_files(word)
 
         update_dataframe_file(word, full_text, quiz_text)

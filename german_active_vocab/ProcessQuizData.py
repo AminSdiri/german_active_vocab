@@ -9,7 +9,7 @@ from pathlib import Path
 from pandas.core.frame import DataFrame
 from plyer import notification
 
-from utils import read_text_from_files, set_up_logger
+from utils import set_up_logger
 from settings import DICT_DATA_PATH
 
 logger = set_up_logger(__name__)
@@ -53,7 +53,7 @@ class QuizEntry():
         # Start by words due Today then yesteday
         # Then queue the oldest due word with oldest seen date
         # then oldest seen non due words
-        # TODO (2) STRUCT repair code runflow
+        # TODO (1) STRUCT repair code runflow
         if self.quiz_priority_order == 'due_words':
             logger.debug('11')
             logger.debug('Quiz Order set to planned Words')

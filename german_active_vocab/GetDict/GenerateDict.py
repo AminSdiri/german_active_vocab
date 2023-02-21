@@ -1,7 +1,4 @@
 import json
-import os
-from bs4 import BeautifulSoup as bs
-import pandas as pd
 from PyQt5.QtCore import QMutex
 from typing import Any
 from PyQt5.QtCore import pyqtSignal, QWaitCondition
@@ -10,9 +7,8 @@ from GetDict.GetData import get_duden_soup, get_json_from_pons_api
 from GetDict.ParsingJson import construct_dict_content_from_json
 from GetDict.ParsingSoup import (construct_dict_content_from_soup, create_synonyms_list,
                                      get_word_freq_from_soup)
-from utils import fix_html_with_custom_example, remove_from_str, replace_umlauts_1
+from utils import remove_from_str, replace_umlauts_1
 from utils import (get_cache,
-                   read_str_from_file,
                    set_up_logger, write_str_to_file)
 from settings import DICT_DATA_PATH
 
@@ -20,8 +16,9 @@ logger = set_up_logger(__name__)
 
 # You can set the python.analysis.diagnosticMode to workspace rather than its default value of openFilesOnly to check for error without opening files
 # TODO (2) STRUCT convert to class? (OOP vs Functional)
-# DONE (0)* STRUCT use the same dict structures for both pons and duden
-# BUG (0) Umschweife not found in duden but it's there
+# DONE (0) STRUCT use the same dict structures for both pons and duden
+# TODO (6) Umschweife not found in duden but it's there -> update: the owrd is there but there's no definition section
+# BUG (0) if the website is not reachable, the returned soup will be empty and the algo will not look it up again 
 
 def standart_dict(word_query,
                   message_box_content_carrier: pyqtSignal,
@@ -62,13 +59,19 @@ def standart_dict(word_query,
     # ignore_dict is risky
     # TODO check if the dict gets saved after every update (maybe should be a class that calls a save method after every update)
 
-    def _create_empty_dict(search_word):
+    def _create_empty_dict(search_word, german_examples: list = None, english_examples: list = None):
         word_dict = {'search_word': search_word}
+        if german_examples is not None:
+            word_dict['custom_examples'] = {}
+            word_dict['custom_examples']['german'] = german_examples
+            word_dict['custom_examples']['english'] = []
+        if english_examples is not None:
+            word_dict['custom_examples']['english'] = english_examples
         return word_dict
 
     def _add_dict_content(word_dict, saving_word, ignore_cache, message_box_content_carrier, wait_for_usr, source: str):
         if 'translate' in source:
-            _pons_json = get_json_from_pons_api(search_word=word_dict['search_word'],
+            _pons_json, status_code = get_json_from_pons_api(search_word=word_dict['search_word'],
                                                 filename=saving_word+source.replace('translate', ''),
                                                 translate_en='en' in source,
                                                 translate_fr='fr' in source,
@@ -106,14 +109,18 @@ def standart_dict(word_query,
                     return word_dict
                 else:
                     raise RuntimeError('json API response is expected to be of length 1 or only for translations 2')  
-            else:
+            elif status_code not in (404, 403, 500, 503): # those are connexion problems, the word may be in pons after retry
                 lang = source.replace('translate_', '')
                 word_dict.update({f'content_{lang}': ''})
                 word_dict['requested'] = source
                 return word_dict
+            else:
+                word_dict['requested'] = source
+                # inform the user he should retry if content_lang is not there
+                return word_dict 
 
         if source in ('duden', 'pons'):
-            pons_json = get_json_from_pons_api(search_word=word_dict['search_word'],
+            pons_json, status_code = get_json_from_pons_api(search_word=word_dict['search_word'],
                                                 filename=saving_word,
                                                 ignore_cache=ignore_cache)
             # getting root headword
@@ -255,6 +262,11 @@ def standart_dict(word_query,
 
     if not dict_exist:
         word_dict = _create_empty_dict(word_query.search_word)
+
+    if dict_exist and (word_query.ignore_cache or word_query.ignore_dict):
+        word_dict = _create_empty_dict(word_query.search_word,
+                                       german_examples=word_dict['custom_examples']['german'],
+                                       english_examples=word_dict['custom_examples']['english'])
     
     translate = word_query.translate_fr or word_query.translate_en
 
@@ -320,7 +332,6 @@ def standart_dict(word_query,
 
 def update_synonymes_format(word_dict):
     # temporary, update synonymes format, delete after all word_dicts are modified after 19.02.23
-    # BUG (0) saugen w blasen 3tawek des erreur lenna bel du w blech
     if 'synonymes' not in word_dict:
         return
     

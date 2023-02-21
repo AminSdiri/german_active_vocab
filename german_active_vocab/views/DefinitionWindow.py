@@ -2,7 +2,7 @@ import sys
 from typing import Literal
 from plyer import notification
 
-from PyQt5.QtWidgets import (QPushButton, QWidget, QLineEdit, QTextEdit, QCheckBox, QMessageBox)
+from PyQt5.QtWidgets import (QPushButton, QWidget, QLineEdit, QTextEdit, QMessageBox)
 from PyQt5.QtGui import (QTextCharFormat,
                          QTextCursor,
                          QColor)
@@ -16,10 +16,11 @@ from settings import (DICT_DATA_PATH,
 
 logger = set_up_logger(__name__)
 
-# BUG (0) can't change dict content for herumwirbeln du
+# TODO (1) LOOK&FEEL using boxLayout with percentages instead of hardcoded dimensions
 # DONE (0)* add radio button to switch between duden and pons
 # DONE (0) make text of radio button grey if dict_content is empty and white if it's full
 # TODO (1) separate Def-Obj Model operations from View 
+# TODO (1) rewrite refresh dict/text, address/all functions and use the model signal
 
 # DONE add deleted and focused Properties from TreeModel, update TextView 
 # DONE delete an element should hide all of it's children -> select an element should select all of it's children
@@ -47,13 +48,13 @@ class DefinitionWindow(QWidget):
         self.dict_tree_view.move(700, 5)
         self.dict_tree_view.resize(690, 635)
 
-        self.txt_cont = QTextEdit(self)
-        self.txt_cont.move(5, 5)
-        self.txt_cont.resize(690, 545)
-        self.txt_cont.setReadOnly(True)
-        self.txt_cont.selectionChanged.connect(
+        self.text_view = QTextEdit(self)
+        self.text_view.move(5, 5)
+        self.text_view.resize(690, 545)
+        self.text_view.setReadOnly(True)
+        self.text_view.selectionChanged.connect(
             lambda: self.force_hide_button.setEnabled(
-                self.txt_cont.textCursor().selectedText() != "")
+                self.text_view.textCursor().selectedText() != "")
                     )
 
         # if code is being tested, the Return button have the "Pass Test" fonctionality
@@ -169,6 +170,7 @@ class DefinitionWindow(QWidget):
         self.beispiel.clear()
         self.beispiel2.clear()
         # TODO save here automaticly or by hitting the save button?
+        self.def_obj.word_dict.save_word_dict()
 
         if faulty_examples:
             self.launch_no_hidden_words_in_beispiel_de_dialog(faulty_examples)
@@ -235,12 +237,13 @@ class DefinitionWindow(QWidget):
     def refresh_dict(self, index) -> None:
         text, address = self.model.get_dict_address(index)
         self.def_obj.word_dict.update_dict(text, address)
+        self.update_text_view()
 
     def update_text_view(self) -> None:
         self.def_obj.defined_html = self.def_obj.render_html()
-        self.txt_cont.clear()
-        self.txt_cont.insertHtml(self.def_obj.defined_html)
-        self.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
+        self.text_view.clear()
+        self.text_view.insertHtml(self.def_obj.defined_html)
+        self.text_view.moveCursor(QTextCursor.MoveOperation.Start)
         self.show()
 
     def expend_window_to_edit_dict(self) -> None:
@@ -255,9 +258,9 @@ class DefinitionWindow(QWidget):
         if self.def_obj.word_query.beispiel_en:
             self.beispiel2.insert(self.def_obj.word_query.beispiel_en)
 
-        self.txt_cont.setFont(NORMAL_FONT)
-        self.txt_cont.insertHtml(self.def_obj.defined_html)
-        self.txt_cont.moveCursor(QTextCursor.MoveOperation.Start)
+        self.text_view.setFont(NORMAL_FONT)
+        self.text_view.insertHtml(self.def_obj.defined_html)
+        self.text_view.moveCursor(QTextCursor.MoveOperation.Start)
 
         if self.def_obj.word_dict['requested'] == 'duden':
             self.du_pons_switch.setChecked(True)
@@ -272,7 +275,7 @@ class DefinitionWindow(QWidget):
         color = QColor(3, 155, 224)
         color = QColor(int(220*1.15), int(212*1.15), int(39*1.15))
         color_format.setForeground(color)
-        self.txt_cont.textCursor().mergeCharFormat(color_format)
+        self.text_view.textCursor().mergeCharFormat(color_format)
 
     def send_examples_to_anki(self) -> None:
 
@@ -332,10 +335,10 @@ class DefinitionWindow(QWidget):
     
     def force_hide(self) -> None:
         '''add selected word to  hidden words in dict file'''
-        # TODO (1) desactivate button if no selection
+        # DONE (1) desactivate button if no selection
         logger.info("force_hide")
         # DONE (1) add manually hidden words to dict_file
-        selected_text2hide = self.txt_cont.textCursor().selectedText() or self.beispiel.selectedText()
+        selected_text2hide = self.text_view.textCursor().selectedText() or self.beispiel.selectedText()
 
         self.def_obj.add_word_to_hidden_list(selected_text2hide)
 
@@ -351,7 +354,7 @@ class DefinitionWindow(QWidget):
         beispiel_en = self.beispiel2.text()
         beispiel_de = beispiel_de.replace('- ', '– ')
         beispiel_en = beispiel_en.replace('- ', '– ')
-        custom_html_from_qt = self.txt_cont.toHtml()
+        custom_html_from_qt = self.text_view.toHtml()
         tag = ''
         return custom_html_from_qt, beispiel_de, beispiel_en, tag
 
